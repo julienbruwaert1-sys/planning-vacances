@@ -1,0 +1,26 @@
+# Contexte du projet — Application de planification de vacances
+
+## Description
+Application web personnelle de planification de voyages, développée initialement en HTML, CSS et JavaScript vanilla, fonctionnant localement dans un navigateur. Le projet est déjà fonctionnel et a été construit avec l'aide de Claude.
+
+## Contraintes techniques essentielles (à respecter systématiquement)
+
+1. Stockage 100% local  toutes les données (itinéraires, notes, budgets, etc.) doivent être stockées localement (localStorage, IndexedDB ou fichiers JSON locaux selon le besoin) — aucune dépendance à un serveur ou une API distante pour le fonctionnement de base.
+2. Fonctionnement hors-ligne  l'application doit rester pleinement utilisable sans connexion Internet, y compris pendant un voyage à l'étranger. Prévoir un Service Worker  cache applicatif si des ressources externes (polices, icônes, cartes) sont utilisées.
+3. Cibles multi-écrans  l'interface doit être responsive et offrir une expérience adaptée à la fois sur smartphone (usage principal en voyage) et sur PC (usage de préparation en amont).
+4. Portabilité future vers Android  garder une architecture compatible avec un portage ultérieur (ex. via Capacitor, ou en PWA installable) — éviter les dépendances incompatibles avec un wrapper mobile.
+5. Interopérabilité future avec une smartwatch Galaxy (Wear OS)  concevoir les données et fonctionnalités clés (ex. prochain événement de l'itinéraire, checklist du jour, alertes) de façon modulaire, pour pouvoir être exposées plus tard à une application compagnon sur montre connectée (synchronisation via BluetoothWear OS API à terme).
+6. Liaisons futures avec des applications tierces  envisager à terme des ponts avec des services externes utiles en voyage (ex. Airbnb, Google Maps, Google Earth, compagnies aériennes) — par exemple ouvrir une adresse directement dans Google Maps, ou afficher un lien vers une réservation. Ces liaisons doivent rester optionnelles et ne jamais compromettre le fonctionnement hors-ligne ni le stockage local des données de base.
+7. Fonctionnalités en ligne complémentaires  lorsqu'une connexion Internet est disponible, l'application pourra proposer des outils utilisant des données en direct — par exemple un convertisseur de devises avec taux de change actualisés, la météo en temps réel, ou d'autres fonctions similaires. Ces fonctionnalités doivent être conçues comme des compléments optionnels  l'application doit détecter l'absence de connexion et se dégrader proprement (ex. afficher le dernier tauxdernière météo connue, ou masquer la fonction) sans jamais bloquer l'usage hors-ligne des fonctionnalités de base.
+
+## Règles de développement
+
+- Ne jamais casser l'existant  avant toute modification, comprendre le fonctionnement actuel du code concerné. Toute nouvelle fonctionnalité ou refonte visuelle doit préserver les données déjà stockées et les fonctionnalités en place.
+- Proposer un plan avant les modifications importantes ou les refontes d'interface, et attendre validation avant de les exécuter.
+- Privilégier un code simple, lisible et modulaire plutôt que des dépendances externes lourdes, pour faciliter la maintenance et le futur portage Android.
+- À chaque évolution d'interface, viser  simplicité d'usage, intuitivité, modernité visuelle, et adaptation à un usage tactile sur mobile.
+
+## Objectifs actuels
+- Faire évoluer progressivement les fonctionnalités et le design de l'application.
+- Préparer le terrain pour la conversion en application Android.
+- Garder à l'esprit une possible extension future vers une application compagnon Galaxy Watch.
