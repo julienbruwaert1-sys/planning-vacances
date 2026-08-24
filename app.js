@@ -1864,18 +1864,57 @@ checklistToggle.addEventListener("click",toggleChecklistDrawer);
 
 renderChecklist();
 
-/* --- Convertisseur de devises GBP ↔ JPY --- */
+/* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
 
-const RATE_STORAGE_KEY = "gbpJpyRate";
-const RATE_TIMESTAMP_KEY = "gbpJpyRateTimestamp";
+const CURRENCIES = {
+    JPY:{symbol:"¥",decimals:0,label:"Yen (JPY)"},
+    EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"}
+};
+
+function rateStorageKey(currency){
+    return "gbpRate_"+currency;
+}
+
+function rateTimestampKey(currency){
+    return "gbpRateTimestamp_"+currency;
+}
 
 const gbpInput = document.getElementById("gbpInput");
-const jpyInput = document.getElementById("jpyInput");
+const targetInput = document.getElementById("targetInput");
+const targetFieldLabel = document.getElementById("targetFieldLabel");
+const converterTitle = document.getElementById("converterTitle");
+const targetCurrencySelect = document.getElementById("targetCurrency");
 const rateInfo = document.getElementById("rateInfo");
+
+let targetCurrency = localStorage.getItem("targetCurrency") || "JPY";
+targetCurrencySelect.value = targetCurrency;
 
 let currentRate = null;
 let rateIsLive = false;
 let rateTimestamp = null;
+
+function applyCurrencyMeta(){
+
+    const meta = CURRENCIES[targetCurrency];
+
+    targetFieldLabel.textContent = meta.symbol;
+    targetInput.step = meta.decimals===0 ? "1" : "0.01";
+    converterTitle.textContent = `GBP ↔ ${targetCurrency}`;
+}
+
+applyCurrencyMeta();
+
+targetCurrencySelect.addEventListener("change",()=>{
+
+    targetCurrency = targetCurrencySelect.value;
+    localStorage.setItem("targetCurrency",targetCurrency);
+
+    applyCurrencyMeta();
+    targetInput.value = "";
+    currentRate = null;
+
+    fetchExchangeRate();
+});
 
 function formatTimestamp(iso){
 
@@ -1931,7 +1970,7 @@ function updateRateDisplay(){
 
     const rateText = document.createElement("div");
     rateText.textContent =
-    `1 £ = ${currentRate.toFixed(2)} ¥`;
+    `1 £ = ${currentRate.toFixed(2)} ${CURRENCIES[targetCurrency].symbol}`;
 
     const dateText = document.createElement("div");
     dateText.style.marginTop = "2px";
@@ -1952,18 +1991,19 @@ function convertFromGBP(){
     const val = parseFloat(gbpInput.value);
 
     if(isNaN(val)){
-        jpyInput.value = "";
+        targetInput.value = "";
         return;
     }
 
-    jpyInput.value = (val * currentRate).toFixed(0);
+    targetInput.value =
+    (val * currentRate).toFixed(CURRENCIES[targetCurrency].decimals);
 }
 
-function convertFromJPY(){
+function convertFromTarget(){
 
     if(currentRate===null) return;
 
-    const val = parseFloat(jpyInput.value);
+    const val = parseFloat(targetInput.value);
 
     if(isNaN(val)){
         gbpInput.value = "";
@@ -1974,7 +2014,7 @@ function convertFromJPY(){
 }
 
 gbpInput.addEventListener("input",convertFromGBP);
-jpyInput.addEventListener("input",convertFromJPY);
+targetInput.addEventListener("input",convertFromTarget);
 
 async function fetchWithTimeout(url,ms){
 
@@ -1989,10 +2029,10 @@ async function fetchWithTimeout(url,ms){
     }
 }
 
-async function tryFrankfurter(){
+async function tryFrankfurter(currency){
 
     const response = await fetchWithTimeout(
-        "https://api.frankfurter.app/latest?from=GBP&to=JPY",
+        `https://api.frankfurter.app/latest?from=GBP&to=${currency}`,
         7000
     );
 
@@ -2001,16 +2041,16 @@ async function tryFrankfurter(){
     }
 
     const data = await response.json();
-    const rate = data.rates && data.rates.JPY;
+    const rate = data.rates && data.rates[currency];
 
     if(!rate){
-        throw new Error("Frankfurter: JPY absent de la réponse");
+        throw new Error(`Frankfurter: ${currency} absent de la réponse`);
     }
 
     return rate;
 }
 
-async function tryOpenErApi(){
+async function tryOpenErApi(currency){
 
     const response = await fetchWithTimeout(
         "https://open.er-api.com/v6/latest/GBP",
@@ -2023,17 +2063,18 @@ async function tryOpenErApi(){
 
     const data = await response.json();
 
-    if(data.result!=="success" || !data.rates || !data.rates.JPY){
+    if(data.result!=="success" || !data.rates || !data.rates[currency]){
         throw new Error("open.er-api.com: réponse invalide");
     }
 
-    return data.rates.JPY;
+    return data.rates[currency];
 }
 
 async function fetchExchangeRate(){
 
     rateInfo.textContent = "Chargement du taux…";
 
+    const currency = targetCurrency;
     const providers = [tryFrankfurter,tryOpenErApi];
     let lastError = null;
 
@@ -2041,14 +2082,14 @@ async function fetchExchangeRate(){
 
         try{
 
-            const rate = await provider();
+            const rate = await provider(currency);
 
             currentRate = rate;
             rateIsLive = true;
             rateTimestamp = new Date().toISOString();
 
-            localStorage.setItem(RATE_STORAGE_KEY,rate);
-            localStorage.setItem(RATE_TIMESTAMP_KEY,rateTimestamp);
+            localStorage.setItem(rateStorageKey(currency),rate);
+            localStorage.setItem(rateTimestampKey(currency),rateTimestamp);
 
             lastError = null;
             break;
@@ -2062,19 +2103,21 @@ async function fetchExchangeRate(){
     if(lastError){
 
         const cachedRate =
-        localStorage.getItem(RATE_STORAGE_KEY);
+        localStorage.getItem(rateStorageKey(currency));
 
         if(cachedRate){
             currentRate = parseFloat(cachedRate);
             rateIsLive = false;
             rateTimestamp =
-            localStorage.getItem(RATE_TIMESTAMP_KEY);
+            localStorage.getItem(rateTimestampKey(currency));
         }else{
             currentRate = null;
             rateIsLive = false;
             rateTimestamp = null;
         }
     }
+
+    if(currency!==targetCurrency) return;
 
     updateRateDisplay();
 

@@ -85,6 +85,13 @@
 <label for="dayCount">🗓️ Nombre de jours :</label>
 <input type="number" id="dayCount" min="1" max="30" value="7">
 </div>
+<div class="date-wrap-row">
+<label for="targetCurrency">💱 Devise du convertisseur :</label>
+<select id="targetCurrency">
+<option value="JPY">¥ Yen (JPY)</option>
+<option value="EUR">€ Euro (EUR)</option>
+</select>
+</div>
 </div>
 </div>
 
@@ -93,7 +100,7 @@
 <div class="converter-card">
 <div class="converter-head">
 <span class="converter-icon">💱</span>
-<h3>GBP ↔ JPY</h3>
+<h3 id="converterTitle">GBP ↔ JPY</h3>
 </div>
 <div class="converter-row">
 <div class="converter-field">
@@ -102,8 +109,8 @@
 </div>
 <span class="converter-eq">⇄</span>
 <div class="converter-field">
-<label for="jpyInput">¥</label>
-<input type="number" id="jpyInput" placeholder="0" step="1">
+<label for="targetInput" id="targetFieldLabel">¥</label>
+<input type="number" id="targetInput" placeholder="0" step="1">
 </div>
 </div>
 <div id="rateInfo" class="rate-info">Chargement du taux…</div>
