@@ -2085,6 +2085,17 @@ async function fetchExchangeRate(){
 
 fetchExchangeRate();
 
+window.addEventListener("offline",()=>{
+    if(currentRate!==null){
+        rateIsLive = false;
+        updateRateDisplay();
+    }
+});
+
+window.addEventListener("online",()=>{
+    fetchExchangeRate();
+});
+
 /* --- Service Worker (installation & fonctionnement hors-ligne) --- */
 
 if("serviceWorker" in navigator){
