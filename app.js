@@ -2096,6 +2096,8 @@ window.addEventListener("online",()=>{
     fetchExchangeRate();
 });
 
+setInterval(fetchExchangeRate,30*60*1000);
+
 /* --- Service Worker (installation & fonctionnement hors-ligne) --- */
 
 if("serviceWorker" in navigator){
