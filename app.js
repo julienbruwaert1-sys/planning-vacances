@@ -2322,6 +2322,9 @@ function renderProfileStats(){
         }
     }
 
+    const tripStepCount = localStorage.getItem("tripStepCount");
+    const tripDistanceKm = localStorage.getItem("tripDistanceKm");
+
     profileStatsEl.innerHTML = `
         <div class="profile-stat">
             <span class="profile-stat-value">${totalPrice.toFixed(2)} ${priceCurrencySymbol}</span>
@@ -2335,7 +2338,16 @@ function renderProfileStats(){
             <span class="profile-stat-value">${dayCount}</span>
             <span class="profile-stat-label">Jours de voyage</span>
         </div>
+        <div class="profile-stat">
+            <span class="profile-stat-value">${tripStepCount || "—"}</span>
+            <span class="profile-stat-label">Nombre de pas</span>
+        </div>
+        <div class="profile-stat">
+            <span class="profile-stat-value">${tripDistanceKm ? tripDistanceKm+" km" : "—"}</span>
+            <span class="profile-stat-label">Kilomètres</span>
+        </div>
         <div class="profile-stat-full">${daysRemainingText}</div>
+        <div class="profile-stat-full profile-stat-hint">🚶 Pas et distance : à connecter à une application podomètre à partir de la date de départ (fonctionnalité à venir).</div>
     `;
 }
 
