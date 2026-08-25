@@ -490,7 +490,7 @@ body.dark .trip-summary{
 }
 
 body.has-bottom-nav{
-    padding-bottom:88px;
+    padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));
 }
 
 .profile-title{
@@ -731,8 +731,9 @@ body.has-bottom-nav .checklist-toggle-btn{
     bottom:0;
     z-index:1500;
     display:flex;
-    justify-content:center;
-    padding:10px 14px 14px;
+    background:#FFFFFF;
+    border-top:1px solid rgba(51,64,74,.10);
+    padding-bottom:env(safe-area-inset-bottom,0px);
 }
 
 .bottom-nav[hidden]{
@@ -743,19 +744,15 @@ body.has-bottom-nav .checklist-toggle-btn{
     display:flex;
     justify-content:space-around;
     align-items:center;
-    background:#FFFFFF;
-    border-radius:22px;
-    box-shadow:0 8px 24px rgba(51,64,74,.18);
-    padding:8px 6px;
-    max-width:420px;
     width:100%;
+    padding:8px 4px 10px;
 }
 
 .bottom-nav-tab{
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:2px;
+    gap:3px;
     background:none;
     border:none;
     color:#9AAAB4;
@@ -763,10 +760,8 @@ body.has-bottom-nav .checklist-toggle-btn{
     font-weight:600;
     font-family:'Inter',Arial,sans-serif;
     cursor:pointer;
-    padding:7px 10px;
-    border-radius:14px;
+    padding:4px 8px;
     flex:1;
-    transition:background .15s,color .15s;
 }
 
 .bottom-nav-tab .bn-icon{
@@ -776,12 +771,11 @@ body.has-bottom-nav .checklist-toggle-btn{
 
 .bottom-nav-tab.active{
     color:#D2503B;
-    background:#FCEEE8;
 }
 
-body.dark .bottom-nav-group{
+body.dark .bottom-nav{
     background:#121A2E;
-    box-shadow:0 8px 24px rgba(0,0,0,.5);
+    border-top-color:rgba(234,240,251,.10);
 }
 
 body.dark .bottom-nav-tab{
@@ -790,7 +784,6 @@ body.dark .bottom-nav-tab{
 
 body.dark .bottom-nav-tab.active{
     color:#3D7CFF;
-    background:rgba(61,124,255,.14);
 }
 
 /* Vue plein écran générique (réutilisable par de futures fonctionnalités) */
@@ -805,6 +798,10 @@ body.dark .bottom-nav-tab.active{
 
 .fullscreen-view[hidden]{
     display:none;
+}
+
+body.has-bottom-nav .fullscreen-view{
+    bottom:calc(64px + env(safe-area-inset-bottom,0px));
 }
 
 .fullscreen-header{
