@@ -222,6 +222,10 @@ body.dark .date-tab.active{
     width:100%;
 }
 
+.date-wrap-row[hidden]{
+    display:none;
+}
+
 .date-field{
     display:flex;
     flex-direction:column;
