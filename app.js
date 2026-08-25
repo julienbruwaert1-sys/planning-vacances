@@ -110,12 +110,24 @@ function showToast(message,options={}){
 
 const modalOverlay = document.getElementById("modalOverlay");
 const modalMessage = document.getElementById("modalMessage");
+const modalPreviewImage = document.getElementById("modalPreviewImage");
 const modalCancel = document.getElementById("modalCancel");
 const modalConfirm = document.getElementById("modalConfirm");
 
-function showConfirmModal(message,onConfirm){
+function showConfirmModal(message,onConfirm,options){
+
+    options = options || {};
 
     modalMessage.textContent = message;
+
+    if(options.previewSrc){
+        modalPreviewImage.src = options.previewSrc;
+        modalPreviewImage.hidden = false;
+    }else{
+        modalPreviewImage.hidden = true;
+        modalPreviewImage.src = "";
+    }
+
     modalOverlay.hidden = false;
 
     const cleanup = ()=>{
@@ -131,6 +143,7 @@ function showConfirmModal(message,onConfirm){
 
     const onCancelClick = ()=>{
         cleanup();
+        if(options.onCancel) options.onCancel();
     };
 
     modalConfirm.addEventListener("click",onConfirmClick);
@@ -1489,12 +1502,26 @@ function applyAppIcon(key){
 applyAppIcon(appIconChoice);
 
 appIconSelect.addEventListener("change",()=>{
-    appIconChoice = appIconSelect.value;
-    localStorage.setItem(APP_ICON_KEY,appIconChoice);
-    applyAppIcon(appIconChoice);
-    showToast(
-        "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
-        {type:"success",duration:6000}
+
+    const newChoice = appIconSelect.value;
+    const previousChoice = appIconChoice;
+    const meta = APP_ICONS[newChoice];
+
+    showConfirmModal(
+        `Utiliser « ${meta.label} » comme logo de l'application ?`,
+        ()=>{
+            appIconChoice = newChoice;
+            localStorage.setItem(APP_ICON_KEY,appIconChoice);
+            applyAppIcon(appIconChoice);
+            showToast(
+                "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
+                {type:"success",duration:6000}
+            );
+        },
+        {
+            previewSrc: meta.icon512,
+            onCancel: ()=>{ appIconSelect.value = previousChoice; }
+        }
     );
 });
 

@@ -119,6 +119,19 @@ body.dark .modal-box{
     line-height:1.4;
 }
 
+.modal-preview-image{
+    display:block;
+    width:96px;
+    height:96px;
+    border-radius:22px;
+    box-shadow:0 4px 16px rgba(51,64,74,.18);
+    margin:0 auto 16px;
+}
+
+.modal-preview-image[hidden]{
+    display:none;
+}
+
 .modal-actions{
     display:flex;
     gap:10px;
