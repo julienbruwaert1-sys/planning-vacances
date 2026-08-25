@@ -272,6 +272,7 @@ Ajouter
 
 <div class="profile-list">
 <button class="profile-row" type="button" data-profile-view="dataSettingsView"><span class="profile-row-icon">⚙️</span><span class="profile-row-label">Réglages &amp; données</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="dateSettingsView"><span class="profile-row-icon">🗓️</span><span class="profile-row-label">Dates &amp; devise</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
@@ -302,6 +303,16 @@ Ajouter
 </div>
 <p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
 </div>
+</div>
+</div>
+
+<div id="dateSettingsView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🗓️ Dates &amp; devise</h2>
+</div>
+<div class="fullscreen-body">
+<div class="profile-section" id="dateProfileSlot"></div>
 </div>
 </div>
 

@@ -1458,6 +1458,7 @@ const dateInlineSlot = document.getElementById("dateInlineSlot");
 const dateMenuItem = document.getElementById("dateMenuItem");
 const dateToggleBtn = document.getElementById("dateToggleBtn");
 const datePanel = document.getElementById("datePanel");
+const dateProfileSlot = document.getElementById("dateProfileSlot");
 const dateTabs = document.getElementById("dateTabs");
 const dateTabButtons = dateTabs.querySelectorAll(".date-tab");
 const dateWrapRows = dateWrap.querySelectorAll(".date-wrap-row");
@@ -1494,16 +1495,16 @@ dateTabButtons.forEach(btn=>{
 
 function updateDatePlacement(){
 
-    const prominent = !startDate || isDesktopContext();
+    const desktop = isDesktopContext();
 
-    if(prominent){
+    if(desktop){
         dateInlineSlot.appendChild(dateWrap);
-        dateMenuItem.hidden = true;
-        closeDatePanel();
     }else{
-        datePanel.appendChild(dateWrap);
-        dateMenuItem.hidden = false;
+        dateProfileSlot.appendChild(dateWrap);
     }
+
+    dateMenuItem.hidden = true;
+    closeDatePanel();
 
     updateDateTabs();
     updateBottomNavVisibility();
