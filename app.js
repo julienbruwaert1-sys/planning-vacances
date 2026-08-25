@@ -1777,25 +1777,54 @@ const CHECKLIST_STORAGE_KEY = "travelChecklist";
 
 const checklistToggle = document.getElementById("checklistToggle");
 const checklistToggleLabel = document.getElementById("checklistToggleLabel");
-const checklistDrawer = document.getElementById("checklistDrawer");
+const checklistView = document.getElementById("checklistView");
+const checklistBackBtn = document.getElementById("checklistBackBtn");
 const checklistItemsEl = document.getElementById("checklistItems");
+const checklistSuggestEl = document.getElementById("checklistSuggestions");
 const checklistNewItem = document.getElementById("checklistNewItem");
 const checklistAddBtn = document.getElementById("checklistAddBtn");
+const checklistHideChecked = document.getElementById("checklistHideChecked");
+const checklistProgressText = document.getElementById("checklistProgressText");
+const checklistProgressPct = document.getElementById("checklistProgressPct");
+const checklistProgressFill = document.getElementById("checklistProgressFill");
+
+const CATEGORY_ICONS = {
+    "Documents":"📄",
+    "Électronique":"🔌",
+    "Argent":"💰",
+    "Santé":"💊",
+    "Vêtements":"👕",
+    "Divers":"🧳"
+};
+
+const CATEGORY_ORDER = ["Documents","Électronique","Argent","Santé","Vêtements","Divers"];
 
 const defaultChecklist = [
-    {label:"Passeport / carte d'identité",checked:false},
-    {label:"Billets d'avion / train",checked:false},
-    {label:"Réservations d'hôtel",checked:false},
-    {label:"Assurance voyage",checked:false},
-    {label:"Adaptateur secteur",checked:false},
-    {label:"Chargeurs & batterie externe",checked:false},
-    {label:"Argent liquide / carte bancaire",checked:false},
-    {label:"Trousse de pharmacie",checked:false}
+    {label:"Passeport / carte d'identité",checked:false,category:"Documents"},
+    {label:"Billets d'avion / train",checked:false,category:"Documents"},
+    {label:"Réservations d'hôtel",checked:false,category:"Documents"},
+    {label:"Assurance voyage",checked:false,category:"Documents"},
+    {label:"Adaptateur secteur",checked:false,category:"Électronique"},
+    {label:"Chargeurs & batterie externe",checked:false,category:"Électronique"},
+    {label:"Argent liquide / carte bancaire",checked:false,category:"Argent"},
+    {label:"Trousse de pharmacie",checked:false,category:"Santé"}
+];
+
+const checklistSuggestions = [
+    {label:"Lunettes de soleil",category:"Vêtements"},
+    {label:"Maillot de bain",category:"Vêtements"},
+    {label:"Crème solaire",category:"Santé"},
+    {label:"Parapluie",category:"Divers"},
+    {label:"Livre / liseuse",category:"Divers"},
+    {label:"Prise multiple",category:"Électronique"}
 ];
 
 let checklist =
 JSON.parse(localStorage.getItem(CHECKLIST_STORAGE_KEY))
 || defaultChecklist;
+
+const collapsedChecklistCategories = new Set();
+let hideCheckedItems = false;
 
 function saveChecklist(){
     localStorage.setItem(
@@ -1804,58 +1833,163 @@ function saveChecklist(){
     );
 }
 
+function groupChecklistByCategory(){
+
+    const groups = {};
+
+    checklist.forEach((item,index)=>{
+        const category = item.category || "Divers";
+        if(!groups[category]) groups[category] = [];
+        groups[category].push({...item,index});
+    });
+
+    return groups;
+}
+
 function renderChecklist(){
 
     checklistItemsEl.innerHTML = "";
 
-    checklist.forEach((item,index)=>{
+    const groups = groupChecklistByCategory();
 
-        const row = document.createElement("div");
-        row.className = "checklist-item" + (item.checked ? " checked" : "");
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = item.checked;
-        checkbox.id = `checklist-item-${index}`;
-        checkbox.addEventListener("change",()=>{
-            checklist[index].checked = checkbox.checked;
-            saveChecklist();
-            renderChecklist();
-        });
-
-        const label = document.createElement("label");
-        label.htmlFor = checkbox.id;
-        label.style.flex = "1";
-        label.style.cursor = "pointer";
-
-        const span = document.createElement("span");
-        span.textContent = item.label;
-        label.appendChild(span);
-
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "checklist-remove";
-        removeBtn.textContent = "✕";
-        removeBtn.setAttribute("aria-label","Supprimer cet élément");
-        removeBtn.addEventListener("click",()=>{
-            checklist.splice(index,1);
-            saveChecklist();
-            renderChecklist();
-        });
-
-        row.appendChild(checkbox);
-        row.appendChild(label);
-        row.appendChild(removeBtn);
-
-        checklistItemsEl.appendChild(row);
+    const categories = CATEGORY_ORDER.filter(cat=>groups[cat]);
+    Object.keys(groups).forEach(cat=>{
+        if(!categories.includes(cat)) categories.push(cat);
     });
 
+    categories.forEach(category=>{
+
+        const items = groups[category];
+        const doneInCategory = items.filter(i=>i.checked).length;
+
+        const catDiv = document.createElement("div");
+        catDiv.className = "checklist-category" +
+            (collapsedChecklistCategories.has(category) ? " collapsed" : "");
+
+        const head = document.createElement("div");
+        head.className = "checklist-cat-head";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "name";
+        nameSpan.textContent =
+        `${CATEGORY_ICONS[category] || "🧳"} ${category}`;
+
+        const countSpan = document.createElement("span");
+        countSpan.className = "count";
+        countSpan.textContent = `${doneInCategory}/${items.length}`;
+
+        head.appendChild(nameSpan);
+        head.appendChild(countSpan);
+
+        head.addEventListener("click",()=>{
+            if(collapsedChecklistCategories.has(category)){
+                collapsedChecklistCategories.delete(category);
+            }else{
+                collapsedChecklistCategories.add(category);
+            }
+            renderChecklist();
+        });
+
+        catDiv.appendChild(head);
+
+        const itemsWrap = document.createElement("div");
+        itemsWrap.className = "checklist-cat-items";
+
+        items.forEach(item=>{
+
+            const row = document.createElement("div");
+            row.className = "checklist-item" +
+                (item.checked ? " checked" : "") +
+                (hideCheckedItems && item.checked ? " hidden-when-checked" : "");
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = item.checked;
+            checkbox.id = `checklist-item-${item.index}`;
+            checkbox.addEventListener("change",()=>{
+                checklist[item.index].checked = checkbox.checked;
+                saveChecklist();
+                renderChecklist();
+            });
+
+            const label = document.createElement("label");
+            label.htmlFor = checkbox.id;
+            label.style.flex = "1";
+            label.style.cursor = "pointer";
+
+            const span = document.createElement("span");
+            span.textContent = item.label;
+            label.appendChild(span);
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "checklist-remove";
+            removeBtn.textContent = "✕";
+            removeBtn.setAttribute("aria-label","Supprimer cet élément");
+            removeBtn.addEventListener("click",()=>{
+                checklist.splice(item.index,1);
+                saveChecklist();
+                renderChecklist();
+            });
+
+            row.appendChild(checkbox);
+            row.appendChild(label);
+            row.appendChild(removeBtn);
+
+            itemsWrap.appendChild(row);
+        });
+
+        catDiv.appendChild(itemsWrap);
+        checklistItemsEl.appendChild(catDiv);
+    });
+
+    updateChecklistProgress();
+    renderChecklistSuggestions();
+}
+
+function updateChecklistProgress(){
+
     const doneCount = checklist.filter(i=>i.checked).length;
+    const total = checklist.length;
+    const pct = total>0 ? Math.round((doneCount/total)*100) : 0;
 
     checklistToggleLabel.textContent =
-    checklist.length>0
-        ? `Checklist de voyage (${doneCount}/${checklist.length})`
+    total>0
+        ? `Checklist de voyage (${doneCount}/${total})`
         : "Checklist de voyage";
+
+    checklistProgressText.textContent = `${doneCount} / ${total} préparés`;
+    checklistProgressPct.textContent = `${pct}%`;
+    checklistProgressFill.style.width = `${pct}%`;
+}
+
+function renderChecklistSuggestions(){
+
+    checklistSuggestEl.innerHTML = "";
+
+    const existingLabels =
+    checklist.map(i=>i.label.toLowerCase());
+
+    checklistSuggestions
+        .filter(s=>!existingLabels.includes(s.label.toLowerCase()))
+        .forEach(suggestion=>{
+
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "checklist-chip";
+            chip.textContent = `+ ${suggestion.label}`;
+            chip.addEventListener("click",()=>{
+                checklist.push({
+                    label:suggestion.label,
+                    checked:false,
+                    category:suggestion.category
+                });
+                saveChecklist();
+                renderChecklist();
+            });
+
+            checklistSuggestEl.appendChild(chip);
+        });
 }
 
 function addChecklistItem(){
@@ -1863,7 +1997,7 @@ function addChecklistItem(){
     const label = checklistNewItem.value.trim();
     if(!label) return;
 
-    checklist.push({label,checked:false});
+    checklist.push({label,checked:false,category:"Divers"});
     saveChecklist();
     renderChecklist();
 
@@ -1880,12 +2014,30 @@ checklistNewItem.addEventListener("keydown",(e)=>{
     }
 });
 
-function toggleChecklistDrawer(){
-    checklistDrawer.classList.toggle("open");
-    checklistToggle.classList.toggle("open");
+checklistHideChecked.addEventListener("change",()=>{
+    hideCheckedItems = checklistHideChecked.checked;
+    renderChecklist();
+});
+
+function openChecklistView(){
+    closeOptionsMenu();
+    closeSearchPanel();
+    closeDatePanel();
+    checklistView.hidden = false;
 }
 
-checklistToggle.addEventListener("click",toggleChecklistDrawer);
+function closeChecklistView(){
+    checklistView.hidden = true;
+}
+
+checklistToggle.addEventListener("click",openChecklistView);
+checklistBackBtn.addEventListener("click",closeChecklistView);
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape" && !checklistView.hidden){
+        closeChecklistView();
+    }
+});
 
 renderChecklist();
 

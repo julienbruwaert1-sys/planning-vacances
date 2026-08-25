@@ -129,13 +129,39 @@
 <button id="checklistToggle" class="form-toggle-btn checklist-toggle-btn" type="button">
 <span>🎒</span><span id="checklistToggleLabel">Checklist de voyage</span>
 </button>
-<div id="checklistDrawer" class="form-drawer">
-<div class="form-drawer-inner">
-<div id="checklistItems" class="checklist-items"></div>
+
+<div id="checklistView" class="fullscreen-view" hidden>
+<div class="fullscreen-header">
+<button id="checklistBackBtn" class="back-btn" type="button" aria-label="Retour">←</button>
+<h2>🎒 Checklist de voyage</h2>
+</div>
+<div class="fullscreen-body">
+
+<div class="checklist-progress-wrap">
+<div class="checklist-progress-label">
+<span id="checklistProgressText">0 / 0 préparés</span>
+<span id="checklistProgressPct">0%</span>
+</div>
+<div class="checklist-progress-bar"><div id="checklistProgressFill" class="checklist-progress-fill"></div></div>
+</div>
+
+<div class="checklist-toolbar">
+<label class="checklist-hide-toggle">
+<input type="checkbox" id="checklistHideChecked">
+Masquer les éléments cochés
+</label>
+</div>
+
+<div id="checklistItems" class="checklist-categories"></div>
+
+<div class="checklist-suggest-label">Ajouter rapidement</div>
+<div id="checklistSuggestions" class="checklist-suggest-chips"></div>
+
 <div class="checklist-add-row">
 <input type="text" id="checklistNewItem" placeholder="Ajouter un élément…">
 <button id="checklistAddBtn" class="add" type="button">Ajouter</button>
 </div>
+
 </div>
 </div>
 
