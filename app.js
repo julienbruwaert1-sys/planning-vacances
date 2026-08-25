@@ -2339,11 +2339,11 @@ function renderProfileStats(){
             <span class="profile-stat-label">Jours de voyage</span>
         </div>
         <div class="profile-stat">
-            <span class="profile-stat-value">${tripStepCount || "—"}</span>
+            <span class="profile-stat-value">${tripStepCount || "0"}</span>
             <span class="profile-stat-label">Nombre de pas</span>
         </div>
         <div class="profile-stat">
-            <span class="profile-stat-value">${tripDistanceKm ? tripDistanceKm+" km" : "—"}</span>
+            <span class="profile-stat-value">${tripDistanceKm || "0"} km</span>
             <span class="profile-stat-label">Kilomètres</span>
         </div>
         <div class="profile-stat-full">${daysRemainingText}</div>
