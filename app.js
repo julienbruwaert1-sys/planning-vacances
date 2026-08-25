@@ -439,7 +439,7 @@ function renderActivities(){
     let hasTravel = false;
 
     sections.forEach(s=>{
-        planning[currentDay][s.key].forEach(a=>{
+        (planning[currentDay][s.key] || []).forEach(a=>{
             if(a.price!==null && a.price!==undefined){
                 dayTotalPrice += a.price;
                 hasPrice = true;
@@ -502,7 +502,7 @@ dragged = null;
         });
 
         const activities =
-        planning[currentDay][section.key];
+        planning[currentDay][section.key] || [];
 
         if(activities.length===0){
 
