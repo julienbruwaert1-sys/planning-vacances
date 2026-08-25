@@ -1374,9 +1374,9 @@ const layoutLabels = {
     mobile:"Mode Téléphone (clic pour changer)"
 };
 const layoutMenuLabels = {
-    auto:"Affichage : Auto",
-    desktop:"Affichage : PC",
-    mobile:"Affichage : Téléphone"
+    auto:"Affichage mode auto",
+    desktop:"Affichage mode PC",
+    mobile:"Affichage mode téléphone"
 };
 
 function applyLayoutMode(mode){
@@ -2433,7 +2433,8 @@ document.addEventListener("keydown",(e)=>{
 
 const CURRENCIES = {
     JPY:{symbol:"¥",decimals:0,label:"Yen (JPY)"},
-    EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"}
+    EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"},
+    USD:{symbol:"$",decimals:2,label:"Dollar (USD)"}
 };
 
 function rateStorageKey(currency){
