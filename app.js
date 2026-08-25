@@ -2259,6 +2259,33 @@ function renderProfileStats(){
     `;
 }
 
+/* --- Profil : liste + sous-écrans plein écran --- */
+
+const APP_VERSION = "1.0.0";
+
+document.getElementById("profileVersion").textContent = APP_VERSION;
+document.getElementById("profileVersionAbout").textContent = APP_VERSION;
+
+document.querySelectorAll(".profile-row").forEach(row=>{
+    row.addEventListener("click",()=>{
+        const view = document.getElementById(row.dataset.profileView);
+        if(view) view.hidden = false;
+    });
+});
+
+document.querySelectorAll(".profile-back").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        btn.closest(".profile-sub-view").hidden = true;
+    });
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key!=="Escape") return;
+    document.querySelectorAll(".profile-sub-view").forEach(view=>{
+        if(!view.hidden) view.hidden = true;
+    });
+});
+
 /* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
 
 const CURRENCIES = {

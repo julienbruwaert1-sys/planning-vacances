@@ -269,8 +269,27 @@ Ajouter
 
 <div id="profileTabContent" hidden>
 
+<h1 class="profile-title">Profil</h1>
+
+<div class="profile-list">
+<button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="dataSettingsView"><span class="profile-row-icon">⚙️</span><span class="profile-row-label">Réglages &amp; données</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="syncView"><span class="profile-row-icon">☁️</span><span class="profile-row-label">Synchronisation</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
+</div>
+
+<div class="profile-version">Version <span id="profileVersion"></span></div>
+
+</div>
+
+<div id="travelerInfoView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🧳 Infos voyageur</h2>
+</div>
+<div class="fullscreen-body">
 <div class="profile-section">
-<h3 class="profile-section-title">🧳 Infos voyageur</h3>
 <div class="profile-field">
 <label for="travelerName">Nom</label>
 <input type="text" id="travelerName" placeholder="Ton nom">
@@ -285,26 +304,53 @@ Ajouter
 </div>
 <p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
 </div>
+</div>
+</div>
 
+<div id="tripStatsView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>📊 Statistiques du voyage</h2>
+</div>
+<div class="fullscreen-body">
 <div class="profile-section">
-<h3 class="profile-section-title">📊 Statistiques du voyage</h3>
 <div id="profileStats" class="profile-stats"></div>
 </div>
-
-<div class="profile-section" id="dataSettingsSlot">
-<h3 class="profile-section-title">⚙️ Réglages &amp; données</h3>
+</div>
 </div>
 
-<div class="profile-section" id="syncPanelSlot">
-<h3 class="profile-section-title">☁️ Synchronisation</h3>
+<div id="dataSettingsView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>⚙️ Réglages &amp; données</h2>
+</div>
+<div class="fullscreen-body">
+<div class="profile-section" id="dataSettingsSlot"></div>
+</div>
 </div>
 
+<div id="syncView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>☁️ Synchronisation</h2>
+</div>
+<div class="fullscreen-body">
+<div class="profile-section" id="syncPanelSlot"></div>
+</div>
+</div>
+
+<div id="aboutView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>ℹ️ À propos</h2>
+</div>
+<div class="fullscreen-body">
 <div class="profile-section">
-<h3 class="profile-section-title">ℹ️ À propos</h3>
 <p class="profile-about">Planificateur de Vacances — application personnelle, 100% locale et utilisable hors-ligne.</p>
 <a href="https://github.com/julienbruwaert1-sys/planning-vacances" target="_blank" rel="noopener noreferrer" class="profile-link">Voir le code source sur GitHub ↗</a>
+<p class="profile-version-about">Version <span id="profileVersionAbout"></span></p>
 </div>
-
+</div>
 </div>
 
 <div id="bottomNav" class="bottom-nav" hidden>
