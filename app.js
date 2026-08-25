@@ -248,6 +248,10 @@ function addActivity(){
     document.getElementById("activityTravelTime")
     .value;
 
+    const reservationLink =
+    document.getElementById("activityReservationLink")
+    .value.trim();
+
     const price =
     priceRaw!=="" ? Math.max(0,parseFloat(priceRaw)) : null;
 
@@ -261,7 +265,8 @@ function addActivity(){
         type,
         address,
         price,
-        travelTime
+        travelTime,
+        reservationLink: reservationLink || null
     });
 
     savePlanning();
@@ -270,6 +275,7 @@ function addActivity(){
     document.getElementById("activityAddress").value="";
     document.getElementById("activityPrice").value="";
     document.getElementById("activityTravelTime").value="";
+    document.getElementById("activityReservationLink").value="";
 
     renderActivities();
 
@@ -717,6 +723,18 @@ dragged = null;
             btnGroup.appendChild(reorderGroup);
             btnGroup.appendChild(moveSelect);
             btnGroup.appendChild(mapBtn);
+
+            if(activity.reservationLink){
+                const reservationBtn = document.createElement("button");
+                reservationBtn.className = "map-btn";
+                reservationBtn.textContent = "🔗";
+                reservationBtn.title = "Ouvrir la réservation";
+                reservationBtn.addEventListener("click",()=>{
+                    window.open(activity.reservationLink,"_blank","noopener,noreferrer");
+                });
+                btnGroup.appendChild(reservationBtn);
+            }
+
             btnGroup.appendChild(delBtn);
 
             div.appendChild(infoDiv);
@@ -854,6 +872,13 @@ function buildPrintView(){
                     note.className = "print-activity-meta";
                     note.textContent = `💡 ${activity.note}`;
                     row.appendChild(note);
+                }
+
+                if(activity.reservationLink){
+                    const link = document.createElement("div");
+                    link.className = "print-activity-meta";
+                    link.textContent = `🔗 ${activity.reservationLink}`;
+                    row.appendChild(link);
                 }
 
                 printView.appendChild(row);
@@ -1080,6 +1105,11 @@ function importRows(rows){
             ["Note","Notes","Remarque","Conseil"]
         );
 
+        const reservationLink = getField(
+            row,
+            ["Lien_reservation","Lien_réservation","Reservation","Réservation","Booking","Lien"]
+        );
+
         const dayTitle = getField(
             row,
             ["Jour_titre","JourTitre","Titre_jour","DayTitle"]
@@ -1112,7 +1142,8 @@ function importRows(rows){
             travelTime: isNaN(travelTime) ? null : travelTime,
             time: time || null,
             duration: duration || null,
-            note: note || null
+            note: note || null,
+            reservationLink: reservationLink || null
         });
 
         imported++;
