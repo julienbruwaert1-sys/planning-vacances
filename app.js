@@ -159,6 +159,7 @@ function ensureDaysExist(){
 }
 
 ensureDaysExist();
+sanitizePlanningSlots();
 
 let currentDay = 1;
 
