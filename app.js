@@ -2162,12 +2162,21 @@ function updateBottomNavVisibility(){
     }
 }
 
+function closeAllFullscreenViews(){
+    if(!checklistView.hidden) closeChecklistView();
+    document.querySelectorAll(".profile-sub-view").forEach(view=>{
+        if(!view.hidden) view.hidden = true;
+    });
+}
+
 bottomNavTabs.forEach(btn=>{
     btn.addEventListener("click",(e)=>{
 
         e.stopPropagation();
 
         const tab = btn.dataset.mainTab;
+
+        closeAllFullscreenViews();
 
         if(tab==="checklist"){
             openChecklistView();
