@@ -1,4 +1,13 @@
 
+/* --- DIAGNOSTIC TEMPORAIRE : affiche les erreurs JS à l'écran --- */
+window.addEventListener("error",(e)=>{
+    alert(
+        "Erreur JS : " + e.message +
+        "\nFichier : " + e.filename +
+        "\nLigne : " + e.lineno + ":" + e.colno
+    );
+});
+
 /* Déclarées tôt (var, pas de TDZ) : savePlanning()/saveChecklist() appellent
    pushToSync() bien avant que la section Synchronisation (plus bas) ne
    s'exécute et ne leur donne leur vraie valeur. */
