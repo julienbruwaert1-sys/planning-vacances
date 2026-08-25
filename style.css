@@ -211,6 +211,9 @@ body.dark .date-tab.active{
     gap:6px;
     margin-bottom:12px;
     font-size:13.5px;
+    max-width:480px;
+    margin-left:auto;
+    margin-right:auto;
 }
 
 .date-wrap-row{
@@ -231,6 +234,7 @@ body.dark .date-tab.active{
     flex-direction:column;
     gap:3px;
     text-align:left;
+    flex:0 1 160px;
 }
 
 .date-field label{
@@ -270,6 +274,10 @@ body.dark .date-field label{
     flex-direction:column;
     align-items:stretch;
     gap:4px;
+}
+
+.date-panel .date-field{
+    flex:none;
 }
 
 .date-panel .date-wrap-row + .date-wrap-row{
