@@ -2132,6 +2132,10 @@ function setActiveMainTab(tab){
     if(tab==="profile") renderProfileStats();
 }
 
+document.querySelectorAll(".mobile-tab-back").forEach(btn=>{
+    btn.addEventListener("click",()=>setActiveMainTab("planning"));
+});
+
 function updateProfileConsolidation(desktop){
 
     if(desktop===profileConsolidated) return;
