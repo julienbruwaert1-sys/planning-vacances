@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v31";
+const CACHE_NAME = "planning-v32";
 
 const APP_SHELL = [
     "./index.html",
@@ -6,7 +6,8 @@ const APP_SHELL = [
     "./style.css",
     "./app.js",
     "./manifest.json",
-    "./icons/icon.svg",
+    "./icons/icon-192.png",
+    "./icons/icon-512.png",
     "./vendor/xlsx.full.min.js",
     "./vendor/firebase-app-compat.js",
     "./vendor/firebase-database-compat.js"
