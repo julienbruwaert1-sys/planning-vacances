@@ -212,18 +212,6 @@ body.dark .modal-btn-cancel{
     width:100%;
 }
 
-.icon-btn.date-set-dot::after{
-    content:"";
-    position:absolute;
-    top:1px;
-    right:1px;
-    width:9px;
-    height:9px;
-    border-radius:50%;
-    background:#D2503B;
-    border:2px solid #FFFFFF;
-}
-
 .date-wrap input,
 .jump-today-btn{
     padding:7px 10px;
@@ -883,11 +871,6 @@ body.dark .date-panel{
 
 body.dark .date-panel .date-wrap-row + .date-wrap-row{
     border-top-color:rgba(234,240,251,.08);
-}
-
-body.dark .icon-btn.date-set-dot::after{
-    background:#3D7CFF;
-    border-color:#121A2E;
 }
 
 body.dark .search-panel input{

@@ -1416,7 +1416,6 @@ function updateDatePlacement(){
     }else{
         datePanel.appendChild(dateWrap);
         dateMenuItem.hidden = false;
-        dateToggleBtn.classList.toggle("date-set-dot", !!startDate);
     }
 }
 
