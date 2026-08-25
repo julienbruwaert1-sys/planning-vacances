@@ -12,6 +12,7 @@ const bottomNavTabs = bottomNav.querySelectorAll(".bottom-nav-tab");
 const planningTabContent = document.getElementById("planningTabContent");
 const budgetTabContent = document.getElementById("budgetTabContent");
 const profileTabContent = document.getElementById("profileTabContent");
+const appTitle = document.getElementById("appTitle");
 let activeMainTab = "planning";
 
 const optionsMenuItem = document.getElementById("optionsMenuItem");
@@ -1573,6 +1574,12 @@ function formatDayDate(dayNumber){
 
 function updateCountdownBanner(){
 
+    if(!isDesktopContext() && activeMainTab!=="planning"){
+        countdownBanner.hidden = true;
+        jumpTodayBtn.hidden = true;
+        return;
+    }
+
     if(!startDate){
         countdownBanner.hidden = true;
         jumpTodayBtn.hidden = true;
@@ -2119,6 +2126,8 @@ function setActiveMainTab(tab){
     planningTabContent.hidden = tab!=="planning";
     budgetTabContent.hidden = tab!=="budget";
     profileTabContent.hidden = tab!=="profile";
+    appTitle.hidden = tab!=="planning";
+    updateCountdownBanner();
     if(tab==="profile") renderProfileStats();
 }
 
