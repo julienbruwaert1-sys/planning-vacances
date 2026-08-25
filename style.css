@@ -216,10 +216,27 @@ body.dark .date-tab.active{
 .date-wrap-row{
     display:flex;
     justify-content:center;
-    align-items:center;
+    align-items:flex-end;
     flex-wrap:wrap;
-    gap:8px;
+    gap:12px;
     width:100%;
+}
+
+.date-field{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    text-align:left;
+}
+
+.date-field label{
+    font-size:10.5px;
+    color:#9AAAB4;
+    font-weight:600;
+}
+
+body.dark .date-field label{
+    color:#7C8BAE;
 }
 
 .date-panel{
@@ -281,6 +298,10 @@ body.dark .date-tab.active{
 
 .jump-today-btn{
     cursor:pointer;
+    background:#FCEEE8;
+    color:#D2503B;
+    font-weight:600;
+    box-shadow:none;
 }
 
 body.dark .date-wrap input,
@@ -1332,6 +1353,11 @@ body.dark input,
 body.dark select{
     background:#182238;
     color:#EAF0FB;
+}
+
+body.dark .jump-today-btn{
+    background:rgba(61,124,255,.14);
+    color:#3D7CFF;
 }
 
 body.dark .day-select-wrap select:focus,
