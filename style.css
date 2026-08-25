@@ -150,6 +150,60 @@ body.dark .modal-btn-cancel{
 
 /* Date de départ / compte à rebours */
 
+.date-tabs{
+    display:flex;
+    justify-content:center;
+    margin-bottom:12px;
+}
+
+.date-tabs[hidden]{
+    display:none;
+}
+
+.date-tabs-group{
+    display:inline-flex;
+    background:#F1F7FB;
+    border-radius:12px;
+    padding:4px;
+    gap:2px;
+}
+
+.date-tab{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 16px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#9AAAB4;
+    cursor:pointer;
+    border-radius:9px;
+    background:none;
+    border:none;
+    font-family:'Inter',Arial,sans-serif;
+    transition:background .15s,color .15s;
+}
+
+.date-tab.active{
+    background:#FFFFFF;
+    color:#D2503B;
+    box-shadow:0 2px 8px rgba(51,64,74,.08);
+}
+
+body.dark .date-tabs-group{
+    background:#182238;
+}
+
+body.dark .date-tab{
+    color:#7C8BAE;
+}
+
+body.dark .date-tab.active{
+    background:#121A2E;
+    color:#3D7CFF;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
 .date-wrap{
     display:flex;
     flex-direction:column;

@@ -1395,15 +1395,39 @@ const dateInlineSlot = document.getElementById("dateInlineSlot");
 const dateMenuItem = document.getElementById("dateMenuItem");
 const dateToggleBtn = document.getElementById("dateToggleBtn");
 const datePanel = document.getElementById("datePanel");
+const dateTabs = document.getElementById("dateTabs");
+const dateTabButtons = dateTabs.querySelectorAll(".date-tab");
+const dateWrapRows = dateWrap.querySelectorAll(".date-wrap-row");
 
 let startDate = localStorage.getItem("startDate") || "";
 startDateInput.value = startDate;
+
+let activeDateTab = "dates";
 
 function isDesktopContext(){
     if(document.body.classList.contains("desktop-mode")) return true;
     if(document.body.classList.contains("mobile-mode")) return false;
     return window.innerWidth > 600;
 }
+
+function updateDateTabs(){
+
+    const desktop = isDesktopContext();
+
+    dateTabs.hidden = !desktop;
+
+    dateWrapRows.forEach(row=>{
+        row.hidden = desktop && row.dataset.tab!==activeDateTab;
+    });
+}
+
+dateTabButtons.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        activeDateTab = btn.dataset.tab;
+        dateTabButtons.forEach(b=>b.classList.toggle("active",b===btn));
+        updateDateTabs();
+    });
+});
 
 function updateDatePlacement(){
 
@@ -1417,6 +1441,8 @@ function updateDatePlacement(){
         datePanel.appendChild(dateWrap);
         dateMenuItem.hidden = false;
     }
+
+    updateDateTabs();
 }
 
 function closeDatePanel(){

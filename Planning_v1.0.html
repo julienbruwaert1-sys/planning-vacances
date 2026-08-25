@@ -75,17 +75,23 @@
 <div id="countdownBanner" class="countdown-banner" hidden></div>
 
 <div id="dateInlineSlot">
+<div class="date-tabs" id="dateTabs" hidden>
+<div class="date-tabs-group">
+<button class="date-tab active" type="button" data-tab="dates">🗓️ Dates</button>
+<button class="date-tab" type="button" data-tab="devise">💱 Devise</button>
+</div>
+</div>
 <div class="date-wrap" id="dateWrap">
-<div class="date-wrap-row">
+<div class="date-wrap-row" data-tab="dates">
 <label for="startDate">🗓️ Date de départ (optionnel) :</label>
 <input type="date" id="startDate">
 <button id="jumpTodayBtn" class="jump-today-btn" type="button" hidden>📍 Aujourd'hui</button>
 </div>
-<div class="date-wrap-row">
+<div class="date-wrap-row" data-tab="dates">
 <label for="dayCount">🗓️ Nombre de jours :</label>
 <input type="number" id="dayCount" min="1" max="30" value="7">
 </div>
-<div class="date-wrap-row">
+<div class="date-wrap-row" data-tab="devise">
 <label for="targetCurrency">💱 Devise du convertisseur :</label>
 <select id="targetCurrency">
 <option value="JPY">¥ Yen (JPY)</option>
