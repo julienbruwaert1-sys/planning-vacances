@@ -757,7 +757,11 @@ dragged = null;
                 reservationBtn.textContent = "🔗";
                 reservationBtn.title = "Ouvrir la réservation";
                 reservationBtn.addEventListener("click",()=>{
-                    window.open(activity.reservationLink,"_blank","noopener,noreferrer");
+                    if(/^https?:\/\//i.test(activity.reservationLink)){
+                        window.open(activity.reservationLink,"_blank","noopener,noreferrer");
+                    }else{
+                        showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
+                    }
                 });
                 btnGroup.appendChild(reservationBtn);
             }
