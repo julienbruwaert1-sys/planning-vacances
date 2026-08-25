@@ -502,6 +502,43 @@ body.has-bottom-nav{
     color:#33404A;
 }
 
+.mobile-tab-header{
+    display:none;
+    align-items:center;
+    gap:10px;
+    padding:14px 16px;
+    margin:0 0 18px;
+    position:sticky;
+    top:0;
+    background:#FCFDFE;
+    border-bottom:1px solid rgba(51,64,74,.08);
+    z-index:5;
+}
+
+body.has-bottom-nav .mobile-tab-header{
+    display:flex;
+}
+
+.mobile-tab-header-icon{
+    font-size:20px;
+}
+
+.mobile-tab-header h2{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:18px;
+    margin:0;
+    color:#33404A;
+}
+
+body.dark .mobile-tab-header{
+    background:#0A1020;
+    border-bottom-color:rgba(234,240,251,.08);
+}
+
+body.dark .mobile-tab-header h2{
+    color:#EAF0FB;
+}
+
 .profile-list{
     max-width:900px;
     margin:0 auto;
