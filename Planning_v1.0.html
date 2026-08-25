@@ -44,6 +44,16 @@
 
 <div class="menu-divider"></div>
 <div class="menu-section-label">Données</div>
+<div class="menu-item menu-item-static">
+<span class="menu-item-icon">💷</span>
+<span class="menu-item-label">Devise de saisie des prix</span>
+<select id="priceCurrencySelect" class="menu-item-inline-select" aria-label="Devise de saisie des prix des activités">
+<option value="£">£ GBP</option>
+<option value="€">€ EUR</option>
+<option value="$">$ USD</option>
+<option value="¥">¥ JPY</option>
+</select>
+</div>
 <button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json" hidden>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
@@ -88,6 +98,7 @@
 <p class="sync-desc">Code à saisir sur ton autre appareil :</p>
 <div id="syncCodeDisplay" class="sync-code-display"></div>
 <p id="syncStatus" class="sync-status">En attente…</p>
+<p id="syncHistoryInfo" class="sync-status sync-history-info"></p>
 <button id="syncUnlinkBtn" class="checklist-remove" type="button">Se déconnecter de la synchro</button>
 </div>
 
@@ -275,6 +286,7 @@ Ajouter
 <button class="profile-row" type="button" data-profile-view="dateSettingsView"><span class="profile-row-icon">🗓️</span><span class="profile-row-label">Dates &amp; devise</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="reservationsView"><span class="profile-row-icon">🔗</span><span class="profile-row-label">Réservations</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
 </div>
 
@@ -302,6 +314,35 @@ Ajouter
 <input type="text" id="travelerEmergency" placeholder="Nom et téléphone">
 </div>
 <p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
+</div>
+
+<div class="profile-section">
+<div class="profile-section-title">Documents de voyage</div>
+<div class="profile-field">
+<label for="travelerFlightNumber">N° de vol</label>
+<input type="text" id="travelerFlightNumber" placeholder="Ex. BA1234">
+</div>
+<div class="profile-field">
+<label for="travelerBookingRef">N° de réservation d'hôtel / Airbnb</label>
+<input type="text" id="travelerBookingRef" placeholder="Optionnel">
+</div>
+<div class="profile-field">
+<label for="travelerInsurance">Assurance voyage</label>
+<input type="text" id="travelerInsurance" placeholder="Assureur, n° de contrat…">
+</div>
+<p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
+</div>
+</div>
+</div>
+
+<div id="reservationsView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🔗 Réservations</h2>
+</div>
+<div class="fullscreen-body">
+<div class="profile-section">
+<div id="reservationsList"></div>
 </div>
 </div>
 </div>

@@ -345,6 +345,11 @@ body.dark .date-field label{
     font-weight:600;
 }
 
+.sync-history-info{
+    color:#9AAAB4;
+    font-weight:500;
+}
+
 body.dark .sync-desc,
 body.dark .sync-or{
     color:#7C8BAE;
@@ -357,6 +362,10 @@ body.dark .sync-code-display{
 
 body.dark .sync-status{
     color:#7FE0B0;
+}
+
+body.dark .sync-history-info{
+    color:#7C8BAE;
 }
 
 .date-wrap input,
@@ -1511,6 +1520,21 @@ body.dark .activity-note{
 
 .menu-item-label{
     flex:1;
+}
+
+.menu-item-static{
+    cursor:default;
+}
+
+.menu-item-static:hover{
+    background:none;
+}
+
+.menu-item-inline-select{
+    width:auto;
+    flex:0 0 auto;
+    padding:6px 8px;
+    font-size:13px;
 }
 
 .menu-item-danger{

@@ -5,6 +5,11 @@
 var syncRef = null;
 var applyingRemoteUpdate = false;
 
+/* Déclarée tôt pour la même raison : renderActivities()/updateTripSummary()
+   (bien plus bas) s'exécutent dès le chargement initial et affichent le
+   symbole de devise des prix. */
+let priceCurrencySymbol = localStorage.getItem("priceCurrencySymbol") || "£";
+
 /* Déclarées tôt pour la même raison : updateDatePlacement() (plus bas)
    appelle updateBottomNavVisibility() dès le chargement initial. */
 const bottomNav = document.getElementById("bottomNav");
@@ -434,7 +439,7 @@ function updateTripSummary(){
     const tripSummary = document.getElementById("tripSummary");
 
     tripSummary.textContent = hasAny
-        ? `💷 Budget total du séjour : ${total.toFixed(2)} £ `
+        ? `💷 Budget total du séjour : ${total.toFixed(2)} ${priceCurrencySymbol} `
           + `(sur ${dayWithData} jour${dayWithData>1?"s":""} renseigné${dayWithData>1?"s":""})`
         : "";
 }
@@ -477,7 +482,7 @@ function renderActivities(){
     if(hasPrice){
         const priceSpan = document.createElement("span");
         priceSpan.textContent =
-        `💷 Total du jour : ${dayTotalPrice.toFixed(2)} £`;
+        `💷 Total du jour : ${dayTotalPrice.toFixed(2)} ${priceCurrencySymbol}`;
         summary.appendChild(priceSpan);
     }
 
@@ -649,7 +654,7 @@ dragged = null;
                     const priceBadge = document.createElement("span");
                     priceBadge.className = "price-badge";
                     priceBadge.textContent =
-                    `💷 ${activity.price.toFixed(2)} £`;
+                    `💷 ${activity.price.toFixed(2)} ${priceCurrencySymbol}`;
                     badgeRow.appendChild(priceBadge);
                 }
 
@@ -883,7 +888,7 @@ function buildPrintView(){
                 const metaParts = [];
                 if(activity.address) metaParts.push(activity.address);
                 if(activity.price!==null && activity.price!==undefined){
-                    metaParts.push(`${activity.price.toFixed(2)} £`);
+                    metaParts.push(`${activity.price.toFixed(2)} ${priceCurrencySymbol}`);
                 }
                 if(activity.travelTime!==null && activity.travelTime!==undefined){
                     metaParts.push(`${activity.travelTime} min de trajet`);
@@ -929,6 +934,22 @@ function buildPrintView(){
 printBtn.addEventListener("click",()=>{
     buildPrintView();
     window.print();
+});
+
+/* --- Devise de saisie des prix des activités (indépendante du convertisseur) --- */
+
+const priceCurrencySelect = document.getElementById("priceCurrencySelect");
+const activityPriceInput = document.getElementById("activityPrice");
+
+priceCurrencySelect.value = priceCurrencySymbol;
+activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
+
+priceCurrencySelect.addEventListener("change",()=>{
+    priceCurrencySymbol = priceCurrencySelect.value;
+    localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
+    activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
+    renderActivities();
+    if(activeMainTab==="profile") renderProfileStats();
 });
 
 /* --- Export / Import JSON (sauvegarde complète) --- */
@@ -2224,23 +2245,39 @@ const TRAVELER_INFO_KEY = "travelerInfo";
 const travelerNameInput = document.getElementById("travelerName");
 const travelerPassportInput = document.getElementById("travelerPassport");
 const travelerEmergencyInput = document.getElementById("travelerEmergency");
+const travelerFlightNumberInput = document.getElementById("travelerFlightNumber");
+const travelerBookingRefInput = document.getElementById("travelerBookingRef");
+const travelerInsuranceInput = document.getElementById("travelerInsurance");
 
 function loadTravelerInfo(){
     const info = JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}");
     travelerNameInput.value = info.name || "";
     travelerPassportInput.value = info.passport || "";
     travelerEmergencyInput.value = info.emergency || "";
+    travelerFlightNumberInput.value = info.flightNumber || "";
+    travelerBookingRefInput.value = info.bookingRef || "";
+    travelerInsuranceInput.value = info.insurance || "";
 }
 
 function saveTravelerInfo(){
     localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify({
         name: travelerNameInput.value.trim(),
         passport: travelerPassportInput.value.trim(),
-        emergency: travelerEmergencyInput.value.trim()
+        emergency: travelerEmergencyInput.value.trim(),
+        flightNumber: travelerFlightNumberInput.value.trim(),
+        bookingRef: travelerBookingRefInput.value.trim(),
+        insurance: travelerInsuranceInput.value.trim()
     }));
 }
 
-[travelerNameInput,travelerPassportInput,travelerEmergencyInput].forEach(input=>{
+[
+    travelerNameInput,
+    travelerPassportInput,
+    travelerEmergencyInput,
+    travelerFlightNumberInput,
+    travelerBookingRefInput,
+    travelerInsuranceInput
+].forEach(input=>{
     input.addEventListener("change",saveTravelerInfo);
 });
 
@@ -2287,7 +2324,7 @@ function renderProfileStats(){
 
     profileStatsEl.innerHTML = `
         <div class="profile-stat">
-            <span class="profile-stat-value">${totalPrice.toFixed(2)} £</span>
+            <span class="profile-stat-value">${totalPrice.toFixed(2)} ${priceCurrencySymbol}</span>
             <span class="profile-stat-label">Budget total</span>
         </div>
         <div class="profile-stat">
@@ -2302,6 +2339,67 @@ function renderProfileStats(){
     `;
 }
 
+/* --- Profil : réservations (vue consolidée des liens par activité) --- */
+
+function renderReservations(){
+
+    const reservationsList = document.getElementById("reservationsList");
+    reservationsList.innerHTML = "";
+
+    const sections = ["matin","midi","apresMidi","soir"];
+    const matches = [];
+
+    Object.keys(planning)
+    .map(d=>parseInt(d,10))
+    .sort((a,b)=>a-b)
+    .forEach(day=>{
+        sections.forEach(slot=>{
+            (planning[day][slot] || []).forEach(activity=>{
+                if(activity.reservationLink){
+                    matches.push({day,activity});
+                }
+            });
+        });
+    });
+
+    if(matches.length===0){
+        const empty = document.createElement("div");
+        empty.className = "search-result-item";
+        empty.textContent = "Aucune réservation enregistrée pour l'instant.";
+        reservationsList.appendChild(empty);
+        return;
+    }
+
+    matches.forEach(m=>{
+
+        const item = document.createElement("div");
+        item.className = "search-result-item";
+
+        const nameDiv = document.createElement("div");
+        nameDiv.textContent =
+        `${icons[m.activity.type] || "📌"} ${m.activity.name}`;
+
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "search-result-day";
+        dayDiv.textContent =
+        `Jour ${m.day}`
+        + (m.activity.time ? ` · ${m.activity.time}` : "");
+
+        item.appendChild(nameDiv);
+        item.appendChild(dayDiv);
+
+        item.addEventListener("click",()=>{
+            if(/^https?:\/\//i.test(m.activity.reservationLink)){
+                window.open(m.activity.reservationLink,"_blank","noopener,noreferrer");
+            }else{
+                showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
+            }
+        });
+
+        reservationsList.appendChild(item);
+    });
+}
+
 /* --- Profil : liste + sous-écrans plein écran --- */
 
 const APP_VERSION = "1.0.0";
@@ -2312,7 +2410,9 @@ document.getElementById("profileVersionAbout").textContent = APP_VERSION;
 document.querySelectorAll(".profile-row").forEach(row=>{
     row.addEventListener("click",()=>{
         const view = document.getElementById(row.dataset.profileView);
-        if(view) view.hidden = false;
+        if(!view) return;
+        if(row.dataset.profileView==="reservationsView") renderReservations();
+        view.hidden = false;
     });
 });
 
@@ -2643,7 +2743,29 @@ const syncCodeInput = document.getElementById("syncCodeInput");
 const syncJoinBtn = document.getElementById("syncJoinBtn");
 const syncCodeDisplay = document.getElementById("syncCodeDisplay");
 const syncStatus = document.getElementById("syncStatus");
+const syncHistoryInfo = document.getElementById("syncHistoryInfo");
 const syncUnlinkBtn = document.getElementById("syncUnlinkBtn");
+
+const SYNC_HISTORY_KEY = "syncHistory";
+
+function renderSyncHistory(){
+    const history = JSON.parse(localStorage.getItem(SYNC_HISTORY_KEY) || "null");
+    if(!history){
+        syncHistoryInfo.textContent = "";
+        return;
+    }
+    const who = history.deviceId===syncDeviceId ? "cet appareil" : "un autre appareil";
+    const when = new Date(history.updatedAt).toLocaleString("fr-FR",{
+        day:"2-digit",month:"2-digit",year:"numeric",
+        hour:"2-digit",minute:"2-digit"
+    });
+    syncHistoryInfo.textContent = `🕓 Dernière modification par ${who} — ${when}`;
+}
+
+function recordSyncHistory(deviceId,updatedAt){
+    localStorage.setItem(SYNC_HISTORY_KEY,JSON.stringify({deviceId,updatedAt}));
+    renderSyncHistory();
+}
 
 function generateSyncCode(){
     let code = "";
@@ -2659,6 +2781,7 @@ function updateSyncPanelView(){
         syncUnpaired.hidden = true;
         syncPaired.hidden = false;
         syncCodeDisplay.textContent = syncCode;
+        renderSyncHistory();
     }else{
         syncUnpaired.hidden = false;
         syncPaired.hidden = true;
@@ -2683,7 +2806,10 @@ function pushToSync(){
     clearTimeout(syncPushTimer);
 
     syncPushTimer = setTimeout(()=>{
-        syncRef.set(collectSyncData()).catch(err=>{
+        const payload = collectSyncData();
+        syncRef.set(payload).then(()=>{
+            recordSyncHistory(payload.deviceId,payload.updatedAt);
+        }).catch(err=>{
             console.error("Erreur de synchronisation :",err);
         });
     },800);
@@ -2743,6 +2869,8 @@ function applySyncData(data){
 
     syncStatus.textContent =
     `🟢 Synchronisé — ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+
+    recordSyncHistory(data.deviceId,data.updatedAt);
 }
 
 function startSyncListener(){
