@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v23";
+const CACHE_NAME = "planning-v24";
 
 const APP_SHELL = [
     "./index.html",
@@ -7,7 +7,9 @@ const APP_SHELL = [
     "./app.js",
     "./manifest.json",
     "./icons/icon.svg",
-    "./vendor/xlsx.full.min.js"
+    "./vendor/xlsx.full.min.js",
+    "./vendor/firebase-app-compat.js",
+    "./vendor/firebase-database-compat.js"
 ];
 
 const RUNTIME_CACHE_HOSTS = [

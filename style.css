@@ -295,6 +295,70 @@ body.dark .date-field label{
     width:100%;
 }
 
+.sync-panel{
+    width:230px;
+}
+
+.sync-desc{
+    font-size:11.5px;
+    color:#9AAAB4;
+    margin:0 0 10px;
+    line-height:1.4;
+}
+
+.sync-or{
+    text-align:center;
+    font-size:10px;
+    color:#9AAAB4;
+    margin:8px 0;
+}
+
+.sync-join-row{
+    display:flex;
+    gap:6px;
+}
+
+.sync-join-row input{
+    flex:1;
+    min-width:0;
+}
+
+.sync-code-display{
+    font-family:'Courier New',monospace;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:1.5px;
+    text-align:center;
+    background:#F1F7FB;
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:8px;
+    color:#33404A;
+    user-select:all;
+    word-break:break-all;
+}
+
+.sync-status{
+    font-size:11px;
+    color:#3F6B3C;
+    margin:0 0 10px;
+    font-weight:600;
+}
+
+body.dark .sync-desc,
+body.dark .sync-or{
+    color:#7C8BAE;
+}
+
+body.dark .sync-code-display{
+    background:#182238;
+    color:#EAF0FB;
+}
+
+body.dark .sync-status{
+    color:#7FE0B0;
+}
+
 .date-wrap input,
 .jump-today-btn{
     padding:7px 10px;

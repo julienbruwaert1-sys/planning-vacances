@@ -68,6 +68,30 @@
 <div id="datePanel" class="date-panel" hidden></div>
 </div>
 
+<div class="corner-menu-item">
+<button id="syncToggleBtn" class="icon-btn" type="button" title="Synchronisation" aria-label="Ouvrir la synchronisation entre appareils" aria-haspopup="true" aria-expanded="false">☁️</button>
+<div id="syncPanel" class="date-panel sync-panel" hidden>
+
+<div id="syncUnpaired">
+<p class="sync-desc">Relie cet appareil à un autre pour synchroniser automatiquement le planning.</p>
+<button id="syncGenerateBtn" class="add" type="button">Générer un nouveau code</button>
+<div class="sync-or">ou</div>
+<div class="sync-join-row">
+<input type="text" id="syncCodeInput" placeholder="Code existant" maxlength="10">
+<button id="syncJoinBtn" class="add" type="button">Lier</button>
+</div>
+</div>
+
+<div id="syncPaired" hidden>
+<p class="sync-desc">Code à saisir sur ton autre appareil :</p>
+<div id="syncCodeDisplay" class="sync-code-display"></div>
+<p id="syncStatus" class="sync-status">En attente…</p>
+<button id="syncUnlinkBtn" class="checklist-remove" type="button">Se déconnecter de la synchro</button>
+</div>
+
+</div>
+</div>
+
 </div>
 
 <h1>🌴 Planification de Vacances</h1>
@@ -233,6 +257,8 @@ Ajouter
 <div id="daySummary"></div>
 <div id="activities"></div>
 </div>
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-database-compat.js"></script>
 <script src="app.js"></script>
 
 </body>

@@ -1,4 +1,10 @@
 
+/* Déclarées tôt (var, pas de TDZ) : savePlanning()/saveChecklist() appellent
+   pushToSync() bien avant que la section Synchronisation (plus bas) ne
+   s'exécute et ne leur donne leur vraie valeur. */
+var syncRef = null;
+var applyingRemoteUpdate = false;
+
 /* --- Menu options (coin) --- */
 
 const optionsMenuBtn = document.getElementById("optionsMenuBtn");
@@ -163,6 +169,7 @@ function savePlanning(){
         "vacationPlanning",
         JSON.stringify(planning)
     );
+    pushToSync();
 }
 
 function createTabs(){
@@ -1862,6 +1869,7 @@ function saveChecklist(){
         CHECKLIST_STORAGE_KEY,
         JSON.stringify(checklist)
     );
+    pushToSync();
 }
 
 function groupChecklistByCategory(){
@@ -2352,6 +2360,249 @@ window.addEventListener("online",()=>{
 });
 
 setInterval(fetchExchangeRate,30*60*1000);
+
+/* --- Synchronisation multi-appareils (Firebase Realtime Database) --- */
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB5jzUJi6ChRKA3th75mNZEE_8Kf10C22E",
+    authDomain: "planning-vacances-70bd8.firebaseapp.com",
+    databaseURL: "https://planning-vacances-70bd8-default-rtdb.firebaseio.com",
+    projectId: "planning-vacances-70bd8",
+    storageBucket: "planning-vacances-70bd8.firebasestorage.app",
+    messagingSenderId: "80389776651",
+    appId: "1:80389776651:web:95d1a2383858705310ee0e"
+};
+
+firebase.initializeApp(firebaseConfig);
+const syncDb = firebase.database();
+
+const SYNC_CODE_KEY = "syncCode";
+const SYNC_DEVICE_ID_KEY = "syncDeviceId";
+const SYNC_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+let syncDeviceId = localStorage.getItem(SYNC_DEVICE_ID_KEY);
+if(!syncDeviceId){
+    syncDeviceId = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+        .map(b=>b.toString(16).padStart(2,"0"))
+        .join("");
+    localStorage.setItem(SYNC_DEVICE_ID_KEY,syncDeviceId);
+}
+
+let syncCode = localStorage.getItem(SYNC_CODE_KEY) || "";
+let syncPushTimer = null;
+
+const syncToggleBtn = document.getElementById("syncToggleBtn");
+const syncPanel = document.getElementById("syncPanel");
+const syncUnpaired = document.getElementById("syncUnpaired");
+const syncPaired = document.getElementById("syncPaired");
+const syncGenerateBtn = document.getElementById("syncGenerateBtn");
+const syncCodeInput = document.getElementById("syncCodeInput");
+const syncJoinBtn = document.getElementById("syncJoinBtn");
+const syncCodeDisplay = document.getElementById("syncCodeDisplay");
+const syncStatus = document.getElementById("syncStatus");
+const syncUnlinkBtn = document.getElementById("syncUnlinkBtn");
+
+function generateSyncCode(){
+    let code = "";
+    const randomValues = crypto.getRandomValues(new Uint32Array(10));
+    for(let i=0;i<10;i++){
+        code += SYNC_CODE_CHARS[randomValues[i] % SYNC_CODE_CHARS.length];
+    }
+    return code;
+}
+
+function updateSyncPanelView(){
+    if(syncCode){
+        syncUnpaired.hidden = true;
+        syncPaired.hidden = false;
+        syncCodeDisplay.textContent = syncCode;
+    }else{
+        syncUnpaired.hidden = false;
+        syncPaired.hidden = true;
+    }
+}
+
+function collectSyncData(){
+    return {
+        planning,
+        checklist,
+        dayCount,
+        startDate,
+        updatedAt: Date.now(),
+        deviceId: syncDeviceId
+    };
+}
+
+function pushToSync(){
+
+    if(!syncRef || applyingRemoteUpdate) return;
+
+    clearTimeout(syncPushTimer);
+
+    syncPushTimer = setTimeout(()=>{
+        syncRef.set(collectSyncData()).catch(err=>{
+            console.error("Erreur de synchronisation :",err);
+        });
+    },800);
+}
+
+function applySyncData(data){
+
+    if(!data) return;
+
+    applyingRemoteUpdate = true;
+
+    if(data.planning){
+        Object.keys(planning).forEach(key=>delete planning[key]);
+        Object.assign(planning,data.planning);
+        savePlanning();
+    }
+
+    if(Array.isArray(data.checklist)){
+        checklist = data.checklist;
+        saveChecklist();
+    }
+
+    if(data.dayCount){
+        dayCount = data.dayCount;
+        dayCountInput.value = dayCount;
+        localStorage.setItem("dayCount",dayCount);
+    }
+
+    if(data.startDate!==undefined){
+        startDate = data.startDate;
+        startDateInput.value = startDate;
+        localStorage.setItem("startDate",startDate);
+    }
+
+    ensureDaysExist();
+    if(currentDay > dayCount) currentDay = dayCount;
+
+    createTabs();
+    renderActivities();
+    renderChecklist();
+    updateCountdownBanner();
+    updateDatePlacement();
+
+    applyingRemoteUpdate = false;
+
+    syncStatus.textContent =
+    `🟢 Synchronisé — ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+}
+
+function startSyncListener(){
+
+    if(syncRef) syncRef.off();
+
+    syncRef = syncDb.ref("trips/"+syncCode);
+
+    syncRef.on("value",(snapshot)=>{
+
+        const data = snapshot.val();
+        if(!data || data.deviceId===syncDeviceId) return;
+
+        applySyncData(data);
+
+    },(err)=>{
+        console.error("Erreur de connexion à la synchronisation :",err);
+        syncStatus.textContent = "⚠️ Connexion à la synchro impossible";
+    });
+}
+
+function pairWithCode(code,options){
+
+    syncCode = code;
+    localStorage.setItem(SYNC_CODE_KEY,syncCode);
+
+    startSyncListener();
+    updateSyncPanelView();
+
+    if(options && options.isNew){
+        pushToSync();
+        syncStatus.textContent = "🟢 Code généré, en attente de l'autre appareil";
+    }
+}
+
+syncToggleBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const isOpen = !syncPanel.hidden;
+    if(!isOpen){
+        closeOptionsMenu();
+        closeSearchPanel();
+        closeDatePanel();
+    }
+    syncPanel.hidden = isOpen;
+    syncToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+});
+
+document.addEventListener("click",(e)=>{
+    if(!syncPanel.hidden && !e.target.closest(".corner-menu-item")){
+        syncPanel.hidden = true;
+        syncToggleBtn.setAttribute("aria-expanded","false");
+    }
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape" && !syncPanel.hidden){
+        syncPanel.hidden = true;
+        syncToggleBtn.setAttribute("aria-expanded","false");
+    }
+});
+
+syncGenerateBtn.addEventListener("click",()=>{
+    const code = generateSyncCode();
+    pairWithCode(code,{isNew:true});
+    showToast("Code de synchro généré.",{type:"success"});
+});
+
+syncJoinBtn.addEventListener("click",()=>{
+
+    const code = syncCodeInput.value.trim().toUpperCase();
+    if(!code) return;
+
+    syncJoinBtn.disabled = true;
+
+    syncDb.ref("trips/"+code).once("value").then(snapshot=>{
+
+        syncJoinBtn.disabled = false;
+
+        const data = snapshot.val();
+
+        if(!data){
+            showToast("Aucune donnée trouvée pour ce code.",{type:"error"});
+            return;
+        }
+
+        showConfirmModal(
+            "Lier cet appareil remplacera son planning actuel par celui reçu de l'autre appareil. Continuer ?",
+            ()=>{
+                pairWithCode(code,{isNew:false});
+                applySyncData(data);
+                syncCodeInput.value = "";
+                showToast("Appareil lié avec succès.",{type:"success"});
+            }
+        );
+
+    }).catch(()=>{
+        syncJoinBtn.disabled = false;
+        showToast("Impossible de contacter le service de synchronisation.",{type:"error"});
+    });
+});
+
+syncUnlinkBtn.addEventListener("click",()=>{
+    if(syncRef) syncRef.off();
+    syncRef = null;
+    syncCode = "";
+    localStorage.removeItem(SYNC_CODE_KEY);
+    updateSyncPanelView();
+    showToast("Synchronisation désactivée sur cet appareil.");
+});
+
+updateSyncPanelView();
+
+if(syncCode){
+    startSyncListener();
+}
 
 /* --- Service Worker (installation & fonctionnement hors-ligne) --- */
 
