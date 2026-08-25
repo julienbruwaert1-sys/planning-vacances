@@ -2446,6 +2446,17 @@ function pushToSync(){
     },800);
 }
 
+function sanitizePlanningSlots(){
+    Object.keys(planning).forEach(day=>{
+        const d = planning[day];
+        if(!Array.isArray(d.matin)) d.matin = [];
+        if(!Array.isArray(d.midi)) d.midi = [];
+        if(!Array.isArray(d.apresMidi)) d.apresMidi = [];
+        if(!Array.isArray(d.soir)) d.soir = [];
+        if(d.title===undefined) d.title = "";
+    });
+}
+
 function applySyncData(data){
 
     if(!data) return;
@@ -2455,6 +2466,7 @@ function applySyncData(data){
     if(data.planning){
         Object.keys(planning).forEach(key=>delete planning[key]);
         Object.assign(planning,data.planning);
+        sanitizePlanningSlots();
         savePlanning();
     }
 
