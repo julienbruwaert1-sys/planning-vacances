@@ -130,6 +130,7 @@
 </div>
 </div>
 
+<div id="budgetTabContent">
 <div id="tripSummary" class="trip-summary"></div>
 
 <div class="converter-card">
@@ -149,6 +150,7 @@
 </div>
 </div>
 <div id="rateInfo" class="rate-info">Chargement du taux…</div>
+</div>
 </div>
 
 <button id="checklistToggle" class="form-toggle-btn checklist-toggle-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
@@ -191,6 +193,7 @@ Masquer les éléments cochés
 </div>
 
 
+<div id="planningTabContent">
 <div class="day-select-wrap">
 <label for="daySelect">📅 Jour :</label>
 <select id="daySelect"></select>
@@ -258,6 +261,17 @@ Ajouter
 <div id="daySummary"></div>
 <div id="activities"></div>
 </div>
+</div>
+
+<div id="bottomNav" class="bottom-nav" hidden>
+<div class="bottom-nav-group">
+<button class="bottom-nav-tab active" type="button" data-main-tab="planning"><span class="bn-icon">📅</span><span>Planning</span></button>
+<button class="bottom-nav-tab" type="button" data-main-tab="checklist"><span class="bn-icon">🎒</span><span>Checklist</span></button>
+<button class="bottom-nav-tab" type="button" data-main-tab="budget"><span class="bn-icon">💱</span><span>Budget</span></button>
+<button class="bottom-nav-tab" type="button" data-main-tab="settings"><span class="bn-icon">⚙️</span><span>Réglages</span></button>
+</div>
+</div>
+
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-database-compat.js"></script>
 <script src="app.js"></script>

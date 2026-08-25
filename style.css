@@ -489,6 +489,83 @@ body.dark .trip-summary{
     background:#E8F0F6;
 }
 
+body.has-bottom-nav{
+    padding-bottom:88px;
+}
+
+body.has-bottom-nav .checklist-toggle-btn{
+    display:none;
+}
+
+.bottom-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:1500;
+    display:flex;
+    justify-content:center;
+    padding:10px 14px 14px;
+}
+
+.bottom-nav[hidden]{
+    display:none;
+}
+
+.bottom-nav-group{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    background:#FFFFFF;
+    border-radius:22px;
+    box-shadow:0 8px 24px rgba(51,64,74,.18);
+    padding:8px 6px;
+    max-width:420px;
+    width:100%;
+}
+
+.bottom-nav-tab{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    background:none;
+    border:none;
+    color:#9AAAB4;
+    font-size:10px;
+    font-weight:600;
+    font-family:'Inter',Arial,sans-serif;
+    cursor:pointer;
+    padding:7px 10px;
+    border-radius:14px;
+    flex:1;
+    transition:background .15s,color .15s;
+}
+
+.bottom-nav-tab .bn-icon{
+    font-size:18px;
+    line-height:1;
+}
+
+.bottom-nav-tab.active{
+    color:#D2503B;
+    background:#FCEEE8;
+}
+
+body.dark .bottom-nav-group{
+    background:#121A2E;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+
+body.dark .bottom-nav-tab{
+    color:#7C8BAE;
+}
+
+body.dark .bottom-nav-tab.active{
+    color:#3D7CFF;
+    background:rgba(61,124,255,.14);
+}
+
 /* Vue plein écran générique (réutilisable par de futures fonctionnalités) */
 
 .fullscreen-view{

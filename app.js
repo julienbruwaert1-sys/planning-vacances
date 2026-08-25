@@ -5,6 +5,14 @@
 var syncRef = null;
 var applyingRemoteUpdate = false;
 
+/* Déclarées tôt pour la même raison : updateDatePlacement() (plus bas)
+   appelle updateBottomNavVisibility() dès le chargement initial. */
+const bottomNav = document.getElementById("bottomNav");
+const bottomNavTabs = bottomNav.querySelectorAll(".bottom-nav-tab");
+const planningTabContent = document.getElementById("planningTabContent");
+const budgetTabContent = document.getElementById("budgetTabContent");
+let activeMainTab = "planning";
+
 /* --- Menu options (coin) --- */
 
 const optionsMenuBtn = document.getElementById("optionsMenuBtn");
@@ -1482,6 +1490,7 @@ function updateDatePlacement(){
     }
 
     updateDateTabs();
+    updateBottomNavVisibility();
 }
 
 function closeDatePanel(){
@@ -2084,6 +2093,59 @@ document.addEventListener("keydown",(e)=>{
 });
 
 renderChecklist();
+
+/* --- Bandeau de navigation (bas, mobile uniquement) --- */
+
+function setActiveMainTab(tab){
+    activeMainTab = tab;
+    bottomNavTabs.forEach(btn=>{
+        btn.classList.toggle("active",btn.dataset.mainTab===tab);
+    });
+    planningTabContent.hidden = tab!=="planning";
+    budgetTabContent.hidden = tab!=="budget";
+}
+
+function updateBottomNavVisibility(){
+
+    const desktop = isDesktopContext();
+
+    bottomNav.hidden = desktop;
+    document.body.classList.toggle("has-bottom-nav",!desktop);
+
+    if(desktop){
+        planningTabContent.hidden = false;
+        budgetTabContent.hidden = false;
+    }else{
+        setActiveMainTab(activeMainTab);
+    }
+}
+
+bottomNavTabs.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+
+        const tab = btn.dataset.mainTab;
+
+        if(tab==="checklist"){
+            openChecklistView();
+            setActiveMainTab("planning");
+            return;
+        }
+
+        if(tab==="settings"){
+            closeOptionsMenu();
+            closeSearchPanel();
+            setActiveMainTab("planning");
+            if(dateMenuItem.hidden){
+                dateWrap.scrollIntoView({behavior:"smooth",block:"center"});
+            }else{
+                toggleDatePanel();
+            }
+            return;
+        }
+
+        setActiveMainTab(tab);
+    });
+});
 
 /* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
 
