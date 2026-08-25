@@ -11,6 +11,7 @@ const bottomNav = document.getElementById("bottomNav");
 const bottomNavTabs = bottomNav.querySelectorAll(".bottom-nav-tab");
 const planningTabContent = document.getElementById("planningTabContent");
 const budgetTabContent = document.getElementById("budgetTabContent");
+const profileTabContent = document.getElementById("profileTabContent");
 let activeMainTab = "planning";
 
 /* --- Menu options (coin) --- */
@@ -2103,6 +2104,7 @@ function setActiveMainTab(tab){
     });
     planningTabContent.hidden = tab!=="planning";
     budgetTabContent.hidden = tab!=="budget";
+    profileTabContent.hidden = tab!=="profile";
 }
 
 function updateBottomNavVisibility(){
@@ -2115,31 +2117,22 @@ function updateBottomNavVisibility(){
     if(desktop){
         planningTabContent.hidden = false;
         budgetTabContent.hidden = false;
+        profileTabContent.hidden = true;
     }else{
         setActiveMainTab(activeMainTab);
     }
 }
 
 bottomNavTabs.forEach(btn=>{
-    btn.addEventListener("click",()=>{
+    btn.addEventListener("click",(e)=>{
+
+        e.stopPropagation();
 
         const tab = btn.dataset.mainTab;
 
         if(tab==="checklist"){
             openChecklistView();
             setActiveMainTab("planning");
-            return;
-        }
-
-        if(tab==="settings"){
-            closeOptionsMenu();
-            closeSearchPanel();
-            setActiveMainTab("planning");
-            if(dateMenuItem.hidden){
-                dateWrap.scrollIntoView({behavior:"smooth",block:"center"});
-            }else{
-                toggleDatePanel();
-            }
             return;
         }
 

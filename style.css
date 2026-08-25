@@ -493,6 +493,23 @@ body.has-bottom-nav{
     padding-bottom:88px;
 }
 
+.placeholder-card{
+    max-width:900px;
+    margin:20px auto;
+    background:#FFFFFF;
+    border-radius:16px;
+    box-shadow:0 2px 8px rgba(51,64,74,.07);
+    padding:20px;
+    text-align:center;
+    color:#9AAAB4;
+    font-size:14px;
+}
+
+body.dark .placeholder-card{
+    background:#121A2E;
+    color:#7C8BAE;
+}
+
 body.has-bottom-nav .checklist-toggle-btn{
     display:none;
 }
