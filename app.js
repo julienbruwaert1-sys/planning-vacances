@@ -14,6 +14,16 @@ const budgetTabContent = document.getElementById("budgetTabContent");
 const profileTabContent = document.getElementById("profileTabContent");
 let activeMainTab = "planning";
 
+const optionsMenuItem = document.getElementById("optionsMenuItem");
+const syncMenuItem = document.getElementById("syncMenuItem");
+const dataSettingsContent = document.getElementById("dataSettingsContent");
+const dataSettingsSlot = document.getElementById("dataSettingsSlot");
+const syncPanelContent = document.getElementById("syncPanelContent");
+const syncPanelSlot = document.getElementById("syncPanelSlot");
+const syncToggleBtn = document.getElementById("syncToggleBtn");
+const syncPanel = document.getElementById("syncPanel");
+let profileConsolidated = null;
+
 /* --- Menu options (coin) --- */
 
 const optionsMenuBtn = document.getElementById("optionsMenuBtn");
@@ -2105,6 +2115,30 @@ function setActiveMainTab(tab){
     planningTabContent.hidden = tab!=="planning";
     budgetTabContent.hidden = tab!=="budget";
     profileTabContent.hidden = tab!=="profile";
+    if(tab==="profile") renderProfileStats();
+}
+
+function updateProfileConsolidation(desktop){
+
+    if(desktop===profileConsolidated) return;
+    profileConsolidated = desktop;
+
+    optionsMenuPanel.hidden = true;
+    syncPanel.hidden = true;
+    optionsMenuBtn.setAttribute("aria-expanded","false");
+    syncToggleBtn.setAttribute("aria-expanded","false");
+
+    if(desktop){
+        optionsMenuPanel.appendChild(dataSettingsContent);
+        syncPanel.appendChild(syncPanelContent);
+        optionsMenuItem.hidden = false;
+        syncMenuItem.hidden = false;
+    }else{
+        dataSettingsSlot.appendChild(dataSettingsContent);
+        syncPanelSlot.appendChild(syncPanelContent);
+        optionsMenuItem.hidden = true;
+        syncMenuItem.hidden = true;
+    }
 }
 
 function updateBottomNavVisibility(){
@@ -2113,6 +2147,7 @@ function updateBottomNavVisibility(){
 
     bottomNav.hidden = desktop;
     document.body.classList.toggle("has-bottom-nav",!desktop);
+    updateProfileConsolidation(desktop);
 
     if(desktop){
         planningTabContent.hidden = false;
@@ -2139,6 +2174,90 @@ bottomNavTabs.forEach(btn=>{
         setActiveMainTab(tab);
     });
 });
+
+/* --- Profil : infos voyageur (100% local, jamais synchronisé/exporté) --- */
+
+const TRAVELER_INFO_KEY = "travelerInfo";
+const travelerNameInput = document.getElementById("travelerName");
+const travelerPassportInput = document.getElementById("travelerPassport");
+const travelerEmergencyInput = document.getElementById("travelerEmergency");
+
+function loadTravelerInfo(){
+    const info = JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}");
+    travelerNameInput.value = info.name || "";
+    travelerPassportInput.value = info.passport || "";
+    travelerEmergencyInput.value = info.emergency || "";
+}
+
+function saveTravelerInfo(){
+    localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify({
+        name: travelerNameInput.value.trim(),
+        passport: travelerPassportInput.value.trim(),
+        emergency: travelerEmergencyInput.value.trim()
+    }));
+}
+
+[travelerNameInput,travelerPassportInput,travelerEmergencyInput].forEach(input=>{
+    input.addEventListener("change",saveTravelerInfo);
+});
+
+loadTravelerInfo();
+
+/* --- Profil : statistiques du voyage --- */
+
+const profileStatsEl = document.getElementById("profileStats");
+
+function renderProfileStats(){
+
+    let totalPrice = 0;
+    let activityCount = 0;
+
+    Object.keys(planning).forEach(day=>{
+        ["matin","midi","apresMidi","soir"].forEach(slot=>{
+            (planning[day][slot] || []).forEach(a=>{
+                activityCount++;
+                if(a.price!==null && a.price!==undefined){
+                    totalPrice += a.price;
+                }
+            });
+        });
+    });
+
+    let daysRemainingText = "Date de départ non définie";
+
+    if(startDate){
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const base = new Date(startDate+"T00:00:00");
+
+        if(!isNaN(base.getTime())){
+            const diffDays = Math.round((base-today)/(1000*60*60*24));
+            if(diffDays>0){
+                daysRemainingText = `🧳 J-${diffDays} avant le départ`;
+            }else if(diffDays===0){
+                daysRemainingText = "✈️ C'est le grand départ aujourd'hui !";
+            }else{
+                daysRemainingText = "🏠 Voyage en cours ou terminé";
+            }
+        }
+    }
+
+    profileStatsEl.innerHTML = `
+        <div class="profile-stat">
+            <span class="profile-stat-value">${totalPrice.toFixed(2)} £</span>
+            <span class="profile-stat-label">Budget total</span>
+        </div>
+        <div class="profile-stat">
+            <span class="profile-stat-value">${activityCount}</span>
+            <span class="profile-stat-label">Activités</span>
+        </div>
+        <div class="profile-stat">
+            <span class="profile-stat-value">${dayCount}</span>
+            <span class="profile-stat-label">Jours de voyage</span>
+        </div>
+        <div class="profile-stat-full">${daysRemainingText}</div>
+    `;
+}
 
 /* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
 
@@ -2447,8 +2566,6 @@ if(!syncDeviceId){
 let syncCode = localStorage.getItem(SYNC_CODE_KEY) || "";
 let syncPushTimer = null;
 
-const syncToggleBtn = document.getElementById("syncToggleBtn");
-const syncPanel = document.getElementById("syncPanel");
 const syncUnpaired = document.getElementById("syncUnpaired");
 const syncPaired = document.getElementById("syncPaired");
 const syncGenerateBtn = document.getElementById("syncGenerateBtn");

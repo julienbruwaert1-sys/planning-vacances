@@ -32,9 +32,10 @@
 
 <div class="corner-menu">
 
-<div class="corner-menu-item">
+<div class="corner-menu-item" id="optionsMenuItem">
 <button id="optionsMenuBtn" class="icon-btn options-menu-trigger" type="button" title="Options" aria-label="Ouvrir le menu options" aria-haspopup="true" aria-expanded="false">⋮</button>
 <div id="optionsMenuPanel" class="options-menu-panel" role="menu" hidden>
+<div id="dataSettingsContent">
 
 <div class="menu-section-label">Données</div>
 <button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer (Excel / CSV / texte)" aria-label="Importer un fichier Excel, CSV ou texte"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
@@ -55,6 +56,7 @@
 
 </div>
 </div>
+</div>
 
 <div class="corner-menu-item">
 <button id="searchToggleBtn" class="icon-btn" type="button" title="Rechercher" aria-label="Ouvrir la recherche" aria-haspopup="true" aria-expanded="false">🔍</button>
@@ -69,9 +71,10 @@
 <div id="datePanel" class="date-panel" hidden></div>
 </div>
 
-<div class="corner-menu-item">
+<div class="corner-menu-item" id="syncMenuItem">
 <button id="syncToggleBtn" class="icon-btn" type="button" title="Synchronisation" aria-label="Ouvrir la synchronisation entre appareils" aria-haspopup="true" aria-expanded="false">☁️</button>
 <div id="syncPanel" class="date-panel sync-panel" hidden>
+<div id="syncPanelContent">
 
 <div id="syncUnpaired">
 <p class="sync-desc">Relie cet appareil à un autre pour synchroniser automatiquement le planning.</p>
@@ -90,6 +93,7 @@
 <button id="syncUnlinkBtn" class="checklist-remove" type="button">Se déconnecter de la synchro</button>
 </div>
 
+</div>
 </div>
 </div>
 
@@ -264,7 +268,43 @@ Ajouter
 </div>
 
 <div id="profileTabContent" hidden>
-<div class="placeholder-card">Onglet Profil — bientôt disponible.</div>
+
+<div class="profile-section">
+<h3 class="profile-section-title">🧳 Infos voyageur</h3>
+<div class="profile-field">
+<label for="travelerName">Nom</label>
+<input type="text" id="travelerName" placeholder="Ton nom">
+</div>
+<div class="profile-field">
+<label for="travelerPassport">N° de passeport / pièce d'identité</label>
+<input type="text" id="travelerPassport" placeholder="Optionnel">
+</div>
+<div class="profile-field">
+<label for="travelerEmergency">Contact d'urgence</label>
+<input type="text" id="travelerEmergency" placeholder="Nom et téléphone">
+</div>
+<p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
+</div>
+
+<div class="profile-section">
+<h3 class="profile-section-title">📊 Statistiques du voyage</h3>
+<div id="profileStats" class="profile-stats"></div>
+</div>
+
+<div class="profile-section" id="dataSettingsSlot">
+<h3 class="profile-section-title">⚙️ Réglages &amp; données</h3>
+</div>
+
+<div class="profile-section" id="syncPanelSlot">
+<h3 class="profile-section-title">☁️ Synchronisation</h3>
+</div>
+
+<div class="profile-section">
+<h3 class="profile-section-title">ℹ️ À propos</h3>
+<p class="profile-about">Planificateur de Vacances — application personnelle, 100% locale et utilisable hors-ligne.</p>
+<a href="https://github.com/julienbruwaert1-sys/planning-vacances" target="_blank" rel="noopener noreferrer" class="profile-link">Voir le code source sur GitHub ↗</a>
+</div>
+
 </div>
 
 <div id="bottomNav" class="bottom-nav" hidden>
