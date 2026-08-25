@@ -490,7 +490,7 @@ body.dark .trip-summary{
 }
 
 body.has-bottom-nav{
-    padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));
+    padding-bottom:var(--bottom-nav-h,64px);
 }
 
 .profile-title{
@@ -838,7 +838,7 @@ body.dark .bottom-nav-tab.active{
 }
 
 body.has-bottom-nav .fullscreen-view{
-    bottom:calc(64px + env(safe-area-inset-bottom,0px));
+    bottom:var(--bottom-nav-h,64px);
 }
 
 .fullscreen-header{

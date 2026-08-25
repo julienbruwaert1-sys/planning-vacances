@@ -2154,6 +2154,14 @@ function updateProfileConsolidation(desktop){
     }
 }
 
+function syncBottomNavHeight(){
+    if(bottomNav.hidden) return;
+    document.documentElement.style.setProperty(
+        "--bottom-nav-h",
+        bottomNav.offsetHeight + "px"
+    );
+}
+
 function updateBottomNavVisibility(){
 
     const desktop = isDesktopContext();
@@ -2169,6 +2177,14 @@ function updateBottomNavVisibility(){
     }else{
         setActiveMainTab(activeMainTab);
     }
+
+    syncBottomNavHeight();
+}
+
+window.addEventListener("resize",syncBottomNavHeight);
+
+if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(syncBottomNavHeight);
 }
 
 function closeAllFullscreenViews(){
