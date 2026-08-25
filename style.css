@@ -534,6 +534,18 @@ body.dark .checklist-progress-fill{
     background:linear-gradient(90deg,#3D7CFF,#6FA8FF);
 }
 
+body.dark .checklist-hide-toggle{
+    color:#7C8BAE;
+}
+
+body.dark .checklist-hide-toggle input{
+    accent-color:#3D7CFF;
+}
+
+body.dark .checklist-item input[type="checkbox"]{
+    accent-color:#3D7CFF;
+}
+
 /* Masquer les cochés */
 
 .checklist-toolbar{

@@ -126,14 +126,14 @@
 <div id="rateInfo" class="rate-info">Chargement du taux…</div>
 </div>
 
-<button id="checklistToggle" class="form-toggle-btn checklist-toggle-btn" type="button">
+<button id="checklistToggle" class="form-toggle-btn checklist-toggle-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
 <span>🎒</span><span id="checklistToggleLabel">Checklist de voyage</span>
 </button>
 
-<div id="checklistView" class="fullscreen-view" hidden>
+<div id="checklistView" class="fullscreen-view" role="dialog" aria-modal="true" aria-labelledby="checklistViewTitle" hidden>
 <div class="fullscreen-header">
 <button id="checklistBackBtn" class="back-btn" type="button" aria-label="Retour">←</button>
-<h2>🎒 Checklist de voyage</h2>
+<h2 id="checklistViewTitle">🎒 Checklist de voyage</h2>
 </div>
 <div class="fullscreen-body">
 

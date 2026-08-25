@@ -2024,10 +2024,14 @@ function openChecklistView(){
     closeSearchPanel();
     closeDatePanel();
     checklistView.hidden = false;
+    checklistToggle.setAttribute("aria-expanded","true");
+    checklistBackBtn.focus();
 }
 
 function closeChecklistView(){
     checklistView.hidden = true;
+    checklistToggle.setAttribute("aria-expanded","false");
+    checklistToggle.focus();
 }
 
 checklistToggle.addEventListener("click",openChecklistView);
