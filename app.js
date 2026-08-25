@@ -1416,6 +1416,88 @@ layoutToggle.addEventListener("click",()=>{
     updateDatePlacement();
 });
 
+/* --- Logo de l'application (icône PWA à l'installation) --- */
+
+const APP_ICONS = {
+    france:{label:"🇫🇷 France (par défaut)",icon192:"icons/icon-192-france.png",icon512:"icons/icon-512-france.png"},
+    italy:{label:"🇮🇹 Italie",icon192:"icons/icon-192-italy.png",icon512:"icons/icon-512-italy.png"},
+    spain:{label:"🇪🇸 Espagne",icon192:"icons/icon-192-spain.png",icon512:"icons/icon-512-spain.png"},
+    germany:{label:"🇩🇪 Allemagne",icon192:"icons/icon-192-germany.png",icon512:"icons/icon-512-germany.png"},
+    austria:{label:"🇦🇹 Autriche",icon192:"icons/icon-192-austria.png",icon512:"icons/icon-512-austria.png"},
+    belgium:{label:"🇧🇪 Belgique",icon192:"icons/icon-192-belgium.png",icon512:"icons/icon-512-belgium.png"},
+    usa:{label:"🇺🇸 États-Unis",icon192:"icons/icon-192-usa.png",icon512:"icons/icon-512-usa.png"},
+    china:{label:"🇨🇳 Chine",icon192:"icons/icon-192-china.png",icon512:"icons/icon-512-china.png"},
+    india:{label:"🇮🇳 Inde",icon192:"icons/icon-192-india.png",icon512:"icons/icon-512-india.png"},
+    nepal:{label:"🇳🇵 Népal",icon192:"icons/icon-192-nepal.png",icon512:"icons/icon-512-nepal.png"},
+    thailand:{label:"🇹🇭 Thaïlande",icon192:"icons/icon-192-thailand.png",icon512:"icons/icon-512-thailand.png"},
+    australia:{label:"🇦🇺 Australie",icon192:"icons/icon-192-australia.png",icon512:"icons/icon-512-australia.png"}
+};
+
+const appIconSelect = document.getElementById("appIconSelect");
+const manifestLink = document.getElementById("manifestLink");
+const faviconLink = document.getElementById("faviconLink");
+const appleTouchIconLink = document.getElementById("appleTouchIconLink");
+
+Object.keys(APP_ICONS).forEach(key=>{
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = APP_ICONS[key].label;
+    appIconSelect.appendChild(opt);
+});
+
+const APP_ICON_KEY = "appIconChoice";
+let appIconChoice = localStorage.getItem(APP_ICON_KEY) || "france";
+appIconSelect.value = appIconChoice;
+
+let lastManifestBlobUrl = null;
+
+function absUrl(path){
+    return new URL(path,document.baseURI).href;
+}
+
+function applyAppIcon(key){
+
+    const meta = APP_ICONS[key] || APP_ICONS.france;
+
+    faviconLink.href = meta.icon192;
+    appleTouchIconLink.href = meta.icon512;
+
+    const manifest = {
+        name:"Planification de Vacances",
+        short_name:"Vacances",
+        start_url:absUrl("./Planning_v1.0.html"),
+        scope:absUrl("./"),
+        display:"standalone",
+        background_color:"#FCFDFE",
+        theme_color:"#D2503B",
+        lang:"fr",
+        icons:[
+            {src:absUrl(meta.icon192),sizes:"192x192",type:"image/png",purpose:"any"},
+            {src:absUrl(meta.icon512),sizes:"512x512",type:"image/png",purpose:"any"},
+            {src:absUrl(meta.icon192),sizes:"192x192",type:"image/png",purpose:"maskable"},
+            {src:absUrl(meta.icon512),sizes:"512x512",type:"image/png",purpose:"maskable"}
+        ]
+    };
+
+    const blob = new Blob([JSON.stringify(manifest)],{type:"application/json"});
+
+    if(lastManifestBlobUrl) URL.revokeObjectURL(lastManifestBlobUrl);
+    lastManifestBlobUrl = URL.createObjectURL(blob);
+    manifestLink.href = lastManifestBlobUrl;
+}
+
+applyAppIcon(appIconChoice);
+
+appIconSelect.addEventListener("change",()=>{
+    appIconChoice = appIconSelect.value;
+    localStorage.setItem(APP_ICON_KEY,appIconChoice);
+    applyAppIcon(appIconChoice);
+    showToast(
+        "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
+        {type:"success",duration:6000}
+    );
+});
+
 function updateThemeButton(){
 
     const isDark = document.body.classList.contains("dark");

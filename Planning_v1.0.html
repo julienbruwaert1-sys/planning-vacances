@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Planificateur de Vacances — v1.0</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json" id="manifestLink">
 <meta name="theme-color" content="#D2503B">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="icons/icon-512.png">
+<link rel="icon" href="icons/icon-192-france.png" type="image/png" id="faviconLink">
+<link rel="apple-touch-icon" href="icons/icon-512-france.png" id="appleTouchIconLink">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -40,6 +40,12 @@
 <div class="menu-section-label">Affichage</div>
 <button id="themeToggle" class="menu-item" type="button" role="menuitem" title="Mode sombre" aria-label="Basculer le mode sombre"><span class="menu-item-icon">🌙</span><span class="menu-item-label">Mode sombre</span></button>
 <button id="layoutToggle" class="menu-item" type="button" role="menuitem" title="Mode auto" aria-label="Changer le mode d'affichage"><span class="menu-item-icon">🔄</span><span class="menu-item-label">Affichage mode auto</span></button>
+<div class="menu-item menu-item-static">
+<span class="menu-item-icon">🖼️</span>
+<span class="menu-item-label">Logo de l'application</span>
+<select id="appIconSelect" class="menu-item-inline-select" aria-label="Choisir le logo de l'application"></select>
+</div>
+<p class="menu-hint">S'applique à une nouvelle installation de l'app (désinstalle puis réinstalle pour voir le nouveau logo sur l'écran d'accueil).</p>
 <button id="printBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF / Imprimer" aria-label="Exporter le planning en PDF"><span class="menu-item-icon">🖨️</span><span class="menu-item-label">Exporter en PDF</span></button>
 
 <div class="menu-divider"></div>

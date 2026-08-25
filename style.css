@@ -1548,6 +1548,18 @@ body.dark .activity-note{
     font-size:13px;
 }
 
+.menu-hint{
+    font-size:10.5px;
+    color:#9AAAB4;
+    line-height:1.4;
+    margin:0 0 6px;
+    padding:0 10px;
+}
+
+body.dark .menu-hint{
+    color:#7C8BAE;
+}
+
 .menu-item-danger{
     color:#A8323A;
 }

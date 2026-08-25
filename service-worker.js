@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v52";
+const CACHE_NAME = "planning-v53";
 
 const APP_SHELL = [
     "./index.html",
@@ -6,8 +6,30 @@ const APP_SHELL = [
     "./style.css",
     "./app.js",
     "./manifest.json",
-    "./icons/icon-192.png",
-    "./icons/icon-512.png",
+    "./icons/icon-192-france.png",
+    "./icons/icon-512-france.png",
+    "./icons/icon-192-italy.png",
+    "./icons/icon-512-italy.png",
+    "./icons/icon-192-spain.png",
+    "./icons/icon-512-spain.png",
+    "./icons/icon-192-germany.png",
+    "./icons/icon-512-germany.png",
+    "./icons/icon-192-austria.png",
+    "./icons/icon-512-austria.png",
+    "./icons/icon-192-belgium.png",
+    "./icons/icon-512-belgium.png",
+    "./icons/icon-192-usa.png",
+    "./icons/icon-512-usa.png",
+    "./icons/icon-192-china.png",
+    "./icons/icon-512-china.png",
+    "./icons/icon-192-india.png",
+    "./icons/icon-512-india.png",
+    "./icons/icon-192-nepal.png",
+    "./icons/icon-512-nepal.png",
+    "./icons/icon-192-thailand.png",
+    "./icons/icon-512-thailand.png",
+    "./icons/icon-192-australia.png",
+    "./icons/icon-512-australia.png",
     "./vendor/xlsx.full.min.js",
     "./vendor/firebase-app-compat.js",
     "./vendor/firebase-database-compat.js"
