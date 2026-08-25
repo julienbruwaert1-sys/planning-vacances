@@ -276,7 +276,6 @@ Ajouter
 <button class="profile-row" type="button" data-profile-view="dataSettingsView"><span class="profile-row-icon">⚙️</span><span class="profile-row-label">Réglages &amp; données</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
-<button class="profile-row" type="button" data-profile-view="syncView"><span class="profile-row-icon">☁️</span><span class="profile-row-label">Synchronisation</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
 </div>
 
@@ -330,16 +329,6 @@ Ajouter
 </div>
 </div>
 
-<div id="syncView" class="fullscreen-view profile-sub-view" hidden>
-<div class="fullscreen-header">
-<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
-<h2>☁️ Synchronisation</h2>
-</div>
-<div class="fullscreen-body">
-<div class="profile-section" id="syncPanelSlot"></div>
-</div>
-</div>
-
 <div id="aboutView" class="fullscreen-view profile-sub-view" hidden>
 <div class="fullscreen-header">
 <button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
@@ -348,9 +337,9 @@ Ajouter
 <div class="fullscreen-body">
 <div class="profile-section">
 <p class="profile-about">Planificateur de Vacances — application personnelle, 100% locale et utilisable hors-ligne.</p>
-<a href="https://github.com/julienbruwaert1-sys/planning-vacances" target="_blank" rel="noopener noreferrer" class="profile-link">Voir le code source sur GitHub ↗</a>
 <p class="profile-version-about">Version <span id="profileVersionAbout"></span></p>
 </div>
+<div class="profile-section" id="syncPanelSlot"></div>
 </div>
 </div>
 
