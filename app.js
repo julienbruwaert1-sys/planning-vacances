@@ -934,8 +934,6 @@ printBtn.addEventListener("click",()=>{
 /* --- Export / Import JSON (sauvegarde complète) --- */
 
 const exportDataBtn = document.getElementById("exportDataBtn");
-const importDataBtn = document.getElementById("importDataBtn");
-const importDataFile = document.getElementById("importDataFile");
 
 exportDataBtn.addEventListener("click",()=>{
 
@@ -966,14 +964,7 @@ exportDataBtn.addEventListener("click",()=>{
     showToast("Sauvegarde exportée.",{type:"success"});
 });
 
-importDataBtn.addEventListener("click",()=>{
-    importDataFile.click();
-});
-
-importDataFile.addEventListener("change",(e)=>{
-
-    const file = e.target.files[0];
-    if(!file) return;
+function handleImportBackupFile(file){
 
     const reader = new FileReader();
 
@@ -988,7 +979,7 @@ importDataFile.addEventListener("change",(e)=>{
                 "Fichier de sauvegarde invalide (JSON illisible).",
                 {type:"error"}
             );
-            importDataFile.value = "";
+            importFile.value = "";
             return;
         }
 
@@ -997,7 +988,7 @@ importDataFile.addEventListener("change",(e)=>{
                 "Ce fichier ne semble pas être une sauvegarde valide.",
                 {type:"error"}
             );
-            importDataFile.value = "";
+            importFile.value = "";
             return;
         }
 
@@ -1040,11 +1031,11 @@ importDataFile.addEventListener("change",(e)=>{
             }
         );
 
-        importDataFile.value = "";
+        importFile.value = "";
     };
 
     reader.readAsText(file);
-});
+}
 
 /* --- Import Excel / CSV / texte --- */
 
@@ -1311,7 +1302,16 @@ function handleImportFile(e){
     }
 }
 
-importFile.addEventListener("change",handleImportFile);
+importFile.addEventListener("change",(e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+
+    if(/\.json$/i.test(file.name)){
+        handleImportBackupFile(file);
+    }else{
+        handleImportFile(e);
+    }
+});
 
 templateBtn.addEventListener("click",()=>{
 
