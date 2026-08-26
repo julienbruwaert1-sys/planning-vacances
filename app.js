@@ -593,6 +593,11 @@ function renderActivities(){
 
     sections.forEach(section=>{
 
+        const activities =
+        planning[currentDay][section.key] || [];
+
+        if(activities.length===0) return;
+
         const sectionDiv =
         document.createElement("div");
 
@@ -621,17 +626,6 @@ function renderActivities(){
 
 dragged = null;
         });
-
-        const activities =
-        planning[currentDay][section.key] || [];
-
-        if(activities.length===0){
-
-            slot.innerHTML=
-            `<div class="dropzone">
-                Déposez une activité ici
-            </div>`;
-        }
 
         activities.forEach((activity,index)=>{
 
