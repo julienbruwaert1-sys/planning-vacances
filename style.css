@@ -2625,10 +2625,6 @@ body.dark select:focus-visible{
     display:none;
 }
 
-body.has-bottom-nav #welcomeView{
-    bottom:var(--bottom-nav-h,64px);
-}
-
 .welcome-card{
     width:100%;
     max-width:400px;

@@ -1666,8 +1666,24 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
 
     const country = welcomeCountrySelect.value;
     const startDateVal = document.getElementById("welcomeStartDate").value;
-    const dayCountVal = parseInt(document.getElementById("welcomeDayCount").value,10) || 7;
+    const endDateVal = document.getElementById("welcomeEndDate").value;
     const localCurrency = COUNTRY_CURRENCIES[country] || "USD";
+
+    let dayCountVal = 7;
+
+    if(startDateVal && endDateVal){
+
+        const diffDays = Math.round(
+            (new Date(endDateVal) - new Date(startDateVal)) / 86400000
+        ) + 1;
+
+        if(diffDays<1){
+            showToast("La date de retour doit être après la date de départ.",{type:"error"});
+            return;
+        }
+
+        dayCountVal = diffDays;
+    }
 
     localStorage.setItem(TRIP_NAME_KEY,name);
     localStorage.setItem("appIconChoice",country);
