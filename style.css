@@ -2039,6 +2039,7 @@ body.dark .converter-field label{
 }
 
 body.dark .converter-currency-select{
+    background:none;
     color:#7C8BAE;
 }
 
@@ -2061,9 +2062,20 @@ body.dark .converter-currency-select option{
     font-variant-numeric:tabular-nums;
 }
 
+.converter-field input::placeholder{
+    color:#9AAAB4;
+    opacity:1;
+}
+
 body.dark .converter-field input{
+    background:none;
     color:#EAF0FB;
     border-bottom-color:rgba(234,240,251,.14);
+}
+
+body.dark .converter-field input::placeholder{
+    color:#7C8BAE;
+    opacity:1;
 }
 
 .converter-eq{
