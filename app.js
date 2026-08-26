@@ -1606,7 +1606,7 @@ const APP_ICONS = {
     spain:{label:"🇪🇸 Espagne",icon192:"icons/icon-192-spain.png",icon512:"icons/icon-512-spain.png"},
     usa:{label:"🇺🇸 États-Unis",icon192:"icons/icon-192-usa.png",icon512:"icons/icon-512-usa.png"},
     finland:{label:"🇫🇮 Finlande",icon192:"icons/icon-192-finland.png",icon512:"icons/icon-512-finland.png"},
-    france:{label:"🇫🇷 France (par défaut)",icon192:"icons/icon-192-france.png",icon512:"icons/icon-512-france.png"},
+    france:{label:"🇫🇷 France",icon192:"icons/icon-192-france.png",icon512:"icons/icon-512-france.png"},
     greece:{label:"🇬🇷 Grèce",icon192:"icons/icon-192-greece.png",icon512:"icons/icon-512-greece.png"},
     hungary:{label:"🇭🇺 Hongrie",icon192:"icons/icon-192-hungary.png",icon512:"icons/icon-512-hungary.png"},
     india:{label:"🇮🇳 Inde",icon192:"icons/icon-192-india.png",icon512:"icons/icon-512-india.png"},
