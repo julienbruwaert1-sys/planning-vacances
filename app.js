@@ -1095,7 +1095,7 @@ function handleImportBackupFile(file){
             ()=>{
 
                 Object.keys(planning).forEach(k=>delete planning[k]);
-                Object.assign(planning,data.planning);
+                mergePlanningData(planning,data.planning);
 
                 if(data.dayCount){
                     dayCount = data.dayCount;
@@ -3374,6 +3374,15 @@ function pushToSync(){
     },800);
 }
 
+const UNSAFE_OBJECT_KEYS = ["__proto__","constructor","prototype"];
+
+function mergePlanningData(target,source){
+    Object.keys(source || {}).forEach(key=>{
+        if(UNSAFE_OBJECT_KEYS.includes(key)) return;
+        target[key] = source[key];
+    });
+}
+
 function sanitizePlanningSlots(){
     Object.keys(planning).forEach(day=>{
         const d = planning[day];
@@ -3393,7 +3402,7 @@ function applySyncData(data){
 
     if(data.planning){
         Object.keys(planning).forEach(key=>delete planning[key]);
-        Object.assign(planning,data.planning);
+        mergePlanningData(planning,data.planning);
         sanitizePlanningSlots();
         savePlanning();
     }
