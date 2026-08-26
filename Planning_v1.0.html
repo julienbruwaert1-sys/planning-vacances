@@ -287,18 +287,24 @@ placeholder="Adresse (optionnel)">
 <option value="apresMidi">☀️ Après-midi</option>
 <option value="soir">🌙 Soir</option>
 </select>
+<div class="field-suffix">
 <input
 type="number"
 id="activityPrice"
-placeholder="Prix (£)"
+placeholder="0"
 min="0"
 step="0.01">
+<span class="field-suffix-label" id="activityPriceSuffix">Prix (£)</span>
+</div>
+<div class="field-suffix">
 <input
 type="number"
 id="activityTravelTime"
-placeholder="Trajet (min)"
+placeholder="0"
 min="0"
 step="1">
+<span class="field-suffix-label">Trajet (min)</span>
+</div>
 <input
 type="url"
 id="activityReservationLink"
