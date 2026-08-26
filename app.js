@@ -489,8 +489,7 @@ function updateConverterCountryHeader(){
     const nameEl = document.getElementById("converterCountryName");
     const subEl = document.getElementById("converterCountrySub");
 
-    const flag = icon ? icon.label.split(" ")[0] : "🌍";
-    nameEl.textContent = `${flag} ${country ? country.fr : "Voyage"}`;
+    nameEl.textContent = country ? country.fr : "Voyage";
 
     header.style.backgroundImage = icon
         ? `url('${icon.icon512}')`

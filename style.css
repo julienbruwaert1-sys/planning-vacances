@@ -1952,39 +1952,41 @@ body.dark .dropzone{
 
 .converter-country-header{
     position:relative;
-    min-height:76px;
-    padding:16px 14px;
-    display:flex;
-    flex-direction:column;
-    justify-content:flex-end;
+    height:96px;
     background-size:cover;
     background-position:center;
     background-color:#F1F7FB;
     text-align:left;
+    overflow:hidden;
 }
 
 .converter-country-header::before{
     content:"";
     position:absolute;
     inset:0;
-    background:linear-gradient(180deg,rgba(10,10,10,.05) 0%,rgba(10,10,10,.55) 100%);
+    background:linear-gradient(180deg,rgba(10,10,10,.05) 0%,rgba(10,10,10,.65) 100%);
 }
 
 .converter-country-name{
-    position:relative;
+    position:absolute;
+    left:14px;
+    right:14px;
+    bottom:22px;
     font-family:'Playfair Display',Georgia,serif;
     font-size:16px;
     font-weight:700;
     color:#FFFFFF;
-    text-shadow:0 1px 6px rgba(0,0,0,.4);
+    text-shadow:0 1px 6px rgba(0,0,0,.5);
 }
 
 .converter-country-sub{
-    position:relative;
+    position:absolute;
+    left:14px;
+    right:14px;
+    bottom:10px;
     font-size:10.5px;
-    color:rgba(255,255,255,.85);
-    margin-top:2px;
-    text-shadow:0 1px 4px rgba(0,0,0,.4);
+    color:rgba(255,255,255,.9);
+    text-shadow:0 1px 4px rgba(0,0,0,.5);
 }
 
 .converter-body{
