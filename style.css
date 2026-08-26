@@ -2086,9 +2086,22 @@ body.dark .converter-field input::placeholder{
 }
 
 .rate-info{
-    margin-top:6px;
+    margin-top:10px;
     font-size:9.5px;
     color:#9AAAB4;
+}
+
+.rate-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    font-size:11px;
+}
+
+.rate-date{
+    margin-top:3px;
+    text-align:center;
 }
 
 body.dark .rate-info{
@@ -2117,7 +2130,7 @@ body.dark .rate-retry-btn{
 }
 
 .rate-info .rate-live{
-    color:#E0954A;
+    color:#2F8F5B;
     font-weight:bold;
 }
 

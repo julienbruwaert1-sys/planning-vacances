@@ -3345,19 +3345,24 @@ function updateRateDisplay(){
 
     rateInfo.innerHTML = "";
 
-    const rateText = document.createElement("div");
+    const rateRow = document.createElement("div");
+    rateRow.className = "rate-row";
+
+    const rateText = document.createElement("span");
     rateText.textContent =
     `1 ${CURRENCIES[baseCurrency].symbol} = ${currentRate.toFixed(2)} ${CURRENCIES[targetCurrency].symbol}`;
 
+    rateRow.appendChild(statusSpan);
+    rateRow.appendChild(rateText);
+
     const dateText = document.createElement("div");
-    dateText.style.marginTop = "2px";
+    dateText.className = "rate-date";
     dateText.textContent =
     formatTimestamp(rateTimestamp)
         ? `(mis à jour le ${formatTimestamp(rateTimestamp)})`
         : "";
 
-    rateInfo.appendChild(rateText);
-    rateInfo.appendChild(statusSpan);
+    rateInfo.appendChild(rateRow);
     rateInfo.appendChild(dateText);
 }
 
