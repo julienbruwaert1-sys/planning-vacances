@@ -3218,21 +3218,28 @@ async function renderMapView(){
     }
 }
 
-/* --- Points d'intérêt (restaurants / toilettes) via Overpass API ---
-   Chargés à la demande uniquement (bouton "Rechercher ici"), jamais
-   automatiquement, pour respecter l'usage raisonnable d'Overpass et
-   éviter de spammer le réseau à chaque pan/zoom. */
+/* --- Recherche libre sur la zone visible ("pharmacie", "supermarché",
+   nom d'un lieu…) via Nominatim, restreinte à la zone affichée (viewbox
+   + bounded=1). Chargée à la demande uniquement (bouton "Rechercher ici"),
+   jamais automatiquement au pan/zoom, pour rester raisonnable côté réseau. */
 
 const POI_MIN_ZOOM = 13;
 const POI_CACHE_KEY = "poiCache";
 const POI_CACHE_TTL_MS = 24*60*60*1000;
 
-const POI_TYPES = {
-    restaurant:{icon:"🍽️",label:"Restaurant"},
-    toilets:{icon:"🚻",label:"Toilettes"}
+const POI_ICONS = {
+    restaurant:"🍽️", fast_food:"🍔", cafe:"☕", bar:"🍹", pub:"🍺",
+    toilets:"🚻", pharmacy:"💊", hospital:"🏥", supermarket:"🛒",
+    convenience:"🛒", bakery:"🥖", atm:"🏧", bank:"🏦", hotel:"🏨",
+    museum:"🏛️", fuel:"⛽"
 };
 
+function poiIconFor(item){
+    return POI_ICONS[item.type] || "📍";
+}
+
 const mapPoiToggle = document.getElementById("mapPoiToggle");
+const mapPoiSearchInput = document.getElementById("mapPoiSearchInput");
 const mapPoiSearchBtn = document.getElementById("mapPoiSearchBtn");
 let mapPoiActive = false;
 
@@ -3244,8 +3251,8 @@ function savePoiCache(cache){
     localStorage.setItem(POI_CACHE_KEY,JSON.stringify(cache));
 }
 
-function poiCacheKeyFor(bounds){
-    return [
+function poiCacheKeyFor(searchText,bounds){
+    return searchText.toLowerCase()+"_"+[
         bounds.getSouth().toFixed(2),
         bounds.getWest().toFixed(2),
         bounds.getNorth().toFixed(2),
@@ -3253,35 +3260,28 @@ function poiCacheKeyFor(bounds){
     ].join("_");
 }
 
-async function fetchPoiForBounds(bounds){
+async function fetchPoiForSearch(searchText,bounds){
 
-    const south = bounds.getSouth();
-    const west = bounds.getWest();
-    const north = bounds.getNorth();
-    const east = bounds.getEast();
+    const url =
+        "https://nominatim.openstreetmap.org/search?format=json&limit=20"
+        + "&q="+encodeURIComponent(searchText)
+        + "&viewbox="+[bounds.getWest(),bounds.getNorth(),bounds.getEast(),bounds.getSouth()].join(",")
+        + "&bounded=1";
 
-    const query =
-        `[out:json][timeout:15];(` +
-        `node["amenity"="restaurant"](${south},${west},${north},${east});` +
-        `node["amenity"="toilets"](${south},${west},${north},${east});` +
-        `);out body;`;
-
-    const response = await fetchWithTimeout(
-        "https://overpass-api.de/api/interpreter?data="+encodeURIComponent(query),
-        15000
-    );
+    const response = await fetchWithTimeout(url,8000);
+    await wait(1100);
 
     if(!response.ok){
-        throw new Error("Overpass: réponse HTTP "+response.status);
+        throw new Error("Nominatim: réponse HTTP "+response.status);
     }
 
-    const data = await response.json();
+    const results = await response.json();
 
-    return (data.elements || []).map(el=>({
-        lat:el.lat,
-        lon:el.lon,
-        amenity:el.tags && el.tags.amenity,
-        name:el.tags && el.tags.name
+    return results.map(r=>({
+        lat:parseFloat(r.lat),
+        lon:parseFloat(r.lon),
+        type:r.type,
+        name:r.display_name
     }));
 }
 
@@ -3291,27 +3291,31 @@ function renderPoiMarkers(places){
 
     places.forEach(place=>{
 
-        const meta = POI_TYPES[place.amenity];
-        if(!meta) return;
-
         const icon = L.divIcon({
             className:"map-poi-pin",
-            html:meta.icon,
+            html:poiIconFor(place),
             iconSize:[16,16],
             iconAnchor:[8,16]
         });
 
         L.marker([place.lat,place.lon],{icon})
         .addTo(mapPoiLayer)
-        .bindPopup(place.name || meta.label);
+        .bindPopup(place.name);
     });
 }
 
 async function searchPoiHere(){
 
+    const searchText = mapPoiSearchInput.value.trim();
+
+    if(!searchText){
+        showToast("Tape ce que tu cherches (pharmacie, supermarché, nom d'un lieu…).",{type:"error"});
+        return;
+    }
+
     if(!navigator.onLine){
         showToast(
-            "Hors-ligne : la recherche de points d'intérêt nécessite une connexion.",
+            "Hors-ligne : la recherche sur la carte nécessite une connexion.",
             {type:"error"}
         );
         return;
@@ -3319,14 +3323,14 @@ async function searchPoiHere(){
 
     if(mapInstance.getZoom() < POI_MIN_ZOOM){
         showToast(
-            "Zoome davantage sur la carte pour chercher les points d'intérêt.",
+            "Zoome davantage sur la carte pour lancer une recherche.",
             {type:"error"}
         );
         return;
     }
 
     const bounds = mapInstance.getBounds();
-    const cacheKey = poiCacheKeyFor(bounds);
+    const cacheKey = poiCacheKeyFor(searchText,bounds);
     const cache = loadPoiCache();
     const cached = cache[cacheKey];
 
@@ -3337,7 +3341,12 @@ async function searchPoiHere(){
 
     try{
 
-        const places = await fetchPoiForBounds(bounds);
+        const places = await fetchPoiForSearch(searchText,bounds);
+
+        if(!places.length){
+            showToast("Aucun résultat pour cette recherche sur la zone visible.",{type:"error"});
+            return;
+        }
 
         cache[cacheKey] = {places,timestamp:Date.now()};
         savePoiCache(cache);
@@ -3345,8 +3354,8 @@ async function searchPoiHere(){
         renderPoiMarkers(places);
 
     }catch(err){
-        console.error("Recherche de points d'intérêt impossible :",err);
-        showToast("Impossible de charger les points d'intérêt pour le moment.",{type:"error"});
+        console.error("Recherche sur la carte impossible :",err);
+        showToast("Impossible de lancer la recherche pour le moment.",{type:"error"});
     }
 }
 
@@ -3355,6 +3364,7 @@ mapPoiToggle.addEventListener("click",()=>{
     mapPoiActive = !mapPoiActive;
     mapPoiToggle.classList.toggle("active",mapPoiActive);
     mapPoiToggle.setAttribute("aria-pressed",String(mapPoiActive));
+    mapPoiSearchInput.hidden = !mapPoiActive;
     mapPoiSearchBtn.hidden = !mapPoiActive;
 
     if(!mapPoiActive && mapPoiLayer){
@@ -3363,6 +3373,10 @@ mapPoiToggle.addEventListener("click",()=>{
 });
 
 mapPoiSearchBtn.addEventListener("click",searchPoiHere);
+
+mapPoiSearchInput.addEventListener("keydown",e=>{
+    if(e.key==="Enter") searchPoiHere();
+});
 
 /* --- Profil : liste + sous-écrans plein écran --- */
 
