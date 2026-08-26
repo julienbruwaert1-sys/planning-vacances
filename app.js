@@ -1563,19 +1563,30 @@ const COUNTRIES = {
     canada:{fr:"Canada",en:"Canada"},
     china:{fr:"Chine",en:"China"},
     southkorea:{fr:"Corée du Sud",en:"South Korea"},
+    croatia:{fr:"Croatie",en:"Croatia"},
+    denmark:{fr:"Danemark",en:"Denmark"},
     egypt:{fr:"Égypte",en:"Egypt"},
     spain:{fr:"Espagne",en:"Spain"},
     usa:{fr:"États-Unis",en:"United States"},
+    finland:{fr:"Finlande",en:"Finland"},
     france:{fr:"France",en:"France"},
     greece:{fr:"Grèce",en:"Greece"},
+    hungary:{fr:"Hongrie",en:"Hungary"},
     india:{fr:"Inde",en:"India"},
+    iceland:{fr:"Islande",en:"Iceland"},
     italy:{fr:"Italie",en:"Italy"},
     japan:{fr:"Japon",en:"Japan"},
     nepal:{fr:"Népal",en:"Nepal"},
+    norway:{fr:"Norvège",en:"Norway"},
     netherlands:{fr:"Pays-Bas",en:"Netherlands"},
     portugal:{fr:"Portugal",en:"Portugal"},
+    czechrepublic:{fr:"République tchèque",en:"Czech Republic"},
+    romania:{fr:"Roumanie",en:"Romania"},
+    singapore:{fr:"Singapour",en:"Singapore"},
+    sweden:{fr:"Suède",en:"Sweden"},
     switzerland:{fr:"Suisse",en:"Switzerland"},
-    thailand:{fr:"Thaïlande",en:"Thailand"}
+    thailand:{fr:"Thaïlande",en:"Thailand"},
+    turkey:{fr:"Turquie",en:"Turkey"}
 };
 
 /* --- Logo de l'application (icône PWA à l'installation) --- */
@@ -1589,19 +1600,30 @@ const APP_ICONS = {
     canada:{label:"🇨🇦 Canada",icon192:"icons/icon-192-canada.png",icon512:"icons/icon-512-canada.png"},
     china:{label:"🇨🇳 Chine",icon192:"icons/icon-192-china.png",icon512:"icons/icon-512-china.png"},
     southkorea:{label:"🇰🇷 Corée du Sud",icon192:"icons/icon-192-southkorea.png",icon512:"icons/icon-512-southkorea.png"},
+    croatia:{label:"🇭🇷 Croatie",icon192:"icons/icon-192-croatia.png",icon512:"icons/icon-512-croatia.png"},
+    denmark:{label:"🇩🇰 Danemark",icon192:"icons/icon-192-denmark.png",icon512:"icons/icon-512-denmark.png"},
     egypt:{label:"🇪🇬 Égypte",icon192:"icons/icon-192-egypt.png",icon512:"icons/icon-512-egypt.png"},
     spain:{label:"🇪🇸 Espagne",icon192:"icons/icon-192-spain.png",icon512:"icons/icon-512-spain.png"},
     usa:{label:"🇺🇸 États-Unis",icon192:"icons/icon-192-usa.png",icon512:"icons/icon-512-usa.png"},
+    finland:{label:"🇫🇮 Finlande",icon192:"icons/icon-192-finland.png",icon512:"icons/icon-512-finland.png"},
     france:{label:"🇫🇷 France (par défaut)",icon192:"icons/icon-192-france.png",icon512:"icons/icon-512-france.png"},
     greece:{label:"🇬🇷 Grèce",icon192:"icons/icon-192-greece.png",icon512:"icons/icon-512-greece.png"},
+    hungary:{label:"🇭🇺 Hongrie",icon192:"icons/icon-192-hungary.png",icon512:"icons/icon-512-hungary.png"},
     india:{label:"🇮🇳 Inde",icon192:"icons/icon-192-india.png",icon512:"icons/icon-512-india.png"},
+    iceland:{label:"🇮🇸 Islande",icon192:"icons/icon-192-iceland.png",icon512:"icons/icon-512-iceland.png"},
     italy:{label:"🇮🇹 Italie",icon192:"icons/icon-192-italy.png",icon512:"icons/icon-512-italy.png"},
     japan:{label:"🇯🇵 Japon",icon192:"icons/icon-192-japan.png",icon512:"icons/icon-512-japan.png"},
     nepal:{label:"🇳🇵 Népal",icon192:"icons/icon-192-nepal.png",icon512:"icons/icon-512-nepal.png"},
+    norway:{label:"🇳🇴 Norvège",icon192:"icons/icon-192-norway.png",icon512:"icons/icon-512-norway.png"},
     netherlands:{label:"🇳🇱 Pays-Bas",icon192:"icons/icon-192-netherlands.png",icon512:"icons/icon-512-netherlands.png"},
     portugal:{label:"🇵🇹 Portugal",icon192:"icons/icon-192-portugal.png",icon512:"icons/icon-512-portugal.png"},
+    czechrepublic:{label:"🇨🇿 République tchèque",icon192:"icons/icon-192-czechrepublic.png",icon512:"icons/icon-512-czechrepublic.png"},
+    romania:{label:"🇷🇴 Roumanie",icon192:"icons/icon-192-romania.png",icon512:"icons/icon-512-romania.png"},
+    singapore:{label:"🇸🇬 Singapour",icon192:"icons/icon-192-singapore.png",icon512:"icons/icon-512-singapore.png"},
+    sweden:{label:"🇸🇪 Suède",icon192:"icons/icon-192-sweden.png",icon512:"icons/icon-512-sweden.png"},
     switzerland:{label:"🇨🇭 Suisse",icon192:"icons/icon-192-switzerland.png",icon512:"icons/icon-512-switzerland.png"},
-    thailand:{label:"🇹🇭 Thaïlande",icon192:"icons/icon-192-thailand.png",icon512:"icons/icon-512-thailand.png"}
+    thailand:{label:"🇹🇭 Thaïlande",icon192:"icons/icon-192-thailand.png",icon512:"icons/icon-512-thailand.png"},
+    turkey:{label:"🇹🇷 Turquie",icon192:"icons/icon-192-turkey.png",icon512:"icons/icon-512-turkey.png"}
 };
 
 const appIconSelect = document.getElementById("appIconSelect");
@@ -2939,10 +2961,12 @@ function saveGeocodeOverrides(overrides){
    le chargement de la page (avant que le reste du script ne s'exécute). */
 const COUNTRY_ISO_CODES = {
     germany:"de", australia:"au", austria:"at", belgium:"be", brazil:"br",
-    canada:"ca", china:"cn", southkorea:"kr", egypt:"eg", spain:"es",
-    usa:"us", france:"fr", greece:"gr", india:"in", italy:"it",
-    japan:"jp", nepal:"np", netherlands:"nl", portugal:"pt",
-    switzerland:"ch", thailand:"th"
+    canada:"ca", china:"cn", southkorea:"kr", croatia:"hr", denmark:"dk",
+    egypt:"eg", spain:"es", usa:"us", finland:"fi", france:"fr",
+    greece:"gr", hungary:"hu", india:"in", iceland:"is", italy:"it",
+    japan:"jp", nepal:"np", norway:"no", netherlands:"nl", portugal:"pt",
+    czechrepublic:"cz", romania:"ro", singapore:"sg", sweden:"se",
+    switzerland:"ch", thailand:"th", turkey:"tr"
 };
 
 async function queryNominatim(queryText,countryCode){
@@ -3089,19 +3113,30 @@ const COUNTRY_BBOXES = {
     canada:{south:41.7,north:83.1,west:-141.0,east:-52.6},
     china:{south:18.2,north:53.6,west:73.5,east:135.1},
     southkorea:{south:33.1,north:38.6,west:125.0,east:129.6},
+    croatia:{south:42.4,north:46.6,west:13.5,east:19.5},
+    denmark:{south:54.5,north:57.8,west:8.0,east:15.2},
     egypt:{south:22.0,north:31.7,west:25.0,east:35.0},
     spain:{south:36.0,north:43.8,west:-9.3,east:4.3},
     usa:{south:24.5,north:49.4,west:-125.0,east:-66.9},
+    finland:{south:59.7,north:70.1,west:20.5,east:31.6},
     france:{south:41.3,north:51.1,west:-5.2,east:9.6},
     greece:{south:34.8,north:41.8,west:19.3,east:28.3},
+    hungary:{south:45.7,north:48.6,west:16.1,east:22.9},
     india:{south:6.5,north:35.5,west:68.1,east:97.4},
+    iceland:{south:63.3,north:66.6,west:-24.6,east:-13.5},
     italy:{south:36.6,north:47.1,west:6.6,east:18.5},
     japan:{south:24.0,north:45.6,west:122.9,east:145.9},
     nepal:{south:26.3,north:30.5,west:80.0,east:88.2},
+    norway:{south:57.9,north:71.2,west:4.5,east:31.3},
     netherlands:{south:50.7,north:53.6,west:3.3,east:7.3},
     portugal:{south:36.8,north:42.2,west:-9.6,east:-6.1},
+    czechrepublic:{south:48.5,north:51.1,west:12.0,east:18.9},
+    romania:{south:43.6,north:48.3,west:20.2,east:29.7},
+    singapore:{south:1.15,north:1.48,west:103.6,east:104.1},
+    sweden:{south:55.3,north:69.1,west:10.9,east:24.2},
     switzerland:{south:45.8,north:47.9,west:5.9,east:10.6},
-    thailand:{south:5.6,north:20.5,west:97.3,east:105.7}
+    thailand:{south:5.6,north:20.5,west:97.3,east:105.7},
+    turkey:{south:35.8,north:42.1,west:25.6,east:44.8}
 };
 
 function getCountryBbox(countryKey){

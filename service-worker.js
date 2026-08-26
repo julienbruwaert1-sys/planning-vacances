@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v104";
+const CACHE_NAME = "planning-v106";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -53,6 +53,28 @@ const APP_SHELL = [
     "./icons/icon-512-switzerland.png",
     "./icons/icon-192-thailand.png",
     "./icons/icon-512-thailand.png",
+    "./icons/icon-192-croatia.png",
+    "./icons/icon-512-croatia.png",
+    "./icons/icon-192-denmark.png",
+    "./icons/icon-512-denmark.png",
+    "./icons/icon-192-finland.png",
+    "./icons/icon-512-finland.png",
+    "./icons/icon-192-hungary.png",
+    "./icons/icon-512-hungary.png",
+    "./icons/icon-192-iceland.png",
+    "./icons/icon-512-iceland.png",
+    "./icons/icon-192-norway.png",
+    "./icons/icon-512-norway.png",
+    "./icons/icon-192-czechrepublic.png",
+    "./icons/icon-512-czechrepublic.png",
+    "./icons/icon-192-romania.png",
+    "./icons/icon-512-romania.png",
+    "./icons/icon-192-sweden.png",
+    "./icons/icon-512-sweden.png",
+    "./icons/icon-192-singapore.png",
+    "./icons/icon-512-singapore.png",
+    "./icons/icon-192-turkey.png",
+    "./icons/icon-512-turkey.png",
     "./vendor/xlsx.full.min.js",
     "./vendor/firebase-app-compat.js",
     "./vendor/firebase-database-compat.js",
