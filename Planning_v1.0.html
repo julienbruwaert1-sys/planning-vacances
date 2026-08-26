@@ -13,6 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="vendor/MarkerCluster.css">
+<link rel="stylesheet" href="vendor/MarkerCluster.Default.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -415,6 +417,8 @@ Ajouter
 <option>Pratique</option>
 </select>
 <button type="button" id="mapCountryToggle" class="map-country-toggle" aria-pressed="false">🌍 Pays de vacances uniquement</button>
+<button type="button" id="mapPoiToggle" class="map-country-toggle" aria-pressed="false">🍽️ Points d'intérêt</button>
+<button type="button" id="mapPoiSearchBtn" class="map-poi-search-btn" hidden>🔍 Rechercher ici</button>
 </div>
 <div id="mapContainer" class="map-container"></div>
 <div id="mapOfflineNotice" class="map-offline-notice" hidden>📡 Carte indisponible hors-ligne — connecte-toi à internet pour la voir.</div>
@@ -493,6 +497,7 @@ Ajouter
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-database-compat.js"></script>
 <script src="vendor/leaflet.js"></script>
+<script src="vendor/leaflet.markercluster.js"></script>
 <script src="app.js"></script>
 
 </body>

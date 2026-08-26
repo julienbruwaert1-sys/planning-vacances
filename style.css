@@ -1015,6 +1015,75 @@ body.dark .map-country-toggle.active{
     cursor:pointer;
 }
 
+.map-poi-search-btn{
+    flex-basis:100%;
+    padding:8px 10px;
+    border-radius:10px;
+    border:none;
+    background:#D2503B;
+    color:#FFFFFF;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.map-poi-search-btn[hidden]{
+    display:none;
+}
+
+body.dark .map-poi-search-btn{
+    background:#3D7CFF;
+}
+
+.map-poi-pin{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:16px;
+    height:16px;
+    font-size:11px;
+    line-height:1;
+    background:#FFFFFF;
+    border-radius:50%;
+    box-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+
+body.dark .map-poi-pin{
+    background:#182238;
+}
+
+/* Re-teinte les bulles de Leaflet.markercluster (vert/jaune/orange par
+   défaut) avec la palette de l'app, pour les pins d'activités comme pour
+   les points d'intérêt. */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large{
+    background-color:rgba(210,80,59,.25);
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div{
+    background-color:rgba(210,80,59,.65);
+    color:#FFFFFF;
+    font-family:'Inter',Arial,sans-serif;
+    font-weight:600;
+}
+
+body.dark .marker-cluster-small,
+body.dark .marker-cluster-medium,
+body.dark .marker-cluster-large{
+    background-color:rgba(61,124,255,.25);
+}
+
+body.dark .marker-cluster-small div,
+body.dark .marker-cluster-medium div,
+body.dark .marker-cluster-large div{
+    background-color:rgba(61,124,255,.75);
+    color:#FFFFFF;
+}
+
 .map-offline-notice{
     flex:1;
     display:flex;

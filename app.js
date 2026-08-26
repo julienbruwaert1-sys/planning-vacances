@@ -2845,19 +2845,27 @@ function saveGeocodeOverrides(overrides){
     localStorage.setItem(GEOCODE_OVERRIDE_KEY,JSON.stringify(overrides));
 }
 
-async function geocodeAddress(address){
+/* Codes ISO 3166-1 alpha-2, utilisés pour restreindre la recherche
+   Nominatim au pays de destination (paramètre countrycodes) et réduire
+   les mauvais géocodages (ex. adresse ambiguë placée dans le mauvais pays).
+   Déclaré avant geocodeAddress() car backfillGeocodeCache() l'appelle dès
+   le chargement de la page (avant que le reste du script ne s'exécute). */
+const COUNTRY_ISO_CODES = {
+    germany:"de", australia:"au", austria:"at", belgium:"be", brazil:"br",
+    canada:"ca", china:"cn", southkorea:"kr", egypt:"eg", spain:"es",
+    usa:"us", france:"fr", greece:"gr", india:"in", italy:"it",
+    japan:"jp", nepal:"np", netherlands:"nl", portugal:"pt",
+    switzerland:"ch", thailand:"th"
+};
 
-    const cache = loadGeocodeCache();
-    if(cache[address]) return cache[address];
+async function queryNominatim(queryText,countryCode){
 
-    const overrides = loadGeocodeOverrides();
-    const queryText = overrides[address] || address;
-
-    const response = await fetchWithTimeout(
+    const url =
         "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
-        + encodeURIComponent(queryText),
-        8000
-    );
+        + encodeURIComponent(queryText)
+        + (countryCode ? "&countrycodes="+countryCode : "");
+
+    const response = await fetchWithTimeout(url,8000);
 
     // Respecte la politique d'usage de Nominatim (max ~1 requête/seconde).
     await wait(1100);
@@ -2866,7 +2874,23 @@ async function geocodeAddress(address){
         throw new Error("Nominatim: réponse HTTP "+response.status);
     }
 
-    const results = await response.json();
+    return response.json();
+}
+
+async function geocodeAddress(address){
+
+    const cache = loadGeocodeCache();
+    if(cache[address]) return cache[address];
+
+    const overrides = loadGeocodeOverrides();
+    const queryText = overrides[address] || address;
+    const countryCode = COUNTRY_ISO_CODES[appIconChoice] || null;
+
+    let results = countryCode ? await queryNominatim(queryText,countryCode) : [];
+
+    if(!results.length){
+        results = await queryNominatim(queryText,null);
+    }
 
     if(!results.length){
         throw new Error(`Adresse introuvable : ${queryText}`);
@@ -3035,6 +3059,8 @@ function fixMarkerPosition(address){
 let mapInstance = null;
 let mapMarkersLayer = null;
 let mapUserLocationLayer = null;
+let mapPoiLayer = null;
+let mapRouteLayer = null;
 
 function showUserLocationOnMap(){
 
@@ -3087,8 +3113,10 @@ async function renderMapView(){
             attribution:"© OpenStreetMap"
         }).addTo(mapInstance);
 
-        mapMarkersLayer = L.layerGroup().addTo(mapInstance);
+        mapMarkersLayer = L.markerClusterGroup({maxClusterRadius:50}).addTo(mapInstance);
         mapUserLocationLayer = L.layerGroup().addTo(mapInstance);
+        mapRouteLayer = L.layerGroup().addTo(mapInstance);
+        mapPoiLayer = L.markerClusterGroup({maxClusterRadius:50,disableClusteringAtZoom:17}).addTo(mapInstance);
 
         setTimeout(()=>mapInstance.invalidateSize(),0);
 
@@ -3098,6 +3126,7 @@ async function renderMapView(){
 
     mapMarkersLayer.clearLayers();
     mapUserLocationLayer.clearLayers();
+    mapRouteLayer.clearLayers();
     showUserLocationOnMap();
 
     const dayFilter = mapDaySelect.value ? parseInt(mapDaySelect.value,10) : null;
@@ -3176,7 +3205,7 @@ async function renderMapView(){
             weight:3,
             opacity:0.7,
             dashArray:"6 6"
-        }).addTo(mapMarkersLayer);
+        }).addTo(mapRouteLayer);
     }
 
     if(countryBbox){
@@ -3188,6 +3217,152 @@ async function renderMapView(){
         mapInstance.fitBounds(points,{padding:[30,30]});
     }
 }
+
+/* --- Points d'intérêt (restaurants / toilettes) via Overpass API ---
+   Chargés à la demande uniquement (bouton "Rechercher ici"), jamais
+   automatiquement, pour respecter l'usage raisonnable d'Overpass et
+   éviter de spammer le réseau à chaque pan/zoom. */
+
+const POI_MIN_ZOOM = 13;
+const POI_CACHE_KEY = "poiCache";
+const POI_CACHE_TTL_MS = 24*60*60*1000;
+
+const POI_TYPES = {
+    restaurant:{icon:"🍽️",label:"Restaurant"},
+    toilets:{icon:"🚻",label:"Toilettes"}
+};
+
+const mapPoiToggle = document.getElementById("mapPoiToggle");
+const mapPoiSearchBtn = document.getElementById("mapPoiSearchBtn");
+let mapPoiActive = false;
+
+function loadPoiCache(){
+    return JSON.parse(localStorage.getItem(POI_CACHE_KEY) || "{}");
+}
+
+function savePoiCache(cache){
+    localStorage.setItem(POI_CACHE_KEY,JSON.stringify(cache));
+}
+
+function poiCacheKeyFor(bounds){
+    return [
+        bounds.getSouth().toFixed(2),
+        bounds.getWest().toFixed(2),
+        bounds.getNorth().toFixed(2),
+        bounds.getEast().toFixed(2)
+    ].join("_");
+}
+
+async function fetchPoiForBounds(bounds){
+
+    const south = bounds.getSouth();
+    const west = bounds.getWest();
+    const north = bounds.getNorth();
+    const east = bounds.getEast();
+
+    const query =
+        `[out:json][timeout:15];(` +
+        `node["amenity"="restaurant"](${south},${west},${north},${east});` +
+        `node["amenity"="toilets"](${south},${west},${north},${east});` +
+        `);out body;`;
+
+    const response = await fetchWithTimeout(
+        "https://overpass-api.de/api/interpreter?data="+encodeURIComponent(query),
+        15000
+    );
+
+    if(!response.ok){
+        throw new Error("Overpass: réponse HTTP "+response.status);
+    }
+
+    const data = await response.json();
+
+    return (data.elements || []).map(el=>({
+        lat:el.lat,
+        lon:el.lon,
+        amenity:el.tags && el.tags.amenity,
+        name:el.tags && el.tags.name
+    }));
+}
+
+function renderPoiMarkers(places){
+
+    mapPoiLayer.clearLayers();
+
+    places.forEach(place=>{
+
+        const meta = POI_TYPES[place.amenity];
+        if(!meta) return;
+
+        const icon = L.divIcon({
+            className:"map-poi-pin",
+            html:meta.icon,
+            iconSize:[16,16],
+            iconAnchor:[8,16]
+        });
+
+        L.marker([place.lat,place.lon],{icon})
+        .addTo(mapPoiLayer)
+        .bindPopup(place.name || meta.label);
+    });
+}
+
+async function searchPoiHere(){
+
+    if(!navigator.onLine){
+        showToast(
+            "Hors-ligne : la recherche de points d'intérêt nécessite une connexion.",
+            {type:"error"}
+        );
+        return;
+    }
+
+    if(mapInstance.getZoom() < POI_MIN_ZOOM){
+        showToast(
+            "Zoome davantage sur la carte pour chercher les points d'intérêt.",
+            {type:"error"}
+        );
+        return;
+    }
+
+    const bounds = mapInstance.getBounds();
+    const cacheKey = poiCacheKeyFor(bounds);
+    const cache = loadPoiCache();
+    const cached = cache[cacheKey];
+
+    if(cached && (Date.now()-cached.timestamp) < POI_CACHE_TTL_MS){
+        renderPoiMarkers(cached.places);
+        return;
+    }
+
+    try{
+
+        const places = await fetchPoiForBounds(bounds);
+
+        cache[cacheKey] = {places,timestamp:Date.now()};
+        savePoiCache(cache);
+
+        renderPoiMarkers(places);
+
+    }catch(err){
+        console.error("Recherche de points d'intérêt impossible :",err);
+        showToast("Impossible de charger les points d'intérêt pour le moment.",{type:"error"});
+    }
+}
+
+mapPoiToggle.addEventListener("click",()=>{
+
+    mapPoiActive = !mapPoiActive;
+    mapPoiToggle.classList.toggle("active",mapPoiActive);
+    mapPoiToggle.setAttribute("aria-pressed",String(mapPoiActive));
+    mapPoiSearchBtn.hidden = !mapPoiActive;
+
+    if(!mapPoiActive && mapPoiLayer){
+        mapPoiLayer.clearLayers();
+    }
+});
+
+mapPoiSearchBtn.addEventListener("click",searchPoiHere);
 
 /* --- Profil : liste + sous-écrans plein écran --- */
 
