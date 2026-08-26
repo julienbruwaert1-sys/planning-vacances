@@ -1646,14 +1646,19 @@ Object.keys(APP_ICONS).forEach(key=>{
 
 const welcomeCountrySelect = document.getElementById("welcomeCountrySelect");
 
+const welcomeCountryPlaceholder = document.createElement("option");
+welcomeCountryPlaceholder.value = "";
+welcomeCountryPlaceholder.textContent = "Sélectionne un pays";
+welcomeCountryPlaceholder.disabled = true;
+welcomeCountryPlaceholder.selected = true;
+welcomeCountrySelect.appendChild(welcomeCountryPlaceholder);
+
 Object.keys(APP_ICONS).forEach(key=>{
     const opt = document.createElement("option");
     opt.value = key;
     opt.textContent = APP_ICONS[key].label;
     welcomeCountrySelect.appendChild(opt);
 });
-
-welcomeCountrySelect.value = "france";
 
 document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
 
@@ -1665,6 +1670,12 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
     }
 
     const country = welcomeCountrySelect.value;
+
+    if(!country){
+        showToast("Choisis un pays pour continuer.",{type:"error"});
+        return;
+    }
+
     const startDateVal = document.getElementById("welcomeStartDate").value;
     const endDateVal = document.getElementById("welcomeEndDate").value;
     const localCurrency = COUNTRY_CURRENCIES[country] || "USD";
