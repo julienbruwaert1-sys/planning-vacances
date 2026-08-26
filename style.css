@@ -1481,9 +1481,9 @@ body.dark .planning-search-placeholder{
 }
 
 .planning-search-wrap .search-panel{
-    left:0;
-    right:0;
+    position:relative;
     width:auto;
+    margin-top:0;
 }
 
 .day-select-wrap{
