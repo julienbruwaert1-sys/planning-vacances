@@ -2866,8 +2866,8 @@ async function renderMapView(){
             const icon = L.divIcon({
                 className:"map-pin-icon",
                 html: icons[activity.type] || "📍",
-                iconSize:[26,26],
-                iconAnchor:[13,26]
+                iconSize:[18,18],
+                iconAnchor:[9,18]
             });
 
             const popup = document.createElement("div");
