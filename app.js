@@ -2421,8 +2421,9 @@ bottomNavTabs.forEach(btn=>{
 
         closeAllFullscreenViews();
 
-        if(tab==="checklist"){
-            openChecklistView();
+        if(tab==="reservations"){
+            renderReservations();
+            document.getElementById("reservationsView").hidden = false;
             setActiveMainTab("planning");
             return;
         }
@@ -2613,6 +2614,10 @@ document.getElementById("profileVersionAbout").textContent = APP_VERSION;
 
 document.querySelectorAll("[data-profile-view]").forEach(row=>{
     row.addEventListener("click",()=>{
+        if(row.dataset.profileView==="checklistView"){
+            openChecklistView();
+            return;
+        }
         const view = document.getElementById(row.dataset.profileView);
         if(!view) return;
         if(row.dataset.profileView==="reservationsView") renderReservations();
