@@ -127,6 +127,7 @@
 <button class="menu-item" type="button" role="menuitem" data-profile-view="tripStatsView"><span class="menu-item-icon">📊</span><span class="menu-item-label">Statistiques du voyage</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="reservationsView"><span class="menu-item-icon">🔗</span><span class="menu-item-label">Réservations</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="mapView"><span class="menu-item-icon">🗺️</span><span class="menu-item-label">Carte du voyage</span></button>
+<button class="menu-item" type="button" role="menuitem" data-profile-view="helpSupportView"><span class="menu-item-icon">🆘</span><span class="menu-item-label">Aide et support</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="aboutView"><span class="menu-item-icon">ℹ️</span><span class="menu-item-label">À propos</span></button>
 </div>
 </div>
@@ -222,6 +223,9 @@
 <input type="checkbox" id="checklistHideChecked">
 Masquer les éléments cochés
 </label>
+<select id="checklistTemplateSelect" class="checklist-template-select" aria-label="Ajouter un modèle de checklist">
+<option value="">Ajouter un modèle…</option>
+</select>
 </div>
 
 <div id="checklistItems" class="checklist-categories"></div>
@@ -318,6 +322,7 @@ Ajouter
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="checklistView"><span class="profile-row-icon">🎒</span><span class="profile-row-label">Checklist</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="helpSupportView"><span class="profile-row-icon">🆘</span><span class="profile-row-label">Aide et support</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
 </div>
 
@@ -433,6 +438,20 @@ Ajouter
 </div>
 <div class="fullscreen-body">
 <div class="profile-section" id="dataSettingsSlot"></div>
+</div>
+</div>
+
+<div id="helpSupportView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🆘 Aide et support</h2>
+</div>
+<div class="fullscreen-body">
+<div class="profile-section">
+<p class="profile-about">Cette application est un projet personnel, sans équipe de support classique. Pour signaler un bug ou proposer une amélioration, note-le ci-dessous : c'est sauvegardé sur cet appareil, pour que tu puisses le reprendre à ta prochaine session avec l'assistant qui construit cette app.</p>
+<textarea id="helpNotesInput" class="help-notes-input" rows="7" placeholder="Ex. : le bouton X ne fonctionne pas sur mon téléphone, j'aimerais pouvoir…"></textarea>
+<p class="menu-hint">Sauvegardé automatiquement, uniquement sur cet appareil.</p>
+</div>
 </div>
 </div>
 

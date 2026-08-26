@@ -690,6 +690,25 @@ body.dark .profile-version-about{
     margin:10px 0 0;
 }
 
+.help-notes-input{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid rgba(51,64,74,.15);
+    background:#F1F7FB;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13.5px;
+    line-height:1.5;
+    resize:vertical;
+}
+
+body.dark .help-notes-input{
+    background:#182238;
+    color:#EAF0FB;
+    border-color:rgba(234,240,251,.15);
+}
+
 .profile-stats{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -1118,8 +1137,27 @@ body.dark .checklist-item input[type="checkbox"]{
 
 .checklist-toolbar{
     display:flex;
-    justify-content:flex-end;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
     margin-bottom:14px;
+}
+
+.checklist-template-select{
+    font-size:12.5px;
+    padding:6px 8px;
+    border-radius:8px;
+    border:1px solid rgba(51,64,74,.15);
+    background:#F1F7FB;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+}
+
+body.dark .checklist-template-select{
+    background:#182238;
+    color:#EAF0FB;
+    border-color:rgba(234,240,251,.15);
 }
 
 .checklist-hide-toggle{

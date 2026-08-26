@@ -2140,6 +2140,67 @@ const checklistSuggestions = [
     {label:"Prise multiple",category:"Électronique"}
 ];
 
+const CHECKLIST_TEMPLATES = {
+    "🏖️ Plage":[
+        {label:"Maillot de bain",category:"Vêtements"},
+        {label:"Serviette de plage",category:"Divers"},
+        {label:"Crème solaire",category:"Santé"},
+        {label:"Lunettes de soleil",category:"Vêtements"},
+        {label:"Tongs",category:"Vêtements"},
+        {label:"Sac étanche",category:"Divers"}
+    ],
+    "⛰️ Montagne / randonnée":[
+        {label:"Chaussures de randonnée",category:"Vêtements"},
+        {label:"Veste imperméable",category:"Vêtements"},
+        {label:"Gourde",category:"Divers"},
+        {label:"Bâtons de marche",category:"Divers"},
+        {label:"Trousse de premiers secours",category:"Santé"},
+        {label:"Crème solaire",category:"Santé"}
+    ],
+    "🏙️ Ville / citytrip":[
+        {label:"Chaussures confortables",category:"Vêtements"},
+        {label:"Sac à dos léger",category:"Divers"},
+        {label:"Batterie externe",category:"Électronique"},
+        {label:"Plan / guide",category:"Divers"}
+    ],
+    "❄️ Hiver / ski":[
+        {label:"Manteau chaud",category:"Vêtements"},
+        {label:"Gants",category:"Vêtements"},
+        {label:"Bonnet",category:"Vêtements"},
+        {label:"Crème solaire (neige)",category:"Santé"},
+        {label:"Chaufferettes",category:"Divers"}
+    ]
+};
+
+function applyChecklistTemplate(templateName){
+
+    const items = CHECKLIST_TEMPLATES[templateName];
+    if(!items) return;
+
+    const existingLabels = new Set(
+        checklist.map(item=>item.label.trim().toLowerCase())
+    );
+
+    let addedCount = 0;
+
+    items.forEach(item=>{
+        if(existingLabels.has(item.label.trim().toLowerCase())) return;
+        checklist.push({label:item.label,checked:false,category:item.category});
+        existingLabels.add(item.label.trim().toLowerCase());
+        addedCount++;
+    });
+
+    saveChecklist();
+    renderChecklist();
+
+    showToast(
+        addedCount>0
+            ? `${addedCount} élément(s) ajouté(s) depuis le modèle « ${templateName} ».`
+            : `Tous les éléments de « ${templateName} » étaient déjà dans ta checklist.`,
+        {type:"success"}
+    );
+}
+
 let checklist =
 JSON.parse(localStorage.getItem(CHECKLIST_STORAGE_KEY))
 || defaultChecklist;
@@ -2341,6 +2402,21 @@ checklistHideChecked.addEventListener("change",()=>{
     renderChecklist();
 });
 
+const checklistTemplateSelect = document.getElementById("checklistTemplateSelect");
+
+Object.keys(CHECKLIST_TEMPLATES).forEach(name=>{
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    checklistTemplateSelect.appendChild(opt);
+});
+
+checklistTemplateSelect.addEventListener("change",()=>{
+    if(!checklistTemplateSelect.value) return;
+    applyChecklistTemplate(checklistTemplateSelect.value);
+    checklistTemplateSelect.value = "";
+});
+
 function openChecklistView(){
     closeOptionsMenu();
     closeSearchPanel();
@@ -2525,6 +2601,17 @@ function saveTravelerInfo(){
 });
 
 loadTravelerInfo();
+
+/* --- Profil : Aide et support (notes locales, aucun backend) --- */
+
+const HELP_NOTES_KEY = "helpSupportNotes";
+const helpNotesInput = document.getElementById("helpNotesInput");
+
+helpNotesInput.value = localStorage.getItem(HELP_NOTES_KEY) || "";
+
+helpNotesInput.addEventListener("input",()=>{
+    localStorage.setItem(HELP_NOTES_KEY,helpNotesInput.value);
+});
 
 /* --- Profil : statistiques du voyage --- */
 
@@ -2823,14 +2910,16 @@ async function renderMapView(){
     const mapContainer = document.getElementById("mapContainer");
     const offlineNotice = document.getElementById("mapOfflineNotice");
 
-    if(!navigator.onLine){
-        mapContainer.hidden = true;
-        offlineNotice.hidden = false;
-        return;
-    }
-
     mapContainer.hidden = false;
     offlineNotice.hidden = true;
+
+    if(!navigator.onLine){
+        showToast(
+            "Hors-ligne : seules les zones déjà consultées et les adresses déjà "
+            + "localisées s'afficheront.",
+            {duration:5000}
+        );
+    }
 
     populateMapDaySelect();
 

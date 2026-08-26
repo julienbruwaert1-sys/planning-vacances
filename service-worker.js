@@ -1,4 +1,9 @@
-const CACHE_NAME = "planning-v81";
+const CACHE_NAME = "planning-v83";
+
+/* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
+   à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
+   même après une mise à jour de l'app. */
+const TILE_CACHE_NAME = "planning-map-tiles-v1";
 
 const APP_SHELL = [
     "./index.html",
@@ -73,7 +78,7 @@ self.addEventListener("activate",event=>{
         caches.keys()
         .then(keys=>Promise.all(
             keys
-            .filter(key=>key!==CACHE_NAME)
+            .filter(key=>key!==CACHE_NAME && key!==TILE_CACHE_NAME)
             .map(key=>caches.delete(key))
         ))
         .then(()=>self.clients.claim())
@@ -86,6 +91,11 @@ self.addEventListener("fetch",event=>{
 
     if(event.request.method!=="GET") return;
 
+    if(url.hostname.endsWith("tile.openstreetmap.org")){
+        event.respondWith(cacheFirstTiles(event.request));
+        return;
+    }
+
     if(RUNTIME_CACHE_HOSTS.includes(url.hostname)){
         event.respondWith(staleWhileRevalidate(event.request));
         return;
@@ -95,6 +105,21 @@ self.addEventListener("fetch",event=>{
         event.respondWith(cacheFirst(event.request));
     }
 });
+
+async function cacheFirstTiles(request){
+
+    const cache = await caches.open(TILE_CACHE_NAME);
+    const cached = await cache.match(request);
+    if(cached) return cached;
+
+    try{
+        const response = await fetch(request);
+        if(response.ok) cache.put(request,response.clone());
+        return response;
+    }catch(err){
+        return cached || Response.error();
+    }
+}
 
 async function cacheFirst(request){
 
