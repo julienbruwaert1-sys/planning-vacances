@@ -1867,6 +1867,21 @@ themeToggle.addEventListener("click",()=>{
     updateThemeButton();
 });
 
+const welcomeThemeToggle = document.getElementById("welcomeThemeToggle");
+welcomeThemeToggle.checked = document.body.classList.contains("dark");
+
+welcomeThemeToggle.addEventListener("change",()=>{
+
+    document.body.classList.toggle("dark",welcomeThemeToggle.checked);
+
+    localStorage.setItem(
+        "theme",
+        welcomeThemeToggle.checked ? "dark" : "light"
+    );
+
+    updateThemeButton();
+});
+
 const dayCountInput = document.getElementById("dayCount");
 dayCountInput.value = dayCount;
 

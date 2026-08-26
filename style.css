@@ -2643,6 +2643,54 @@ body.dark select:focus-visible{
     display:none;
 }
 
+.welcome-theme-switch{
+    position:absolute;
+    top:16px;
+    right:16px;
+    cursor:pointer;
+}
+
+.welcome-theme-switch input{
+    position:absolute;
+    opacity:0;
+    width:0;
+    height:0;
+}
+
+.welcome-theme-switch-track{
+    display:flex;
+    align-items:center;
+    width:44px;
+    height:24px;
+    border-radius:12px;
+    background:#E0E6EC;
+    padding:2px;
+    box-sizing:border-box;
+    transition:background .2s ease;
+}
+
+.welcome-theme-switch-thumb{
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:#FFFFFF;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+    transition:transform .2s ease;
+}
+
+.welcome-theme-switch input:checked + .welcome-theme-switch-track{
+    background:#3D7CFF;
+}
+
+.welcome-theme-switch input:checked + .welcome-theme-switch-track .welcome-theme-switch-thumb{
+    transform:translateX(20px);
+}
+
+.welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline:2px solid #D2503B;
+    outline-offset:2px;
+}
+
 .welcome-card{
     width:100%;
     max-width:400px;
