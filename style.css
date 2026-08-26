@@ -2043,6 +2043,10 @@ body.dark .converter-currency-select{
     color:#7C8BAE;
 }
 
+.converter-currency-display{
+    cursor:default;
+}
+
 body.dark .converter-currency-select option{
     color:#33404A;
 }

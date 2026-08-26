@@ -52,16 +52,6 @@
 
 <div class="menu-divider"></div>
 <div class="menu-section-label">Données</div>
-<div class="menu-item menu-item-static">
-<span class="menu-item-icon">💷</span>
-<span class="menu-item-label">Devise de saisie des prix</span>
-<select id="priceCurrencySelect" class="menu-item-inline-select" aria-label="Devise de saisie des prix des activités">
-<option value="£">£ GBP</option>
-<option value="€">€ EUR</option>
-<option value="$">$ USD</option>
-<option value="¥">¥ JPY</option>
-</select>
-</div>
 <button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json" hidden>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
@@ -158,11 +148,30 @@
 </div>
 <div class="date-wrap-row" data-tab="devise">
 <div class="date-field">
-<label for="targetCurrency">Devise du convertisseur</label>
-<select id="targetCurrency">
-<option value="JPY">¥ Yen (JPY)</option>
-<option value="EUR">€ Euro (EUR)</option>
-<option value="USD">$ Dollar (USD)</option>
+<label for="priceCurrencySelect">Devise de saisie des prix</label>
+<select id="priceCurrencySelect" aria-label="Devise de saisie des prix des activités">
+<option value="£">£ GBP</option>
+<option value="€">€ EUR</option>
+<option value="$">$ USD</option>
+<option value="¥">¥ JPY</option>
+</select>
+</div>
+<div class="date-field">
+<label for="converterBaseCurrencySelect">Devise de départ (convertisseur)</label>
+<select id="converterBaseCurrencySelect" aria-label="Devise de départ du convertisseur">
+<option value="GBP">GBP</option>
+<option value="EUR">EUR</option>
+<option value="USD">USD</option>
+<option value="JPY">JPY</option>
+</select>
+</div>
+<div class="date-field">
+<label for="targetCurrency">Devise d'arrivée (convertisseur)</label>
+<select id="targetCurrency" aria-label="Devise d'arrivée du convertisseur">
+<option value="GBP">GBP</option>
+<option value="JPY">JPY</option>
+<option value="EUR">EUR</option>
+<option value="USD">USD</option>
 </select>
 </div>
 </div>
@@ -179,22 +188,12 @@
 <div class="converter-body">
 <div class="converter-row">
 <div class="converter-field">
-<select id="baseCurrencySelect" class="converter-currency-select" aria-label="Devise de départ du convertisseur">
-<option value="GBP">GBP</option>
-<option value="EUR">EUR</option>
-<option value="USD">USD</option>
-<option value="JPY">JPY</option>
-</select>
+<span id="baseCurrencyDisplay" class="converter-currency-select converter-currency-display"></span>
 <input type="number" id="baseInput" placeholder="0" step="0.01">
 </div>
 <span class="converter-eq">⇄</span>
 <div class="converter-field">
-<select id="targetFieldLabel" class="converter-currency-select" aria-label="Devise d'arrivée du convertisseur">
-<option value="GBP">GBP</option>
-<option value="EUR">EUR</option>
-<option value="USD">USD</option>
-<option value="JPY">JPY</option>
-</select>
+<span id="targetCurrencyDisplay" class="converter-currency-select converter-currency-display"></span>
 <input type="number" id="targetInput" placeholder="0" step="1">
 </div>
 </div>

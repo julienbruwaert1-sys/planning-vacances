@@ -3240,14 +3240,15 @@ function rateTimestampKey(base,currency){
 }
 
 const baseInput = document.getElementById("baseInput");
-const baseCurrencySelect = document.getElementById("baseCurrencySelect");
+const baseCurrencyDisplay = document.getElementById("baseCurrencyDisplay");
+const converterBaseCurrencySelect = document.getElementById("converterBaseCurrencySelect");
 const targetInput = document.getElementById("targetInput");
-const targetFieldLabel = document.getElementById("targetFieldLabel");
+const targetCurrencyDisplay = document.getElementById("targetCurrencyDisplay");
 const targetCurrencySelect = document.getElementById("targetCurrency");
 const rateInfo = document.getElementById("rateInfo");
 
 let baseCurrency = localStorage.getItem("baseCurrency") || "GBP";
-baseCurrencySelect.value = baseCurrency;
+converterBaseCurrencySelect.value = baseCurrency;
 
 let targetCurrency = localStorage.getItem("targetCurrency") || "JPY";
 targetCurrencySelect.value = targetCurrency;
@@ -3262,15 +3263,16 @@ function applyCurrencyMeta(){
     const targetMeta = CURRENCIES[targetCurrency];
 
     baseInput.step = baseMeta.decimals===0 ? "1" : "0.01";
-    targetFieldLabel.value = targetCurrency;
+    baseCurrencyDisplay.textContent = baseCurrency;
+    targetCurrencyDisplay.textContent = targetCurrency;
     targetInput.step = targetMeta.decimals===0 ? "1" : "0.01";
 }
 
 applyCurrencyMeta();
 
-baseCurrencySelect.addEventListener("change",()=>{
+converterBaseCurrencySelect.addEventListener("change",()=>{
 
-    baseCurrency = baseCurrencySelect.value;
+    baseCurrency = converterBaseCurrencySelect.value;
     localStorage.setItem("baseCurrency",baseCurrency);
 
     applyCurrencyMeta();
@@ -3281,27 +3283,16 @@ baseCurrencySelect.addEventListener("change",()=>{
     fetchExchangeRate();
 });
 
-function onTargetCurrencyChange(newValue){
+targetCurrencySelect.addEventListener("change",()=>{
 
-    targetCurrency = newValue;
+    targetCurrency = targetCurrencySelect.value;
     localStorage.setItem("targetCurrency",targetCurrency);
-
-    targetCurrencySelect.value = targetCurrency;
-    targetFieldLabel.value = targetCurrency;
 
     applyCurrencyMeta();
     targetInput.value = "";
     currentRate = null;
 
     fetchExchangeRate();
-}
-
-targetCurrencySelect.addEventListener("change",()=>{
-    onTargetCurrencyChange(targetCurrencySelect.value);
-});
-
-targetFieldLabel.addEventListener("change",()=>{
-    onTargetCurrencyChange(targetFieldLabel.value);
 });
 
 function formatTimestamp(iso){
