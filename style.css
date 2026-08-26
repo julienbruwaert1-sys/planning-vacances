@@ -1592,7 +1592,7 @@ select{
 }
 
 body.dark #activityName::placeholder{
-    color:#7C8BAE;
+    color:#B7C4D6;
     opacity:1;
 }
 
@@ -1601,7 +1601,7 @@ body.dark #activityName::placeholder{
 }
 
 body.dark .select-placeholder{
-    color:#7C8BAE;
+    color:#B7C4D6;
 }
 
 button.add{
