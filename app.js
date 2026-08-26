@@ -3542,7 +3542,16 @@ const CURRENCIES = {
     GBP:{symbol:"£",decimals:2,label:"Livre (GBP)"},
     JPY:{symbol:"¥",decimals:0,label:"Yen (JPY)"},
     EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"},
-    USD:{symbol:"$",decimals:2,label:"Dollar (USD)"}
+    USD:{symbol:"$",decimals:2,label:"Dollar (USD)"},
+    CZK:{symbol:"Kč",decimals:2,label:"Couronne tchèque (CZK)"},
+    DKK:{symbol:"kr",decimals:2,label:"Couronne danoise (DKK)"},
+    HUF:{symbol:"Ft",decimals:0,label:"Forint (HUF)"},
+    ISK:{symbol:"kr",decimals:0,label:"Couronne islandaise (ISK)"},
+    NOK:{symbol:"kr",decimals:2,label:"Couronne norvégienne (NOK)"},
+    RON:{symbol:"lei",decimals:2,label:"Leu roumain (RON)"},
+    SEK:{symbol:"kr",decimals:2,label:"Couronne suédoise (SEK)"},
+    SGD:{symbol:"S$",decimals:2,label:"Dollar de Singapour (SGD)"},
+    TRY:{symbol:"₺",decimals:2,label:"Livre turque (TRY)"}
 };
 
 function rateStorageKey(base,currency){
@@ -3560,6 +3569,16 @@ const targetInput = document.getElementById("targetInput");
 const targetCurrencyDisplay = document.getElementById("targetCurrencyDisplay");
 const targetCurrencySelect = document.getElementById("targetCurrency");
 const rateInfo = document.getElementById("rateInfo");
+
+[converterBaseCurrencySelect,targetCurrencySelect].forEach(select=>{
+    select.innerHTML = "";
+    Object.keys(CURRENCIES).forEach(code=>{
+        const opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = code;
+        select.appendChild(opt);
+    });
+});
 
 let baseCurrency = localStorage.getItem("baseCurrency") || "GBP";
 converterBaseCurrencySelect.value = baseCurrency;
