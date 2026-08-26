@@ -1690,10 +1690,29 @@ Object.keys(APP_ICONS).forEach(key=>{
 
 welcomeCountrySelect.classList.add("welcome-select-placeholder");
 
+let welcomeCountryConfirmed = "";
+
 welcomeCountrySelect.addEventListener("change",()=>{
-    welcomeCountrySelect.classList.toggle(
-        "welcome-select-placeholder",
-        !welcomeCountrySelect.value
+
+    const newChoice = welcomeCountrySelect.value;
+    const meta = APP_ICONS[newChoice];
+
+    showConfirmModal(
+        `Utiliser « ${meta.label} » comme logo de l'application ?`,
+        ()=>{
+            welcomeCountryConfirmed = newChoice;
+            welcomeCountrySelect.classList.remove("welcome-select-placeholder");
+        },
+        {
+            previewSrc: meta.icon512,
+            onCancel: ()=>{
+                welcomeCountrySelect.value = welcomeCountryConfirmed;
+                welcomeCountrySelect.classList.toggle(
+                    "welcome-select-placeholder",
+                    !welcomeCountryConfirmed
+                );
+            }
+        }
     );
 });
 
