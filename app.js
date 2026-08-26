@@ -3631,42 +3631,15 @@ if(sessionStorage.getItem("justUpdatedApp")){
 
 const cacheVersionBadge = document.getElementById("cacheVersionBadge");
 
-let cacheVersionLabel = "";
-
-function renderCacheVersionBadge(){
-    const navH = bottomNav.offsetHeight;
-    const cssVar = getComputedStyle(document.documentElement)
-        .getPropertyValue("--bottom-nav-h").trim();
-    const navInfo = document.body.classList.contains("has-bottom-nav")
-        ? ` · nav ${navH}px/${cssVar || "?"}`
-        : "";
-
-    let gapInfo = "";
-    const openView = Array.from(document.querySelectorAll(".fullscreen-view"))
-        .find(v=>!v.hidden);
-
-    if(openView){
-        const viewBottom = Math.round(openView.getBoundingClientRect().bottom);
-        const navTop = Math.round(bottomNav.getBoundingClientRect().top);
-        gapInfo = ` · vue bas:${viewBottom} nav haut:${navTop} vh:${window.innerHeight}`;
-    }
-
-    cacheVersionBadge.textContent = cacheVersionLabel
-        ? cacheVersionLabel + navInfo + gapInfo
-        : "";
-}
-
 function updateCacheVersionBadge(){
     if(!("caches" in window)) return;
     caches.keys().then(keys=>{
         const planningKeys = keys.filter(k=>k.startsWith("planning-"));
-        cacheVersionLabel = planningKeys.length
+        cacheVersionBadge.textContent = planningKeys.length
             ? `Cache : ${planningKeys[planningKeys.length-1]}`
             : "";
-        renderCacheVersionBadge();
     });
 }
 
 updateCacheVersionBadge();
-setInterval(renderCacheVersionBadge,2000);
 

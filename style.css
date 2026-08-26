@@ -875,7 +875,7 @@ body.dark .bottom-nav-tab.active{
 }
 
 body.has-bottom-nav .fullscreen-view{
-    bottom:calc(var(--bottom-nav-h,64px) + 10px);
+    bottom:var(--bottom-nav-h,64px);
 }
 
 #mapView{
