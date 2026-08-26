@@ -345,7 +345,7 @@ function addActivity(){
     const travelTime =
     travelRaw!=="" ? Math.max(0,parseInt(travelRaw,10)) : null;
 
-    if(!name) return;
+    if(!name || !type) return;
 
     if(editingActivity){
 
@@ -390,10 +390,20 @@ function addActivity(){
     showToast(`« ${name} » ajoutée.`,{type:"success",duration:2500});
 }
 
+const activityTypeSelect = document.getElementById("activityType");
+
+function updateActivityTypePlaceholderStyle(){
+    activityTypeSelect.classList.toggle("select-placeholder",!activityTypeSelect.value);
+}
+
+activityTypeSelect.addEventListener("change",updateActivityTypePlaceholderStyle);
+updateActivityTypePlaceholderStyle();
+
 function fillActivityForm(activity,section){
     document.getElementById("activityName").value = activity.name || "";
     document.getElementById("activityAddress").value = activity.address || "";
-    document.getElementById("activityType").value = activity.type;
+    activityTypeSelect.value = activity.type;
+    updateActivityTypePlaceholderStyle();
     document.getElementById("timeSlot").value = section;
     document.getElementById("activityPrice").value =
         (activity.price!==null && activity.price!==undefined) ? activity.price : "";
@@ -405,7 +415,8 @@ function fillActivityForm(activity,section){
 function clearActivityForm(){
     document.getElementById("activityName").value="";
     document.getElementById("activityAddress").value="";
-    document.getElementById("activityType").selectedIndex = 0;
+    activityTypeSelect.selectedIndex = 0;
+    updateActivityTypePlaceholderStyle();
     document.getElementById("activityPrice").value="";
     document.getElementById("activityTravelTime").value="";
     document.getElementById("activityReservationLink").value="";

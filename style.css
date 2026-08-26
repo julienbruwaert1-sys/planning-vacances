@@ -1586,6 +1586,24 @@ select{
     color:#33404A;
 }
 
+#activityName::placeholder{
+    color:#9AAAB4;
+    opacity:1;
+}
+
+body.dark #activityName::placeholder{
+    color:#7C8BAE;
+    opacity:1;
+}
+
+.select-placeholder{
+    color:#9AAAB4;
+}
+
+body.dark .select-placeholder{
+    color:#7C8BAE;
+}
+
 button.add{
     background:#D2503B;
     color:white;
