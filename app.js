@@ -1021,11 +1021,13 @@ const activityPriceInput = document.getElementById("activityPrice");
 const activityPriceSuffix = document.getElementById("activityPriceSuffix");
 
 priceCurrencySelect.value = priceCurrencySymbol;
+activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
 activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
 
 priceCurrencySelect.addEventListener("change",()=>{
     priceCurrencySymbol = priceCurrencySelect.value;
     localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
+    activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
     activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
     renderActivities();
     if(activeMainTab==="profile") renderProfileStats();
