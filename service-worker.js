@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v65";
+const CACHE_NAME = "planning-v66";
 
 const APP_SHELL = [
     "./index.html",
@@ -50,7 +50,9 @@ const APP_SHELL = [
     "./icons/icon-512-thailand.png",
     "./vendor/xlsx.full.min.js",
     "./vendor/firebase-app-compat.js",
-    "./vendor/firebase-database-compat.js"
+    "./vendor/firebase-database-compat.js",
+    "./vendor/leaflet.js",
+    "./vendor/leaflet.css"
 ];
 
 const RUNTIME_CACHE_HOSTS = [

@@ -2428,6 +2428,13 @@ bottomNavTabs.forEach(btn=>{
             return;
         }
 
+        if(tab==="map"){
+            document.getElementById("mapView").hidden = false;
+            renderMapView();
+            setActiveMainTab("planning");
+            return;
+        }
+
         setActiveMainTab(tab);
     });
 });
@@ -2605,6 +2612,161 @@ function renderReservations(){
     });
 }
 
+/* --- Carte du voyage (Leaflet + tuiles OpenStreetMap, géocodage Nominatim) --- */
+
+const GEOCODE_CACHE_KEY = "geocodeCache";
+
+function loadGeocodeCache(){
+    return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || "{}");
+}
+
+function saveGeocodeCache(cache){
+    localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(cache));
+}
+
+function wait(ms){
+    return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function geocodeAddress(address){
+
+    const cache = loadGeocodeCache();
+    if(cache[address]) return cache[address];
+
+    const response = await fetchWithTimeout(
+        "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
+        + encodeURIComponent(address),
+        8000
+    );
+
+    // Respecte la politique d'usage de Nominatim (max ~1 requête/seconde).
+    await wait(1100);
+
+    if(!response.ok){
+        throw new Error("Nominatim: réponse HTTP "+response.status);
+    }
+
+    const results = await response.json();
+
+    if(!results.length){
+        throw new Error(`Adresse introuvable : ${address}`);
+    }
+
+    const coords = {
+        lat: parseFloat(results[0].lat),
+        lon: parseFloat(results[0].lon)
+    };
+
+    cache[address] = coords;
+    saveGeocodeCache(cache);
+
+    return coords;
+}
+
+function collectActivitiesWithAddress(){
+
+    const sections = ["matin","midi","apresMidi","soir"];
+    const list = [];
+
+    Object.keys(planning)
+    .map(d=>parseInt(d,10))
+    .sort((a,b)=>a-b)
+    .forEach(day=>{
+        sections.forEach(slot=>{
+            (planning[day][slot] || []).forEach(activity=>{
+                if(activity.address && activity.address.trim()){
+                    list.push({day,activity});
+                }
+            });
+        });
+    });
+
+    return list;
+}
+
+let mapInstance = null;
+let mapMarkersLayer = null;
+
+async function renderMapView(){
+
+    const mapContainer = document.getElementById("mapContainer");
+    const offlineNotice = document.getElementById("mapOfflineNotice");
+
+    if(!navigator.onLine){
+        mapContainer.hidden = true;
+        offlineNotice.hidden = false;
+        return;
+    }
+
+    mapContainer.hidden = false;
+    offlineNotice.hidden = true;
+
+    if(!mapInstance){
+
+        mapInstance = L.map(mapContainer).setView([20,0],2);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+            maxZoom:19,
+            attribution:"© OpenStreetMap"
+        }).addTo(mapInstance);
+
+        mapMarkersLayer = L.layerGroup().addTo(mapInstance);
+
+        setTimeout(()=>mapInstance.invalidateSize(),0);
+
+    }else{
+        setTimeout(()=>mapInstance.invalidateSize(),0);
+    }
+
+    mapMarkersLayer.clearLayers();
+
+    const entries = collectActivitiesWithAddress();
+    const points = [];
+
+    for(const {day,activity} of entries){
+        try{
+
+            const coords = await geocodeAddress(activity.address.trim());
+
+            const icon = L.divIcon({
+                className:"map-pin-icon",
+                html: icons[activity.type] || "📍",
+                iconSize:[26,26],
+                iconAnchor:[13,26]
+            });
+
+            const popup = document.createElement("div");
+
+            const nameEl = document.createElement("strong");
+            nameEl.textContent = activity.name;
+
+            const metaEl = document.createElement("div");
+            metaEl.textContent =
+            `Jour ${day}${activity.time ? " · "+activity.time : ""}`;
+
+            const addressEl = document.createElement("div");
+            addressEl.textContent = activity.address;
+
+            popup.appendChild(nameEl);
+            popup.appendChild(metaEl);
+            popup.appendChild(addressEl);
+
+            L.marker([coords.lat,coords.lon],{icon})
+            .addTo(mapMarkersLayer)
+            .bindPopup(popup);
+
+            points.push([coords.lat,coords.lon]);
+
+        }catch(err){
+            console.error("Géocodage impossible :",err);
+        }
+    }
+
+    if(points.length){
+        mapInstance.fitBounds(points,{padding:[30,30]});
+    }
+}
+
 /* --- Profil : liste + sous-écrans plein écran --- */
 
 const APP_VERSION = "1.0.0";
@@ -2620,9 +2782,10 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         }
         const view = document.getElementById(row.dataset.profileView);
         if(!view) return;
+        view.hidden = false;
         if(row.dataset.profileView==="reservationsView") renderReservations();
         if(row.dataset.profileView==="tripStatsView") renderProfileStats();
-        view.hidden = false;
+        if(row.dataset.profileView==="mapView") renderMapView();
     });
 });
 
@@ -2938,6 +3101,8 @@ window.addEventListener("offline",()=>{
 
 window.addEventListener("online",()=>{
     fetchExchangeRate();
+    const mapView = document.getElementById("mapView");
+    if(mapView && !mapView.hidden) renderMapView();
 });
 
 setInterval(fetchExchangeRate,30*60*1000);

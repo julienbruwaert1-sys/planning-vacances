@@ -878,6 +878,50 @@ body.has-bottom-nav .fullscreen-view{
     bottom:var(--bottom-nav-h,64px);
 }
 
+#mapView{
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+#mapView .fullscreen-header{
+    flex:none;
+}
+
+.map-container{
+    flex:1;
+    width:100%;
+}
+
+.map-container[hidden]{
+    display:none;
+}
+
+.map-pin-icon{
+    font-size:26px;
+    line-height:1;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));
+}
+
+.map-offline-notice{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:24px;
+    color:#9AAAB4;
+    font-size:14px;
+}
+
+.map-offline-notice[hidden]{
+    display:none;
+}
+
+body.dark .map-offline-notice{
+    color:#7C8BAE;
+}
+
 .cache-version-badge{
     position:fixed;
     right:8px;
