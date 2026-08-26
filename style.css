@@ -894,6 +894,40 @@ body.has-bottom-nav .fullscreen-view{
     z-index:1200;
 }
 
+.map-toolbar{
+    flex:none;
+    display:flex;
+    gap:8px;
+    padding:10px 14px;
+    background:#FFFFFF;
+    border-bottom:1px solid rgba(51,64,74,.08);
+    position:relative;
+    z-index:1200;
+}
+
+.map-toolbar select{
+    flex:1;
+    min-width:0;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid rgba(51,64,74,.15);
+    background:#F1F7FB;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13px;
+}
+
+body.dark .map-toolbar{
+    background:#0A1020;
+    border-bottom-color:rgba(234,240,251,.08);
+}
+
+body.dark .map-toolbar select{
+    background:#182238;
+    color:#EAF0FB;
+    border-color:rgba(234,240,251,.15);
+}
+
 .map-container{
     flex:1;
     width:100%;

@@ -2663,7 +2663,7 @@ async function geocodeAddress(address){
     return coords;
 }
 
-function collectActivitiesWithAddress(){
+function collectActivitiesWithAddress(dayFilter,typeFilter){
 
     const sections = ["matin","midi","apresMidi","soir"];
     const list = [];
@@ -2672,8 +2672,10 @@ function collectActivitiesWithAddress(){
     .map(d=>parseInt(d,10))
     .sort((a,b)=>a-b)
     .forEach(day=>{
+        if(dayFilter && day!==dayFilter) return;
         sections.forEach(slot=>{
             (planning[day][slot] || []).forEach(activity=>{
+                if(typeFilter && activity.type!==typeFilter) return;
                 if(activity.address && activity.address.trim()){
                     list.push({day,activity});
                 }
@@ -2683,6 +2685,32 @@ function collectActivitiesWithAddress(){
 
     return list;
 }
+
+const mapDaySelect = document.getElementById("mapDaySelect");
+const mapTypeSelect = document.getElementById("mapTypeSelect");
+
+function populateMapDaySelect(){
+
+    const previousValue = mapDaySelect.value;
+    mapDaySelect.innerHTML = "";
+
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = "Tous les jours";
+    mapDaySelect.appendChild(allOpt);
+
+    for(let i=1;i<=dayCount;i++){
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Jour ${i}`;
+        mapDaySelect.appendChild(opt);
+    }
+
+    mapDaySelect.value = previousValue;
+}
+
+mapDaySelect.addEventListener("change",renderMapView);
+mapTypeSelect.addEventListener("change",renderMapView);
 
 let mapInstance = null;
 let mapMarkersLayer = null;
@@ -2700,6 +2728,8 @@ async function renderMapView(){
 
     mapContainer.hidden = false;
     offlineNotice.hidden = true;
+
+    populateMapDaySelect();
 
     if(!mapInstance){
 
@@ -2720,7 +2750,10 @@ async function renderMapView(){
 
     mapMarkersLayer.clearLayers();
 
-    const entries = collectActivitiesWithAddress();
+    const dayFilter = mapDaySelect.value ? parseInt(mapDaySelect.value,10) : null;
+    const typeFilter = mapTypeSelect.value || null;
+
+    const entries = collectActivitiesWithAddress(dayFilter,typeFilter);
     const points = [];
 
     for(const {day,activity} of entries){
