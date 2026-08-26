@@ -2263,6 +2263,7 @@ const searchPanel = document.getElementById("searchPanel");
 
 function closeSearchPanel(){
     searchPanel.hidden = true;
+    searchToggleBtn.hidden = false;
     searchToggleBtn.setAttribute("aria-expanded","false");
 }
 
@@ -2273,6 +2274,7 @@ function toggleSearchPanel(){
         closeDatePanel();
     }
     searchPanel.hidden = isOpen;
+    searchToggleBtn.hidden = !isOpen;
     searchToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
     if(!isOpen){
         globalSearch.focus();

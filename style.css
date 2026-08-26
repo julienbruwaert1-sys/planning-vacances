@@ -1441,6 +1441,10 @@ body.dark .checklist-chip{
     margin-bottom:16px;
 }
 
+.planning-search-bar[hidden]{
+    display:none;
+}
+
 .planning-search-bar{
     display:flex;
     align-items:center;
