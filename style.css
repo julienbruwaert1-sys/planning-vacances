@@ -1486,6 +1486,71 @@ body.dark .planning-search-placeholder{
     margin-top:0;
 }
 
+.category-tabs{
+    display:flex;
+    gap:20px;
+    overflow-x:auto;
+    padding:2px 2px 14px;
+    margin-bottom:16px;
+    border-bottom:1px solid rgba(51,64,74,.10);
+    scrollbar-width:none;
+}
+
+.category-tabs::-webkit-scrollbar{
+    display:none;
+}
+
+.category-tab{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    flex:none;
+    padding:2px 0 12px;
+    border:none;
+    border-bottom:2px solid transparent;
+    background:none;
+    cursor:pointer;
+    color:#9AAAB4;
+    font-family:'Inter',Arial,sans-serif;
+}
+
+.category-tab-icon{
+    font-size:20px;
+    line-height:1;
+    filter:grayscale(1);
+    opacity:.65;
+}
+
+.category-tab-label{
+    font-size:10.5px;
+    font-weight:600;
+    white-space:nowrap;
+}
+
+.category-tab.active{
+    color:#33404A;
+    border-bottom-color:#33404A;
+}
+
+.category-tab.active .category-tab-icon{
+    filter:none;
+    opacity:1;
+}
+
+body.dark .category-tabs{
+    border-bottom-color:rgba(234,240,251,.10);
+}
+
+body.dark .category-tab{
+    color:#7C8BAE;
+}
+
+body.dark .category-tab.active{
+    color:#EAF0FB;
+    border-bottom-color:#EAF0FB;
+}
+
 .day-select-wrap{
     display:flex;
     justify-content:center;

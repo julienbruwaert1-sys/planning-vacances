@@ -227,6 +227,46 @@ const typeColors = {
     "Pépite locale":"#00ACC1",
     Pratique:"#78909C"
 };
+
+let activityTypeFilter = "";
+
+function renderCategoryTabs(){
+
+    const container = document.getElementById("categoryTabs");
+    container.innerHTML = "";
+
+    const allTab = document.createElement("button");
+    allTab.type = "button";
+    allTab.className = "category-tab" + (activityTypeFilter ? "" : " active");
+    allTab.innerHTML =
+        `<span class="category-tab-icon">🌴</span>`
+        + `<span class="category-tab-label">Tous</span>`;
+    allTab.addEventListener("click",()=>{
+        activityTypeFilter = "";
+        renderCategoryTabs();
+        renderActivities();
+    });
+    container.appendChild(allTab);
+
+    Object.keys(icons).forEach(type=>{
+
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "category-tab" + (activityTypeFilter===type ? " active" : "");
+        tab.innerHTML =
+            `<span class="category-tab-icon">${icons[type]}</span>`
+            + `<span class="category-tab-label">${type}</span>`;
+        tab.addEventListener("click",()=>{
+            activityTypeFilter = activityTypeFilter===type ? "" : type;
+            renderCategoryTabs();
+            renderActivities();
+        });
+        container.appendChild(tab);
+    });
+}
+
+renderCategoryTabs();
+
 let dayCount =
 parseInt(localStorage.getItem("dayCount"),10) || 7;
 
@@ -632,7 +672,11 @@ function renderActivities(){
         const activities =
         planning[currentDay][section.key] || [];
 
-        if(activities.length===0) return;
+        const visibleCount = activities.filter(
+            a=>!activityTypeFilter || a.type===activityTypeFilter
+        ).length;
+
+        if(visibleCount===0) return;
 
         const sectionDiv =
         document.createElement("div");
@@ -664,6 +708,8 @@ dragged = null;
         });
 
         activities.forEach((activity,index)=>{
+
+            if(activityTypeFilter && activity.type!==activityTypeFilter) return;
 
             const div =
             document.createElement("div");
