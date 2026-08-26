@@ -926,6 +926,36 @@ resetButton.addEventListener(
     resetPlanning
 );
 
+const deleteTripBtn = document.getElementById("deleteTripBtn");
+
+deleteTripBtn.addEventListener("click",()=>{
+
+    showConfirmModal(
+        "Supprimer le voyage ? Le nom, les dates, le pays, le planning, la "
+        + "checklist et les infos voyageur seront effacés"
+        + (syncCode ? " et la synchronisation avec l'autre appareil sera coupée" : "")
+        + ". Cette action est irréversible.",
+        ()=>{
+
+            if(syncRef) syncRef.off();
+            syncRef = null;
+            syncCode = "";
+            localStorage.removeItem(SYNC_CODE_KEY);
+
+            localStorage.removeItem("vacationPlanning");
+            localStorage.removeItem(TRIP_NAME_KEY);
+            localStorage.removeItem("startDate");
+            localStorage.removeItem("dayCount");
+            localStorage.removeItem("appIconChoice");
+            localStorage.removeItem(CHECKLIST_STORAGE_KEY);
+            localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
+            localStorage.removeItem(TRAVELER_INFO_KEY);
+
+            location.reload();
+        }
+    );
+});
+
 /* --- Export PDF / Impression --- */
 
 const printBtn = document.getElementById("printBtn");
