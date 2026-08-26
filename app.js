@@ -28,6 +28,7 @@ const syncPanelContent = document.getElementById("syncPanelContent");
 const syncPanelSlot = document.getElementById("syncPanelSlot");
 const syncToggleBtn = document.getElementById("syncToggleBtn");
 const syncPanel = document.getElementById("syncPanel");
+const desktopProfileMenuItem = document.getElementById("desktopProfileMenuItem");
 let profileConsolidated = null;
 
 /* --- Menu options (coin) --- */
@@ -2295,11 +2296,13 @@ function updateProfileConsolidation(desktop){
         syncPanel.appendChild(syncPanelContent);
         optionsMenuItem.hidden = false;
         syncMenuItem.hidden = false;
+        desktopProfileMenuItem.hidden = false;
     }else{
         dataSettingsSlot.appendChild(dataSettingsContent);
         syncPanelSlot.appendChild(syncPanelContent);
         optionsMenuItem.hidden = true;
         syncMenuItem.hidden = true;
+        desktopProfileMenuItem.hidden = true;
     }
 }
 
@@ -2542,11 +2545,12 @@ const APP_VERSION = "1.0.0";
 document.getElementById("profileVersion").textContent = APP_VERSION;
 document.getElementById("profileVersionAbout").textContent = APP_VERSION;
 
-document.querySelectorAll(".profile-row").forEach(row=>{
+document.querySelectorAll("[data-profile-view]").forEach(row=>{
     row.addEventListener("click",()=>{
         const view = document.getElementById(row.dataset.profileView);
         if(!view) return;
         if(row.dataset.profileView==="reservationsView") renderReservations();
+        if(row.dataset.profileView==="tripStatsView") renderProfileStats();
         view.hidden = false;
     });
 });
@@ -3065,6 +3069,46 @@ document.addEventListener("keydown",(e)=>{
     if(e.key==="Escape" && !syncPanel.hidden){
         syncPanel.hidden = true;
         syncToggleBtn.setAttribute("aria-expanded","false");
+    }
+});
+
+/* --- Profil (desktop) : mêmes sous-écrans que le bandeau mobile --- */
+
+const desktopProfileBtn = document.getElementById("desktopProfileBtn");
+const desktopProfilePanel = document.getElementById("desktopProfilePanel");
+
+desktopProfileBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const isOpen = !desktopProfilePanel.hidden;
+    if(!isOpen){
+        closeOptionsMenu();
+        closeSearchPanel();
+        closeDatePanel();
+        syncPanel.hidden = true;
+        syncToggleBtn.setAttribute("aria-expanded","false");
+    }
+    desktopProfilePanel.hidden = isOpen;
+    desktopProfileBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+});
+
+desktopProfilePanel.addEventListener("click",(e)=>{
+    if(e.target.closest(".menu-item")){
+        desktopProfilePanel.hidden = true;
+        desktopProfileBtn.setAttribute("aria-expanded","false");
+    }
+});
+
+document.addEventListener("click",(e)=>{
+    if(!desktopProfilePanel.hidden && !e.target.closest(".corner-menu-item")){
+        desktopProfilePanel.hidden = true;
+        desktopProfileBtn.setAttribute("aria-expanded","false");
+    }
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape" && !desktopProfilePanel.hidden){
+        desktopProfilePanel.hidden = true;
+        desktopProfileBtn.setAttribute("aria-expanded","false");
     }
 });
 
