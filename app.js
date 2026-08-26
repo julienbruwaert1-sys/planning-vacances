@@ -1432,18 +1432,27 @@ layoutToggle.addEventListener("click",()=>{
 /* --- Logo de l'application (icône PWA à l'installation) --- */
 
 const APP_ICONS = {
-    france:{label:"🇫🇷 France (par défaut)",icon192:"icons/icon-192-france.png",icon512:"icons/icon-512-france.png"},
-    italy:{label:"🇮🇹 Italie",icon192:"icons/icon-192-italy.png",icon512:"icons/icon-512-italy.png"},
-    spain:{label:"🇪🇸 Espagne",icon192:"icons/icon-192-spain.png",icon512:"icons/icon-512-spain.png"},
     germany:{label:"🇩🇪 Allemagne",icon192:"icons/icon-192-germany.png",icon512:"icons/icon-512-germany.png"},
+    australia:{label:"🇦🇺 Australie",icon192:"icons/icon-192-australia.png",icon512:"icons/icon-512-australia.png"},
     austria:{label:"🇦🇹 Autriche",icon192:"icons/icon-192-austria.png",icon512:"icons/icon-512-austria.png"},
     belgium:{label:"🇧🇪 Belgique",icon192:"icons/icon-192-belgium.png",icon512:"icons/icon-512-belgium.png"},
-    usa:{label:"🇺🇸 États-Unis",icon192:"icons/icon-192-usa.png",icon512:"icons/icon-512-usa.png"},
+    brazil:{label:"🇧🇷 Brésil",icon192:"icons/icon-192-brazil.png",icon512:"icons/icon-512-brazil.png"},
+    canada:{label:"🇨🇦 Canada",icon192:"icons/icon-192-canada.png",icon512:"icons/icon-512-canada.png"},
     china:{label:"🇨🇳 Chine",icon192:"icons/icon-192-china.png",icon512:"icons/icon-512-china.png"},
+    southkorea:{label:"🇰🇷 Corée du Sud",icon192:"icons/icon-192-southkorea.png",icon512:"icons/icon-512-southkorea.png"},
+    egypt:{label:"🇪🇬 Égypte",icon192:"icons/icon-192-egypt.png",icon512:"icons/icon-512-egypt.png"},
+    spain:{label:"🇪🇸 Espagne",icon192:"icons/icon-192-spain.png",icon512:"icons/icon-512-spain.png"},
+    usa:{label:"🇺🇸 États-Unis",icon192:"icons/icon-192-usa.png",icon512:"icons/icon-512-usa.png"},
+    france:{label:"🇫🇷 France (par défaut)",icon192:"icons/icon-192-france.png",icon512:"icons/icon-512-france.png"},
+    greece:{label:"🇬🇷 Grèce",icon192:"icons/icon-192-greece.png",icon512:"icons/icon-512-greece.png"},
     india:{label:"🇮🇳 Inde",icon192:"icons/icon-192-india.png",icon512:"icons/icon-512-india.png"},
+    italy:{label:"🇮🇹 Italie",icon192:"icons/icon-192-italy.png",icon512:"icons/icon-512-italy.png"},
+    japan:{label:"🇯🇵 Japon",icon192:"icons/icon-192-japan.png",icon512:"icons/icon-512-japan.png"},
     nepal:{label:"🇳🇵 Népal",icon192:"icons/icon-192-nepal.png",icon512:"icons/icon-512-nepal.png"},
-    thailand:{label:"🇹🇭 Thaïlande",icon192:"icons/icon-192-thailand.png",icon512:"icons/icon-512-thailand.png"},
-    australia:{label:"🇦🇺 Australie",icon192:"icons/icon-192-australia.png",icon512:"icons/icon-512-australia.png"}
+    netherlands:{label:"🇳🇱 Pays-Bas",icon192:"icons/icon-192-netherlands.png",icon512:"icons/icon-512-netherlands.png"},
+    portugal:{label:"🇵🇹 Portugal",icon192:"icons/icon-192-portugal.png",icon512:"icons/icon-512-portugal.png"},
+    switzerland:{label:"🇨🇭 Suisse",icon192:"icons/icon-192-switzerland.png",icon512:"icons/icon-512-switzerland.png"},
+    thailand:{label:"🇹🇭 Thaïlande",icon192:"icons/icon-192-thailand.png",icon512:"icons/icon-512-thailand.png"}
 };
 
 const appIconSelect = document.getElementById("appIconSelect");
