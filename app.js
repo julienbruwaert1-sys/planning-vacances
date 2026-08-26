@@ -3262,7 +3262,7 @@ function applyCurrencyMeta(){
     const targetMeta = CURRENCIES[targetCurrency];
 
     baseInput.step = baseMeta.decimals===0 ? "1" : "0.01";
-    targetFieldLabel.textContent = targetMeta.symbol;
+    targetFieldLabel.textContent = targetCurrency;
     targetInput.step = targetMeta.decimals===0 ? "1" : "0.01";
 }
 
@@ -3350,7 +3350,7 @@ function updateRateDisplay(){
 
     const rateText = document.createElement("span");
     rateText.textContent =
-    `1 ${CURRENCIES[baseCurrency].symbol} = ${currentRate.toFixed(2)} ${CURRENCIES[targetCurrency].symbol}`;
+    `1 ${baseCurrency} = ${currentRate.toFixed(2)} ${targetCurrency}`;
 
     rateRow.appendChild(statusSpan);
     rateRow.appendChild(rateText);

@@ -2062,6 +2062,17 @@ body.dark .converter-currency-select option{
     font-variant-numeric:tabular-nums;
 }
 
+.converter-field input::-webkit-outer-spin-button,
+.converter-field input::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+}
+
+.converter-field input[type="number"]{
+    appearance:textfield;
+    -moz-appearance:textfield;
+}
+
 .converter-field input::placeholder{
     color:#9AAAB4;
     opacity:1;
@@ -2353,10 +2364,6 @@ body.dark .converter-card h3{
     background:none;
     color:#EAF0FB;
     font-family:'Playfair Display',Georgia,serif;
-}
-
-body.dark .rate-info .rate-live{
-    color:#6FA8FF;
 }
 
 body.dark .rate-retry-btn{
