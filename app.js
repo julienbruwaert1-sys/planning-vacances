@@ -3631,15 +3631,31 @@ if(sessionStorage.getItem("justUpdatedApp")){
 
 const cacheVersionBadge = document.getElementById("cacheVersionBadge");
 
+let cacheVersionLabel = "";
+
+function renderCacheVersionBadge(){
+    const navH = bottomNav.offsetHeight;
+    const cssVar = getComputedStyle(document.documentElement)
+        .getPropertyValue("--bottom-nav-h").trim();
+    const navInfo = document.body.classList.contains("has-bottom-nav")
+        ? ` · nav ${navH}px/${cssVar || "?"}`
+        : "";
+    cacheVersionBadge.textContent = cacheVersionLabel
+        ? cacheVersionLabel + navInfo
+        : "";
+}
+
 function updateCacheVersionBadge(){
     if(!("caches" in window)) return;
     caches.keys().then(keys=>{
         const planningKeys = keys.filter(k=>k.startsWith("planning-"));
-        cacheVersionBadge.textContent = planningKeys.length
+        cacheVersionLabel = planningKeys.length
             ? `Cache : ${planningKeys[planningKeys.length-1]}`
             : "";
+        renderCacheVersionBadge();
     });
 }
 
 updateCacheVersionBadge();
+setInterval(renderCacheVersionBadge,2000);
 
