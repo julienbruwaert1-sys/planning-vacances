@@ -1660,6 +1660,15 @@ Object.keys(APP_ICONS).forEach(key=>{
     welcomeCountrySelect.appendChild(opt);
 });
 
+welcomeCountrySelect.classList.add("welcome-select-placeholder");
+
+welcomeCountrySelect.addEventListener("change",()=>{
+    welcomeCountrySelect.classList.toggle(
+        "welcome-select-placeholder",
+        !welcomeCountrySelect.value
+    );
+});
+
 document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
 
     const name = document.getElementById("welcomeTripName").value.trim();

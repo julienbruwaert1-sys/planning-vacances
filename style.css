@@ -2666,6 +2666,15 @@ body.dark select:focus-visible{
     margin-bottom:5px;
 }
 
+#welcomeTripName::placeholder{
+    color:#9AAAB4;
+    opacity:1;
+}
+
+.welcome-select-placeholder{
+    color:#9AAAB4;
+}
+
 .welcome-row{
     display:flex;
     gap:12px;
@@ -2701,4 +2710,13 @@ body.dark .welcome-subtitle{
 
 body.dark .welcome-field label{
     color:#EAF0FB;
+}
+
+body.dark #welcomeTripName::placeholder{
+    color:#7C8BAE;
+    opacity:1;
+}
+
+body.dark .welcome-select-placeholder{
+    color:#7C8BAE;
 }
