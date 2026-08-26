@@ -3261,6 +3261,21 @@ if(syncCode){
 /* --- Service Worker (installation & fonctionnement hors-ligne) --- */
 
 if("serviceWorker" in navigator){
+
+    const hadControllerAtLoad = !!navigator.serviceWorker.controller;
+    let refreshingForUpdate = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+
+        updateCacheVersionBadge();
+
+        if(!hadControllerAtLoad || refreshingForUpdate) return;
+
+        refreshingForUpdate = true;
+        sessionStorage.setItem("justUpdatedApp","1");
+        window.location.reload();
+    });
+
     window.addEventListener("load",()=>{
         navigator.serviceWorker.register("service-worker.js",{updateViaCache:"none"})
         .then(registration=>{
@@ -3272,31 +3287,16 @@ if("serviceWorker" in navigator){
                     registration.update();
                 }
             });
-
-            registration.addEventListener("updatefound",()=>{
-
-                const newWorker = registration.installing;
-                if(!newWorker) return;
-
-                newWorker.addEventListener("statechange",()=>{
-                    if(
-                        newWorker.state==="installed" &&
-                        navigator.serviceWorker.controller
-                    ){
-                        showToast(
-                            "Nouvelle version disponible. Rechargez la page pour la mettre à jour.",
-                            {duration:8000}
-                        );
-                    }
-                });
-            });
         })
         .catch(err=>{
             console.error("Échec de l'enregistrement du Service Worker :",err);
         });
     });
+}
 
-    navigator.serviceWorker.addEventListener("controllerchange",updateCacheVersionBadge);
+if(sessionStorage.getItem("justUpdatedApp")){
+    sessionStorage.removeItem("justUpdatedApp");
+    showToast("✅ Application mise à jour.",{type:"success",duration:3000});
 }
 
 /* --- Badge de version du cache (coin bas-droit, vérification rapide) --- */
