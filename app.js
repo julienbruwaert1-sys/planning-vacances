@@ -1626,6 +1626,18 @@ const APP_ICONS = {
     turkey:{label:"🇹🇷 Turquie",icon192:"icons/icon-192-turkey.png",icon512:"icons/icon-512-turkey.png"}
 };
 
+/* Devise locale de chaque pays — utilisée pour préremplir la devise
+   d'arrivée du Convertisseur à la création du voyage (voir welcomeCreateBtn). */
+const COUNTRY_CURRENCIES = {
+    germany:"EUR", australia:"AUD", austria:"EUR", belgium:"EUR", brazil:"BRL",
+    canada:"CAD", china:"CNY", southkorea:"KRW", croatia:"EUR", denmark:"DKK",
+    egypt:"EGP", spain:"EUR", usa:"USD", finland:"EUR", france:"EUR",
+    greece:"EUR", hungary:"HUF", india:"INR", iceland:"ISK", italy:"EUR",
+    japan:"JPY", nepal:"NPR", norway:"NOK", netherlands:"EUR", portugal:"EUR",
+    czechrepublic:"CZK", romania:"RON", singapore:"SGD", sweden:"SEK",
+    switzerland:"CHF", thailand:"THB", turkey:"TRY"
+};
+
 const appIconSelect = document.getElementById("appIconSelect");
 const manifestLink = document.getElementById("manifestLink");
 const faviconLink = document.getElementById("faviconLink");
@@ -1661,11 +1673,16 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
     const country = welcomeCountrySelect.value;
     const startDateVal = document.getElementById("welcomeStartDate").value;
     const dayCountVal = parseInt(document.getElementById("welcomeDayCount").value,10) || 7;
+    const localCurrency = COUNTRY_CURRENCIES[country] || "USD";
 
     localStorage.setItem(TRIP_NAME_KEY,name);
     localStorage.setItem("appIconChoice",country);
     if(startDateVal) localStorage.setItem("startDate",startDateVal);
     localStorage.setItem("dayCount",String(Math.min(30,Math.max(1,dayCountVal))));
+
+    localStorage.setItem("baseCurrency","GBP");
+    localStorage.setItem("priceCurrencySymbol","£");
+    localStorage.setItem("targetCurrency",localCurrency);
 
     location.reload();
 });
@@ -3551,7 +3568,17 @@ const CURRENCIES = {
     RON:{symbol:"lei",decimals:2,label:"Leu roumain (RON)"},
     SEK:{symbol:"kr",decimals:2,label:"Couronne suédoise (SEK)"},
     SGD:{symbol:"S$",decimals:2,label:"Dollar de Singapour (SGD)"},
-    TRY:{symbol:"₺",decimals:2,label:"Livre turque (TRY)"}
+    TRY:{symbol:"₺",decimals:2,label:"Livre turque (TRY)"},
+    AUD:{symbol:"A$",decimals:2,label:"Dollar australien (AUD)"},
+    BRL:{symbol:"R$",decimals:2,label:"Real brésilien (BRL)"},
+    CAD:{symbol:"C$",decimals:2,label:"Dollar canadien (CAD)"},
+    CHF:{symbol:"Fr",decimals:2,label:"Franc suisse (CHF)"},
+    CNY:{symbol:"¥",decimals:2,label:"Yuan (CNY)"},
+    EGP:{symbol:"E£",decimals:2,label:"Livre égyptienne (EGP)"},
+    INR:{symbol:"₹",decimals:2,label:"Roupie indienne (INR)"},
+    KRW:{symbol:"₩",decimals:0,label:"Won sud-coréen (KRW)"},
+    NPR:{symbol:"Rs",decimals:2,label:"Roupie népalaise (NPR)"},
+    THB:{symbol:"฿",decimals:2,label:"Baht thaïlandais (THB)"}
 };
 
 function rateStorageKey(base,currency){
