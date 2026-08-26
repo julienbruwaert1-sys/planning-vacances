@@ -2000,6 +2000,40 @@ searchToggleBtn.addEventListener("click",(e)=>{
     toggleSearchPanel();
 });
 
+const nearbyToiletsBtn = document.getElementById("nearbyToiletsBtn");
+
+function openNearbyToilets(){
+
+    const fallbackUrl =
+    "https://www.google.com/maps/search/?api=1&query="
+    + encodeURIComponent("toilettes publiques");
+
+    if(!navigator.geolocation){
+        window.open(fallbackUrl,"_blank","noopener,noreferrer");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        pos=>{
+            const { latitude, longitude } = pos.coords;
+            window.open(
+                `https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`,
+                "_blank",
+                "noopener,noreferrer"
+            );
+        },
+        ()=>{
+            window.open(fallbackUrl,"_blank","noopener,noreferrer");
+        },
+        { timeout:8000 }
+    );
+}
+
+nearbyToiletsBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    openNearbyToilets();
+});
+
 document.addEventListener("click",(e)=>{
     if(!searchPanel.hidden && !e.target.closest(".corner-menu-item")){
         closeSearchPanel();
