@@ -269,6 +269,8 @@ function renderTabs(){
     document.getElementById("dayTitle").textContent = heading;
 }
 
+let editingActivity = null;
+
 function addActivity(){
 
     const name =
@@ -307,6 +309,31 @@ function addActivity(){
 
     if(!name) return;
 
+    if(editingActivity){
+
+        const { section, index } = editingActivity;
+        const existing = planning[currentDay][section][index];
+
+        const updated = Object.assign({},existing,{
+            name, type, address, price, travelTime,
+            reservationLink: reservationLink || null
+        });
+
+        if(slot===section){
+            planning[currentDay][section][index] = updated;
+        }else{
+            planning[currentDay][section].splice(index,1);
+            planning[currentDay][slot].push(updated);
+        }
+
+        savePlanning();
+        renderActivities();
+        closeFormDrawer();
+
+        showToast(`« ${name} » modifiée.`,{type:"success",duration:2500});
+        return;
+    }
+
     planning[currentDay][slot].push({
         name,
         type,
@@ -317,18 +344,46 @@ function addActivity(){
     });
 
     savePlanning();
-
-    document.getElementById("activityName").value="";
-    document.getElementById("activityAddress").value="";
-    document.getElementById("activityPrice").value="";
-    document.getElementById("activityTravelTime").value="";
-    document.getElementById("activityReservationLink").value="";
-
     renderActivities();
-
     closeFormDrawer();
 
     showToast(`« ${name} » ajoutée.`,{type:"success",duration:2500});
+}
+
+function fillActivityForm(activity,section){
+    document.getElementById("activityName").value = activity.name || "";
+    document.getElementById("activityAddress").value = activity.address || "";
+    document.getElementById("activityType").value = activity.type;
+    document.getElementById("timeSlot").value = section;
+    document.getElementById("activityPrice").value =
+        (activity.price!==null && activity.price!==undefined) ? activity.price : "";
+    document.getElementById("activityTravelTime").value =
+        (activity.travelTime!==null && activity.travelTime!==undefined) ? activity.travelTime : "";
+    document.getElementById("activityReservationLink").value = activity.reservationLink || "";
+}
+
+function clearActivityForm(){
+    document.getElementById("activityName").value="";
+    document.getElementById("activityAddress").value="";
+    document.getElementById("activityType").selectedIndex = 0;
+    document.getElementById("activityPrice").value="";
+    document.getElementById("activityTravelTime").value="";
+    document.getElementById("activityReservationLink").value="";
+}
+
+function startEditActivity(section,index){
+
+    const activity = planning[currentDay][section][index];
+    if(!activity) return;
+
+    editingActivity = { section, index };
+    fillActivityForm(activity,section);
+
+    document.getElementById("activitySubmitBtn").textContent = "Enregistrer les modifications";
+    formToggleIcon.textContent = "✏️";
+
+    openFormDrawer();
+    document.getElementById("activityName").focus();
 }
 
 function deleteActivity(section,index){
@@ -749,27 +804,34 @@ dragged = null;
                 moveActivity(section.key,index,moveSelect.value);
             });
 
-            const mapBtn = document.createElement("button");
-            mapBtn.className = "map-btn";
-            mapBtn.textContent = "📍";
-            mapBtn.title = "Ouvrir dans Google Maps";
-            mapBtn.addEventListener("click",()=>{
-                const query =
-                (activity.address && activity.address.trim())
-                || activity.name;
-
-                window.open(
-                    "https://www.google.com/maps/search/?api=1&query="
-                    + encodeURIComponent(query),
-                    "_blank"
-                );
+            const editBtn = document.createElement("button");
+            editBtn.className = "map-btn";
+            editBtn.textContent = "✏️";
+            editBtn.title = "Modifier l'activité";
+            editBtn.addEventListener("click",()=>{
+                startEditActivity(section.key,index);
             });
 
             const btnGroup = document.createElement("div");
             btnGroup.className = "btn-group";
             btnGroup.appendChild(reorderGroup);
             btnGroup.appendChild(moveSelect);
-            btnGroup.appendChild(mapBtn);
+            btnGroup.appendChild(editBtn);
+
+            if(activity.address && activity.address.trim()){
+                const mapBtn = document.createElement("button");
+                mapBtn.className = "map-btn";
+                mapBtn.textContent = "📍";
+                mapBtn.title = "Ouvrir dans Google Maps";
+                mapBtn.addEventListener("click",()=>{
+                    window.open(
+                        "https://www.google.com/maps/search/?api=1&query="
+                        + encodeURIComponent(activity.address.trim()),
+                        "_blank"
+                    );
+                });
+                btnGroup.appendChild(mapBtn);
+            }
 
             if(activity.reservationLink){
                 const reservationBtn = document.createElement("button");
@@ -1972,6 +2034,10 @@ function closeFormDrawer(){
     formDrawer.classList.remove("open");
     formToggle.classList.remove("open");
     formToggleLabel.textContent = "Ajouter une activité";
+    editingActivity = null;
+    document.getElementById("activitySubmitBtn").textContent = "Ajouter";
+    formToggleIcon.textContent = "➕";
+    clearActivityForm();
 }
 
 function toggleFormDrawer(){
