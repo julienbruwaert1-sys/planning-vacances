@@ -64,7 +64,7 @@ select:focus-visible{
 }
 
 .toast.toast-success{background:#1e7e34;}
-.toast.toast-error{background:#c82333;}
+.toast.toast-error{background:#A8323A;}
 
 .toast-undo-btn{
     background:rgba(255,255,255,.15);
@@ -157,7 +157,7 @@ body.dark .modal-btn-cancel{
 }
 
 .modal-btn-confirm{
-    background:#dc3545;
+    background:#A8323A;
     color:white;
 }
 
@@ -353,7 +353,7 @@ body.dark .date-field label{
 
 .sync-status{
     font-size:11px;
-    color:#3F6B3C;
+    color:#2F8F5B;
     margin:0 0 10px;
     font-weight:600;
 }
@@ -374,7 +374,7 @@ body.dark .sync-code-display{
 }
 
 body.dark .sync-status{
-    color:#7FE0B0;
+    color:#6fd68c;
 }
 
 body.dark .sync-history-info{
@@ -1602,7 +1602,7 @@ body.dark .reorder-btn{
 
 .delete{
     border:none;
-    background:#dc3545;
+    background:#A8323A;
     color:white;
     border-radius:6px;
     cursor:pointer;
@@ -1880,12 +1880,12 @@ body.dark .menu-hint{
 }
 
 .icon-btn-danger{
-    background:#dc3545;
+    background:#A8323A;
     color:white;
 }
 
 .icon-btn-danger:hover{
-    background:#c82333;
+    background:#8F2A31;
 }
 
 body.dark .icon-btn{
@@ -1894,7 +1894,7 @@ body.dark .icon-btn{
 }
 
 body.dark .icon-btn-danger{
-    background:#dc3545;
+    background:#A8323A;
 }
 
 body.dark .options-menu-panel,
