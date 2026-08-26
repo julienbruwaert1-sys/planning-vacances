@@ -511,7 +511,7 @@ body.dark .trip-summary{
     background:#E8F0F6;
 }
 
-body.has-bottom-nav{
+html body.has-bottom-nav{
     padding-bottom:var(--bottom-nav-h,64px);
 }
 
