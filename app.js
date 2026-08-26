@@ -2628,14 +2628,27 @@ function wait(ms){
     return new Promise(resolve=>setTimeout(resolve,ms));
 }
 
+const GEOCODE_OVERRIDE_KEY = "geocodeAddressOverride";
+
+function loadGeocodeOverrides(){
+    return JSON.parse(localStorage.getItem(GEOCODE_OVERRIDE_KEY) || "{}");
+}
+
+function saveGeocodeOverrides(overrides){
+    localStorage.setItem(GEOCODE_OVERRIDE_KEY,JSON.stringify(overrides));
+}
+
 async function geocodeAddress(address){
 
     const cache = loadGeocodeCache();
     if(cache[address]) return cache[address];
 
+    const overrides = loadGeocodeOverrides();
+    const queryText = overrides[address] || address;
+
     const response = await fetchWithTimeout(
         "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
-        + encodeURIComponent(address),
+        + encodeURIComponent(queryText),
         8000
     );
 
@@ -2649,7 +2662,7 @@ async function geocodeAddress(address){
     const results = await response.json();
 
     if(!results.length){
-        throw new Error(`Adresse introuvable : ${address}`);
+        throw new Error(`Adresse introuvable : ${queryText}`);
     }
 
     const coords = {
@@ -2711,6 +2724,28 @@ function populateMapDaySelect(){
 
 mapDaySelect.addEventListener("change",renderMapView);
 mapTypeSelect.addEventListener("change",renderMapView);
+
+function fixMarkerPosition(address){
+
+    const overrides = loadGeocodeOverrides();
+
+    const suggestion = prompt(
+        "L'adresse actuelle a mal été localisée. Précise-la (ville, pays…) "
+        + "pour une meilleure position :",
+        overrides[address] || address
+    );
+
+    if(suggestion===null || !suggestion.trim()) return;
+
+    overrides[address] = suggestion.trim();
+    saveGeocodeOverrides(overrides);
+
+    const cache = loadGeocodeCache();
+    delete cache[address];
+    saveGeocodeCache(cache);
+
+    renderMapView();
+}
 
 let mapInstance = null;
 let mapMarkersLayer = null;
@@ -2780,9 +2815,18 @@ async function renderMapView(){
             const addressEl = document.createElement("div");
             addressEl.textContent = activity.address;
 
+            const fixBtn = document.createElement("button");
+            fixBtn.type = "button";
+            fixBtn.className = "map-popup-fix-btn";
+            fixBtn.textContent = "🔁 Corriger la position";
+            fixBtn.addEventListener("click",()=>{
+                fixMarkerPosition(activity.address.trim());
+            });
+
             popup.appendChild(nameEl);
             popup.appendChild(metaEl);
             popup.appendChild(addressEl);
+            popup.appendChild(fixBtn);
 
             L.marker([coords.lat,coords.lon],{icon})
             .addTo(mapMarkersLayer)
