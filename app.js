@@ -3262,7 +3262,7 @@ function applyCurrencyMeta(){
     const targetMeta = CURRENCIES[targetCurrency];
 
     baseInput.step = baseMeta.decimals===0 ? "1" : "0.01";
-    targetFieldLabel.textContent = targetCurrency;
+    targetFieldLabel.value = targetCurrency;
     targetInput.step = targetMeta.decimals===0 ? "1" : "0.01";
 }
 
@@ -3281,16 +3281,27 @@ baseCurrencySelect.addEventListener("change",()=>{
     fetchExchangeRate();
 });
 
-targetCurrencySelect.addEventListener("change",()=>{
+function onTargetCurrencyChange(newValue){
 
-    targetCurrency = targetCurrencySelect.value;
+    targetCurrency = newValue;
     localStorage.setItem("targetCurrency",targetCurrency);
+
+    targetCurrencySelect.value = targetCurrency;
+    targetFieldLabel.value = targetCurrency;
 
     applyCurrencyMeta();
     targetInput.value = "";
     currentRate = null;
 
     fetchExchangeRate();
+}
+
+targetCurrencySelect.addEventListener("change",()=>{
+    onTargetCurrencyChange(targetCurrencySelect.value);
+});
+
+targetFieldLabel.addEventListener("change",()=>{
+    onTargetCurrencyChange(targetFieldLabel.value);
 });
 
 function formatTimestamp(iso){
