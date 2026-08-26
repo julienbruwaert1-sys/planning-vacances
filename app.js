@@ -1529,7 +1529,12 @@ appIconSelect.addEventListener("change",()=>{
         },
         {
             previewSrc: meta.icon512,
-            onCancel: ()=>{ appIconSelect.value = previousChoice; }
+            onCancel: ()=>{
+                appIconSelect.value = previousChoice;
+                if(!isDesktopContext() && typeof appIconSelect.showPicker==="function"){
+                    try{ appIconSelect.showPicker(); }catch(err){}
+                }
+            }
         }
     );
 });
