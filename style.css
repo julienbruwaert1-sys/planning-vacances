@@ -512,7 +512,7 @@ body.dark .trip-summary{
 }
 
 html body.has-bottom-nav{
-    padding-bottom:var(--bottom-nav-h,64px);
+    padding-bottom:calc(var(--bottom-nav-h,64px) + 10px);
 }
 
 body.has-bottom-nav #planningTabContent{
@@ -875,7 +875,7 @@ body.dark .bottom-nav-tab.active{
 }
 
 body.has-bottom-nav .fullscreen-view{
-    bottom:var(--bottom-nav-h,64px);
+    bottom:calc(var(--bottom-nav-h,64px) + 10px);
 }
 
 #mapView{
