@@ -2324,7 +2324,7 @@ nearbyToiletsBtn.addEventListener("click",(e)=>{
 });
 
 document.addEventListener("click",(e)=>{
-    if(!searchPanel.hidden && !e.target.closest(".corner-menu-item")){
+    if(!searchPanel.hidden && !e.target.closest(".corner-menu-item, .planning-search-wrap")){
         closeSearchPanel();
     }
 });

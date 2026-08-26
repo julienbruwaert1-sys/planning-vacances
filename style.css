@@ -1436,6 +1436,52 @@ body.dark .checklist-chip{
     flex:1;
 }
 
+.planning-search-wrap{
+    position:relative;
+    margin-bottom:16px;
+}
+
+.planning-search-bar{
+    display:flex;
+    align-items:center;
+    width:100%;
+    padding:14px 20px;
+    border:none;
+    border-radius:999px;
+    background:#FFFFFF;
+    box-shadow:0 4px 16px rgba(51,64,74,.12);
+    cursor:pointer;
+    text-align:left;
+    font-family:'Inter',Arial,sans-serif;
+}
+
+.planning-search-icon{
+    font-size:15px;
+    margin-right:10px;
+    flex:none;
+}
+
+.planning-search-placeholder{
+    font-size:14px;
+    font-weight:600;
+    color:#33404A;
+}
+
+body.dark .planning-search-bar{
+    background:#182238;
+    box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+
+body.dark .planning-search-placeholder{
+    color:#EAF0FB;
+}
+
+.planning-search-wrap .search-panel{
+    left:0;
+    right:0;
+    width:auto;
+}
+
 .day-select-wrap{
     display:flex;
     justify-content:center;

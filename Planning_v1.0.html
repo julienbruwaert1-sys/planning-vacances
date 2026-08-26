@@ -109,14 +109,6 @@
 </div>
 
 <div class="corner-menu-item">
-<button id="searchToggleBtn" class="icon-btn" type="button" title="Rechercher" aria-label="Ouvrir la recherche" aria-haspopup="true" aria-expanded="false">🔍</button>
-<div id="searchPanel" class="search-panel" hidden>
-<input type="text" id="globalSearch" placeholder="Rechercher une activité, une adresse…" autocomplete="off">
-<div id="searchResults" class="search-results"></div>
-</div>
-</div>
-
-<div class="corner-menu-item">
 <button id="nearbyToiletsBtn" class="icon-btn" type="button" title="Toilettes publiques à proximité" aria-label="Trouver les toilettes publiques les plus proches">🚻</button>
 </div>
 
@@ -279,6 +271,16 @@ Masquer les éléments cochés
 
 
 <div id="planningTabContent">
+<div class="planning-search-wrap">
+<button id="searchToggleBtn" class="planning-search-bar" type="button" aria-haspopup="true" aria-expanded="false">
+<span class="planning-search-icon">🔍</span>
+<span class="planning-search-placeholder">Rechercher une activité, une adresse…</span>
+</button>
+<div id="searchPanel" class="search-panel" hidden>
+<input type="text" id="globalSearch" placeholder="Rechercher une activité, une adresse…" autocomplete="off">
+<div id="searchResults" class="search-results"></div>
+</div>
+</div>
 <div class="day-select-wrap">
 <label for="daySelect">📅 Jour :</label>
 <select id="daySelect"></select>
