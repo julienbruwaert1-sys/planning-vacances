@@ -2892,6 +2892,7 @@ document.getElementById("profileVersionAbout").textContent = APP_VERSION;
 
 document.querySelectorAll("[data-profile-view]").forEach(row=>{
     row.addEventListener("click",()=>{
+        closeAllFullscreenViews();
         if(row.dataset.profileView==="checklistView"){
             openChecklistView();
             return;
