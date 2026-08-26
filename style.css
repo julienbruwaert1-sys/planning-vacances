@@ -1506,6 +1506,10 @@ body.dark .activity-note{
     display:none;
 }
 
+.menu-item[hidden]{
+    display:none;
+}
+
 .menu-section-label{
     font-size:10.5px;
     font-weight:700;
