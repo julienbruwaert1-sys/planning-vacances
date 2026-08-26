@@ -28,6 +28,11 @@ let activeMainTab = "planning";
 const TRIP_NAME_KEY = "tripName";
 let tripName = localStorage.getItem(TRIP_NAME_KEY) || "";
 
+/* Distinct de isFirstLaunch : reste absent tant qu'aucun voyage n'a été
+   validé via le formulaire (y compris après un "Plus tard"), pour piloter
+   l'icône ➕ qui permet de revenir créer un voyage plus tard. */
+const TRIP_CREATED_KEY = "tripCreated";
+
 const isFirstLaunch =
     localStorage.getItem("vacationPlanning")===null &&
     localStorage.getItem("startDate")===null &&
@@ -36,14 +41,22 @@ const isFirstLaunch =
 
 if(isFirstLaunch){
     document.getElementById("welcomeView").hidden = false;
-}else if(!tripName){
-    tripName = "Mon voyage";
-    localStorage.setItem(TRIP_NAME_KEY,tripName);
+}else{
+    if(!tripName){
+        tripName = "Mon voyage";
+        localStorage.setItem(TRIP_NAME_KEY,tripName);
+    }
+    if(!localStorage.getItem(TRIP_CREATED_KEY)){
+        localStorage.setItem(TRIP_CREATED_KEY,"1");
+    }
 }
 
 if(tripName){
     appTitle.textContent = "🌴 "+tripName;
 }
+
+document.getElementById("createTripMenuItem").hidden =
+    localStorage.getItem(TRIP_CREATED_KEY)==="1";
 
 const optionsMenuItem = document.getElementById("optionsMenuItem");
 const syncMenuItem = document.getElementById("syncMenuItem");
@@ -1717,8 +1730,29 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
     localStorage.setItem("baseCurrency","GBP");
     localStorage.setItem("priceCurrencySymbol","£");
     localStorage.setItem("targetCurrency",localCurrency);
+    localStorage.setItem(TRIP_CREATED_KEY,"1");
 
     location.reload();
+});
+
+document.getElementById("welcomeLaterBtn").addEventListener("click",()=>{
+
+    if(!localStorage.getItem("dayCount")){
+        localStorage.setItem("dayCount",String(dayCount));
+    }
+
+    if(!tripName){
+        tripName = "Mon voyage";
+        localStorage.setItem(TRIP_NAME_KEY,tripName);
+        appTitle.textContent = "🌴 "+tripName;
+    }
+
+    document.getElementById("createTripMenuItem").hidden = false;
+    document.getElementById("welcomeView").hidden = true;
+});
+
+document.getElementById("createTripShortcutBtn").addEventListener("click",()=>{
+    document.getElementById("welcomeView").hidden = false;
 });
 
 const APP_ICON_KEY = "appIconChoice";

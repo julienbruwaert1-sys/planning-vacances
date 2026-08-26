@@ -2692,6 +2692,24 @@ body.dark select:focus-visible{
     margin-top:10px;
 }
 
+.welcome-later-btn{
+    display:block;
+    width:100%;
+    background:none;
+    border:none;
+    color:#9AAAB4;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:12px 16px;
+    margin-top:6px;
+    cursor:pointer;
+}
+
+body.dark .welcome-later-btn{
+    color:#7C8BAE;
+}
+
 body.dark #welcomeView{
     background:#0A1020;
 }
