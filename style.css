@@ -884,6 +884,10 @@ body.has-bottom-nav .fullscreen-view{
     overflow:hidden;
 }
 
+#mapView[hidden]{
+    display:none;
+}
+
 #mapView .fullscreen-header{
     flex:none;
     position:relative;
