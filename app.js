@@ -3160,5 +3160,23 @@ if("serviceWorker" in navigator){
             console.error("Échec de l'enregistrement du Service Worker :",err);
         });
     });
+
+    navigator.serviceWorker.addEventListener("controllerchange",updateCacheVersionBadge);
 }
+
+/* --- Badge de version du cache (coin bas-droit, vérification rapide) --- */
+
+const cacheVersionBadge = document.getElementById("cacheVersionBadge");
+
+function updateCacheVersionBadge(){
+    if(!("caches" in window)) return;
+    caches.keys().then(keys=>{
+        const planningKeys = keys.filter(k=>k.startsWith("planning-"));
+        cacheVersionBadge.textContent = planningKeys.length
+            ? `Cache : ${planningKeys[planningKeys.length-1]}`
+            : "";
+    });
+}
+
+updateCacheVersionBadge();
 

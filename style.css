@@ -874,6 +874,30 @@ body.has-bottom-nav .fullscreen-view{
     bottom:var(--bottom-nav-h,64px);
 }
 
+.cache-version-badge{
+    position:fixed;
+    right:8px;
+    bottom:8px;
+    z-index:3000;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:9.5px;
+    color:#9AAAB4;
+    background:rgba(255,255,255,.75);
+    padding:2px 6px;
+    border-radius:8px;
+    pointer-events:none;
+    user-select:none;
+}
+
+body.has-bottom-nav .cache-version-badge{
+    bottom:calc(var(--bottom-nav-h,64px) + 6px);
+}
+
+body.dark .cache-version-badge{
+    color:#7C8BAE;
+    background:rgba(10,16,32,.75);
+}
+
 .fullscreen-header{
     display:flex;
     align-items:center;
