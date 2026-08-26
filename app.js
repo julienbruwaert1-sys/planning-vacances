@@ -3602,7 +3602,7 @@ const rateInfo = document.getElementById("rateInfo");
     Object.keys(CURRENCIES).forEach(code=>{
         const opt = document.createElement("option");
         opt.value = code;
-        opt.textContent = code;
+        opt.textContent = `${code} (${CURRENCIES[code].symbol})`;
         select.appendChild(opt);
     });
 });
