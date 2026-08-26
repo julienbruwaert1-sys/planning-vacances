@@ -1819,6 +1819,26 @@ body.dark .converter-field label{
     color:#7C8BAE;
 }
 
+.converter-currency-select{
+    font-size:9px;
+    color:#9AAAB4;
+    text-align:left;
+    background:none;
+    border:none;
+    padding:0;
+    font-family:'Inter',Arial,sans-serif;
+    cursor:pointer;
+    align-self:flex-start;
+}
+
+body.dark .converter-currency-select{
+    color:#7C8BAE;
+}
+
+body.dark .converter-currency-select option{
+    color:#33404A;
+}
+
 .converter-field input{
     text-align:center;
     font-weight:bold;

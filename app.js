@@ -2637,25 +2637,30 @@ document.addEventListener("keydown",(e)=>{
 /* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
 
 const CURRENCIES = {
+    GBP:{symbol:"£",decimals:2,label:"Livre (GBP)"},
     JPY:{symbol:"¥",decimals:0,label:"Yen (JPY)"},
     EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"},
     USD:{symbol:"$",decimals:2,label:"Dollar (USD)"}
 };
 
-function rateStorageKey(currency){
-    return "gbpRate_"+currency;
+function rateStorageKey(base,currency){
+    return "rate_"+base+"_"+currency;
 }
 
-function rateTimestampKey(currency){
-    return "gbpRateTimestamp_"+currency;
+function rateTimestampKey(base,currency){
+    return "rateTimestamp_"+base+"_"+currency;
 }
 
-const gbpInput = document.getElementById("gbpInput");
+const baseInput = document.getElementById("baseInput");
+const baseCurrencySelect = document.getElementById("baseCurrencySelect");
 const targetInput = document.getElementById("targetInput");
 const targetFieldLabel = document.getElementById("targetFieldLabel");
 const converterTitle = document.getElementById("converterTitle");
 const targetCurrencySelect = document.getElementById("targetCurrency");
 const rateInfo = document.getElementById("rateInfo");
+
+let baseCurrency = localStorage.getItem("baseCurrency") || "GBP";
+baseCurrencySelect.value = baseCurrency;
 
 let targetCurrency = localStorage.getItem("targetCurrency") || "JPY";
 targetCurrencySelect.value = targetCurrency;
@@ -2666,14 +2671,29 @@ let rateTimestamp = null;
 
 function applyCurrencyMeta(){
 
-    const meta = CURRENCIES[targetCurrency];
+    const baseMeta = CURRENCIES[baseCurrency];
+    const targetMeta = CURRENCIES[targetCurrency];
 
-    targetFieldLabel.textContent = meta.symbol;
-    targetInput.step = meta.decimals===0 ? "1" : "0.01";
-    converterTitle.textContent = `GBP ↔ ${targetCurrency}`;
+    baseInput.step = baseMeta.decimals===0 ? "1" : "0.01";
+    targetFieldLabel.textContent = targetMeta.symbol;
+    targetInput.step = targetMeta.decimals===0 ? "1" : "0.01";
+    converterTitle.textContent = `${baseCurrency} ↔ ${targetCurrency}`;
 }
 
 applyCurrencyMeta();
+
+baseCurrencySelect.addEventListener("change",()=>{
+
+    baseCurrency = baseCurrencySelect.value;
+    localStorage.setItem("baseCurrency",baseCurrency);
+
+    applyCurrencyMeta();
+    baseInput.value = "";
+    targetInput.value = "";
+    currentRate = null;
+
+    fetchExchangeRate();
+});
 
 targetCurrencySelect.addEventListener("change",()=>{
 
@@ -2741,7 +2761,7 @@ function updateRateDisplay(){
 
     const rateText = document.createElement("div");
     rateText.textContent =
-    `1 £ = ${currentRate.toFixed(2)} ${CURRENCIES[targetCurrency].symbol}`;
+    `1 ${CURRENCIES[baseCurrency].symbol} = ${currentRate.toFixed(2)} ${CURRENCIES[targetCurrency].symbol}`;
 
     const dateText = document.createElement("div");
     dateText.style.marginTop = "2px";
@@ -2755,11 +2775,11 @@ function updateRateDisplay(){
     rateInfo.appendChild(dateText);
 }
 
-function convertFromGBP(){
+function convertFromBase(){
 
     if(currentRate===null) return;
 
-    const val = parseFloat(gbpInput.value);
+    const val = parseFloat(baseInput.value);
 
     if(isNaN(val)){
         targetInput.value = "";
@@ -2777,14 +2797,14 @@ function convertFromTarget(){
     const val = parseFloat(targetInput.value);
 
     if(isNaN(val)){
-        gbpInput.value = "";
+        baseInput.value = "";
         return;
     }
 
-    gbpInput.value = (val / currentRate).toFixed(2);
+    baseInput.value = (val / currentRate).toFixed(CURRENCIES[baseCurrency].decimals);
 }
 
-gbpInput.addEventListener("input",convertFromGBP);
+baseInput.addEventListener("input",convertFromBase);
 targetInput.addEventListener("input",convertFromTarget);
 
 async function fetchWithTimeout(url,ms){
@@ -2800,10 +2820,12 @@ async function fetchWithTimeout(url,ms){
     }
 }
 
-async function tryFrankfurter(currency){
+async function tryFrankfurter(base,currency){
+
+    if(base===currency) return 1;
 
     const response = await fetchWithTimeout(
-        `https://api.frankfurter.app/latest?from=GBP&to=${currency}`,
+        `https://api.frankfurter.app/latest?from=${base}&to=${currency}`,
         7000
     );
 
@@ -2821,10 +2843,12 @@ async function tryFrankfurter(currency){
     return rate;
 }
 
-async function tryOpenErApi(currency){
+async function tryOpenErApi(base,currency){
+
+    if(base===currency) return 1;
 
     const response = await fetchWithTimeout(
-        "https://open.er-api.com/v6/latest/GBP",
+        `https://open.er-api.com/v6/latest/${base}`,
         7000
     );
 
@@ -2845,6 +2869,7 @@ async function fetchExchangeRate(){
 
     rateInfo.textContent = "Chargement du taux…";
 
+    const base = baseCurrency;
     const currency = targetCurrency;
     const providers = [tryFrankfurter,tryOpenErApi];
     let lastError = null;
@@ -2853,14 +2878,14 @@ async function fetchExchangeRate(){
 
         try{
 
-            const rate = await provider(currency);
+            const rate = await provider(base,currency);
 
             currentRate = rate;
             rateIsLive = true;
             rateTimestamp = new Date().toISOString();
 
-            localStorage.setItem(rateStorageKey(currency),rate);
-            localStorage.setItem(rateTimestampKey(currency),rateTimestamp);
+            localStorage.setItem(rateStorageKey(base,currency),rate);
+            localStorage.setItem(rateTimestampKey(base,currency),rateTimestamp);
 
             lastError = null;
             break;
@@ -2874,13 +2899,13 @@ async function fetchExchangeRate(){
     if(lastError){
 
         const cachedRate =
-        localStorage.getItem(rateStorageKey(currency));
+        localStorage.getItem(rateStorageKey(base,currency));
 
         if(cachedRate){
             currentRate = parseFloat(cachedRate);
             rateIsLive = false;
             rateTimestamp =
-            localStorage.getItem(rateTimestampKey(currency));
+            localStorage.getItem(rateTimestampKey(base,currency));
         }else{
             currentRate = null;
             rateIsLive = false;
@@ -2888,12 +2913,12 @@ async function fetchExchangeRate(){
         }
     }
 
-    if(currency!==targetCurrency) return;
+    if(base!==baseCurrency || currency!==targetCurrency) return;
 
     updateRateDisplay();
 
-    if(currentRate!==null && gbpInput.value!==""){
-        convertFromGBP();
+    if(currentRate!==null && baseInput.value!==""){
+        convertFromBase();
     }
 }
 
