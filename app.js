@@ -1494,6 +1494,32 @@ layoutToggle.addEventListener("click",()=>{
     updateDatePlacement();
 });
 
+/* --- Pays (réutilisé par le logo ET le filtre "pays de vacances" de la carte) --- */
+
+const COUNTRIES = {
+    germany:{fr:"Allemagne",en:"Germany"},
+    australia:{fr:"Australie",en:"Australia"},
+    austria:{fr:"Autriche",en:"Austria"},
+    belgium:{fr:"Belgique",en:"Belgium"},
+    brazil:{fr:"Brésil",en:"Brazil"},
+    canada:{fr:"Canada",en:"Canada"},
+    china:{fr:"Chine",en:"China"},
+    southkorea:{fr:"Corée du Sud",en:"South Korea"},
+    egypt:{fr:"Égypte",en:"Egypt"},
+    spain:{fr:"Espagne",en:"Spain"},
+    usa:{fr:"États-Unis",en:"United States"},
+    france:{fr:"France",en:"France"},
+    greece:{fr:"Grèce",en:"Greece"},
+    india:{fr:"Inde",en:"India"},
+    italy:{fr:"Italie",en:"Italy"},
+    japan:{fr:"Japon",en:"Japan"},
+    nepal:{fr:"Népal",en:"Nepal"},
+    netherlands:{fr:"Pays-Bas",en:"Netherlands"},
+    portugal:{fr:"Portugal",en:"Portugal"},
+    switzerland:{fr:"Suisse",en:"Switzerland"},
+    thailand:{fr:"Thaïlande",en:"Thailand"}
+};
+
 /* --- Logo de l'application (icône PWA à l'installation) --- */
 
 const APP_ICONS = {
@@ -1587,6 +1613,7 @@ appIconSelect.addEventListener("change",()=>{
             appIconChoice = newChoice;
             localStorage.setItem(APP_ICON_KEY,appIconChoice);
             applyAppIcon(appIconChoice);
+            updateMapCountryToggleLabel();
             showToast(
                 "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
                 {type:"success",duration:6000}
@@ -2922,6 +2949,65 @@ function populateMapDaySelect(){
 mapDaySelect.addEventListener("change",renderMapView);
 mapTypeSelect.addEventListener("change",renderMapView);
 
+/* --- Filtre "pays de vacances" (réutilise le pays du logo choisi) --- */
+
+const COUNTRY_BBOX_CACHE_KEY = "countryBboxCache";
+const mapCountryToggle = document.getElementById("mapCountryToggle");
+let mapCountryFilterActive = false;
+
+function updateMapCountryToggleLabel(){
+    const country = COUNTRIES[appIconChoice];
+    mapCountryToggle.textContent = country
+        ? `🌍 ${country.fr} uniquement`
+        : "🌍 Pays de vacances uniquement";
+}
+
+async function getCountryBbox(countryKey){
+
+    const country = COUNTRIES[countryKey];
+    if(!country) return null;
+
+    const cache = JSON.parse(localStorage.getItem(COUNTRY_BBOX_CACHE_KEY) || "{}");
+    if(cache[countryKey]) return cache[countryKey];
+
+    const response = await fetchWithTimeout(
+        "https://nominatim.openstreetmap.org/search?format=json&limit=1&country="
+        + encodeURIComponent(country.en),
+        8000
+    );
+
+    if(!response.ok){
+        throw new Error("Nominatim (pays) : réponse HTTP "+response.status);
+    }
+
+    const results = await response.json();
+
+    if(!results.length || !results[0].boundingbox){
+        throw new Error(`Pays introuvable : ${country.en}`);
+    }
+
+    const [south,north,west,east] = results[0].boundingbox.map(parseFloat);
+    const bbox = {south,north,west,east};
+
+    cache[countryKey] = bbox;
+    localStorage.setItem(COUNTRY_BBOX_CACHE_KEY,JSON.stringify(cache));
+
+    return bbox;
+}
+
+function isWithinBbox(lat,lon,bbox){
+    return lat>=bbox.south && lat<=bbox.north && lon>=bbox.west && lon<=bbox.east;
+}
+
+mapCountryToggle.addEventListener("click",()=>{
+    mapCountryFilterActive = !mapCountryFilterActive;
+    mapCountryToggle.classList.toggle("active",mapCountryFilterActive);
+    mapCountryToggle.setAttribute("aria-pressed",String(mapCountryFilterActive));
+    renderMapView();
+});
+
+updateMapCountryToggleLabel();
+
 function fixMarkerPosition(address){
 
     const overrides = loadGeocodeOverrides();
@@ -3015,6 +3101,23 @@ async function renderMapView(){
     const dayFilter = mapDaySelect.value ? parseInt(mapDaySelect.value,10) : null;
     const typeFilter = mapTypeSelect.value || null;
 
+    let countryBbox = null;
+
+    if(mapCountryFilterActive){
+        try{
+            countryBbox = await getCountryBbox(appIconChoice);
+            if(!countryBbox){
+                showToast(
+                    "Choisis d'abord un pays dans le sélecteur de logo (Profil) pour utiliser ce filtre.",
+                    {type:"error"}
+                );
+            }
+        }catch(err){
+            console.error("Impossible de localiser le pays :",err);
+            showToast("Impossible de localiser ce pays pour l'instant.",{type:"error"});
+        }
+    }
+
     const entries = collectActivitiesWithAddress(dayFilter,typeFilter);
     const points = [];
 
@@ -3022,6 +3125,10 @@ async function renderMapView(){
         try{
 
             const coords = await geocodeAddress(activity.address.trim());
+
+            if(countryBbox && !isWithinBbox(coords.lat,coords.lon,countryBbox)){
+                continue;
+            }
 
             const icon = L.divIcon({
                 className:"map-pin-icon",
@@ -3075,7 +3182,12 @@ async function renderMapView(){
         }).addTo(mapMarkersLayer);
     }
 
-    if(points.length){
+    if(countryBbox){
+        mapInstance.fitBounds([
+            [countryBbox.south,countryBbox.west],
+            [countryBbox.north,countryBbox.east]
+        ],{padding:[10,10]});
+    }else if(points.length){
         mapInstance.fitBounds(points,{padding:[30,30]});
     }
 }

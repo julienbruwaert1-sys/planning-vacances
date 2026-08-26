@@ -916,6 +916,7 @@ body.has-bottom-nav .fullscreen-view{
 .map-toolbar{
     flex:none;
     display:flex;
+    flex-wrap:wrap;
     gap:8px;
     padding:10px 14px;
     background:#FFFFFF;
@@ -936,6 +937,25 @@ body.has-bottom-nav .fullscreen-view{
     font-size:13px;
 }
 
+.map-country-toggle{
+    flex-basis:100%;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid rgba(51,64,74,.15);
+    background:#F1F7FB;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.map-country-toggle.active{
+    background:#D2503B;
+    color:#FFFFFF;
+    border-color:#D2503B;
+}
+
 body.dark .map-toolbar{
     background:#0A1020;
     border-bottom-color:rgba(234,240,251,.08);
@@ -945,6 +965,18 @@ body.dark .map-toolbar select{
     background:#182238;
     color:#EAF0FB;
     border-color:rgba(234,240,251,.15);
+}
+
+body.dark .map-country-toggle{
+    background:#182238;
+    color:#EAF0FB;
+    border-color:rgba(234,240,251,.15);
+}
+
+body.dark .map-country-toggle.active{
+    background:#3D7CFF;
+    color:#FFFFFF;
+    border-color:#3D7CFF;
 }
 
 .map-container{
