@@ -2172,33 +2172,90 @@ const CHECKLIST_TEMPLATES = {
     ]
 };
 
-function applyChecklistTemplate(templateName){
+const CHECKLIST_TEMPLATE_STATE_KEY = "activeChecklistTemplates";
+
+let activeChecklistTemplates = new Set(
+    JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]")
+);
+
+function saveActiveChecklistTemplates(){
+    localStorage.setItem(
+        CHECKLIST_TEMPLATE_STATE_KEY,
+        JSON.stringify(Array.from(activeChecklistTemplates))
+    );
+}
+
+function toggleChecklistTemplate(templateName){
 
     const items = CHECKLIST_TEMPLATES[templateName];
     if(!items) return;
 
-    const existingLabels = new Set(
-        checklist.map(item=>item.label.trim().toLowerCase())
-    );
+    if(activeChecklistTemplates.has(templateName)){
 
-    let addedCount = 0;
+        activeChecklistTemplates.delete(templateName);
 
-    items.forEach(item=>{
-        if(existingLabels.has(item.label.trim().toLowerCase())) return;
-        checklist.push({label:item.label,checked:false,category:item.category});
-        existingLabels.add(item.label.trim().toLowerCase());
-        addedCount++;
-    });
+        items.forEach(templateItem=>{
 
+            const label = templateItem.label.trim().toLowerCase();
+            const idx = checklist.findIndex(
+                i=>i.label.trim().toLowerCase()===label
+            );
+            if(idx===-1) return;
+
+            const item = checklist[idx];
+            if(item.checked) return;
+
+            const claimedElsewhere = Array.from(activeChecklistTemplates).some(
+                otherName=>(CHECKLIST_TEMPLATES[otherName] || [])
+                    .some(i=>i.label.trim().toLowerCase()===label)
+            );
+            if(claimedElsewhere) return;
+
+            checklist.splice(idx,1);
+        });
+
+    }else{
+
+        activeChecklistTemplates.add(templateName);
+
+        const existingLabels = new Set(
+            checklist.map(i=>i.label.trim().toLowerCase())
+        );
+
+        items.forEach(templateItem=>{
+            const label = templateItem.label.trim().toLowerCase();
+            if(existingLabels.has(label)) return;
+            checklist.push({
+                label:templateItem.label,
+                checked:false,
+                category:templateItem.category
+            });
+            existingLabels.add(label);
+        });
+    }
+
+    saveActiveChecklistTemplates();
     saveChecklist();
     renderChecklist();
+    renderChecklistTemplateChips();
+}
 
-    showToast(
-        addedCount>0
-            ? `${addedCount} élément(s) ajouté(s) depuis le modèle « ${templateName} ».`
-            : `Tous les éléments de « ${templateName} » étaient déjà dans ta checklist.`,
-        {type:"success"}
-    );
+function renderChecklistTemplateChips(){
+
+    const container = document.getElementById("checklistTemplateChips");
+    container.innerHTML = "";
+
+    Object.keys(CHECKLIST_TEMPLATES).forEach(name=>{
+
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "checklist-template-chip";
+        if(activeChecklistTemplates.has(name)) chip.classList.add("active");
+        chip.textContent = name;
+        chip.addEventListener("click",()=>toggleChecklistTemplate(name));
+
+        container.appendChild(chip);
+    });
 }
 
 let checklist =
@@ -2402,20 +2459,7 @@ checklistHideChecked.addEventListener("change",()=>{
     renderChecklist();
 });
 
-const checklistTemplateSelect = document.getElementById("checklistTemplateSelect");
-
-Object.keys(CHECKLIST_TEMPLATES).forEach(name=>{
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    checklistTemplateSelect.appendChild(opt);
-});
-
-checklistTemplateSelect.addEventListener("change",()=>{
-    if(!checklistTemplateSelect.value) return;
-    applyChecklistTemplate(checklistTemplateSelect.value);
-    checklistTemplateSelect.value = "";
-});
+renderChecklistTemplateChips();
 
 function openChecklistView(){
     closeOptionsMenu();
