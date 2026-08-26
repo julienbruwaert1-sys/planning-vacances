@@ -329,6 +329,7 @@ function addActivity(){
         savePlanning();
         renderActivities();
         closeFormDrawer();
+        geocodeAddressInBackground(address);
 
         showToast(`« ${name} » modifiée.`,{type:"success",duration:2500});
         return;
@@ -346,6 +347,7 @@ function addActivity(){
     savePlanning();
     renderActivities();
     closeFormDrawer();
+    geocodeAddressInBackground(address);
 
     showToast(`« ${name} » ajoutée.`,{type:"success",duration:2500});
 }
@@ -2848,6 +2850,27 @@ async function geocodeAddress(address){
     saveGeocodeCache(cache);
 
     return coords;
+}
+
+function geocodeAddressInBackground(address){
+    if(!address || !address.trim()) return;
+    geocodeAddress(address.trim()).catch(err=>{
+        console.error("Géocodage en arrière-plan impossible :",err);
+    });
+}
+
+async function backfillGeocodeCache(){
+    for(const {activity} of collectActivitiesWithAddress()){
+        try{
+            await geocodeAddress(activity.address.trim());
+        }catch(err){
+            console.error("Géocodage en arrière-plan impossible :",err);
+        }
+    }
+}
+
+if(navigator.onLine){
+    backfillGeocodeCache();
 }
 
 function collectActivitiesWithAddress(dayFilter,typeFilter){
