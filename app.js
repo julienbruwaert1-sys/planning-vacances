@@ -2444,6 +2444,10 @@ if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(syncBottomNavHeight);
 }
 
+if(window.ResizeObserver){
+    new ResizeObserver(syncBottomNavHeight).observe(bottomNav);
+}
+
 function closeAllFullscreenViews(){
     if(!checklistView.hidden) closeChecklistView();
     document.querySelectorAll(".profile-sub-view").forEach(view=>{
