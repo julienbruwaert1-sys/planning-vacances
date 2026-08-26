@@ -943,6 +943,15 @@ body.dark .map-toolbar select{
     filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));
 }
 
+.map-you-icon{
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:#3D7CFF;
+    border:3px solid #FFFFFF;
+    box-shadow:0 0 0 3px rgba(61,124,255,.35),0 2px 4px rgba(0,0,0,.3);
+}
+
 .map-popup-fix-btn{
     margin-top:8px;
     padding:5px 10px;

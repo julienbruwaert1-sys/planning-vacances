@@ -2788,6 +2788,31 @@ function fixMarkerPosition(address){
 
 let mapInstance = null;
 let mapMarkersLayer = null;
+let mapUserLocationLayer = null;
+
+function showUserLocationOnMap(){
+
+    if(!navigator.geolocation || !mapUserLocationLayer) return;
+
+    navigator.geolocation.getCurrentPosition(
+        pos=>{
+            const { latitude, longitude } = pos.coords;
+
+            const youIcon = L.divIcon({
+                className:"map-you-icon",
+                html:"",
+                iconSize:[22,22],
+                iconAnchor:[11,11]
+            });
+
+            L.marker([latitude,longitude],{icon:youIcon,zIndexOffset:1000})
+            .addTo(mapUserLocationLayer)
+            .bindPopup("Vous êtes ici");
+        },
+        ()=>{},
+        { timeout:8000 }
+    );
+}
 
 async function renderMapView(){
 
@@ -2815,6 +2840,7 @@ async function renderMapView(){
         }).addTo(mapInstance);
 
         mapMarkersLayer = L.layerGroup().addTo(mapInstance);
+        mapUserLocationLayer = L.layerGroup().addTo(mapInstance);
 
         setTimeout(()=>mapInstance.invalidateSize(),0);
 
@@ -2823,6 +2849,8 @@ async function renderMapView(){
     }
 
     mapMarkersLayer.clearLayers();
+    mapUserLocationLayer.clearLayers();
+    showUserLocationOnMap();
 
     const dayFilter = mapDaySelect.value ? parseInt(mapDaySelect.value,10) : null;
     const typeFilter = mapTypeSelect.value || null;
@@ -2876,6 +2904,15 @@ async function renderMapView(){
         }catch(err){
             console.error("Géocodage impossible :",err);
         }
+    }
+
+    if(dayFilter && points.length>=2){
+        L.polyline(points,{
+            color:"#3D7CFF",
+            weight:3,
+            opacity:0.7,
+            dashArray:"6 6"
+        }).addTo(mapMarkersLayer);
     }
 
     if(points.length){
