@@ -2967,11 +2967,11 @@ function renderProfileStats(){
         </div>
         <div class="profile-stat">
             <span class="profile-stat-value">${tripStepCount || "0"}</span>
-            <span class="profile-stat-label">Nombre de pas</span>
+            <span class="profile-stat-label">Pas</span>
         </div>
         <div class="profile-stat">
             <span class="profile-stat-value">${tripDistanceKm || "0"} km</span>
-            <span class="profile-stat-label">Kilomètres</span>
+            <span class="profile-stat-label">Distance</span>
         </div>
         <div class="profile-stat-full">${daysRemainingText}</div>
         <div class="profile-stat-full profile-stat-hint">🚶 Pas et distance : à connecter à une application podomètre à partir de la date de départ (fonctionnalité à venir).</div>
@@ -3372,7 +3372,7 @@ async function renderMapView(){
         countryBbox = getCountryBbox(appIconChoice);
         if(!countryBbox){
             showToast(
-                "Choisis d'abord un pays dans le sélecteur de logo (Profil) pour utiliser ce filtre.",
+                "Choisis d'abord un pays de destination pour utiliser ce filtre.",
                 {type:"error"}
             );
         }
