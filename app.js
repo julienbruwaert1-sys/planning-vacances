@@ -2013,17 +2013,22 @@ function openNearbyToilets(){
         return;
     }
 
+    // Ouvre l'onglet tout de suite (dans le geste utilisateur synchrone) pour
+    // éviter le blocage de popup : le callback de géolocalisation arrive de
+    // façon asynchrone, trop tard pour qu'un window.open() y passe encore.
+    const newTab = window.open("","_blank");
+    if(newTab) newTab.opener = null;
+
     navigator.geolocation.getCurrentPosition(
         pos=>{
             const { latitude, longitude } = pos.coords;
-            window.open(
-                `https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`,
-                "_blank",
-                "noopener,noreferrer"
-            );
+            const url = `https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`;
+            if(newTab && !newTab.closed) newTab.location.href = url;
+            else window.open(url,"_blank","noopener,noreferrer");
         },
         ()=>{
-            window.open(fallbackUrl,"_blank","noopener,noreferrer");
+            if(newTab && !newTab.closed) newTab.location.href = fallbackUrl;
+            else window.open(fallbackUrl,"_blank","noopener,noreferrer");
         },
         { timeout:8000 }
     );

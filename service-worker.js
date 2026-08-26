@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v71";
+const CACHE_NAME = "planning-v72";
 
 const APP_SHELL = [
     "./index.html",
