@@ -33,6 +33,14 @@ let tripName = localStorage.getItem(TRIP_NAME_KEY) || "";
    l'icône ➕ qui permet de revenir créer un voyage plus tard. */
 const TRIP_CREATED_KEY = "tripCreated";
 
+/* Pays de destination du voyage — distinct de appIconChoice (le logo réel
+   de l'app) depuis qu'on peut garder le pays choisi tout en refusant
+   d'appliquer son icône comme logo. Pilote la devise, le filtre carte et
+   la restriction de géocodage. Déclaré avant geocodeAddress()/renderMapView()
+   pour la même raison que COUNTRY_ISO_CODES/COUNTRY_BBOXES (TDZ). */
+const TRIP_COUNTRY_KEY = "tripCountry";
+let tripCountry = localStorage.getItem(TRIP_COUNTRY_KEY) || "";
+
 const isFirstLaunch =
     localStorage.getItem("vacationPlanning")===null &&
     localStorage.getItem("startDate")===null &&
@@ -45,6 +53,10 @@ if(isFirstLaunch){
     if(!tripName){
         tripName = "Mon voyage";
         localStorage.setItem(TRIP_NAME_KEY,tripName);
+    }
+    if(!tripCountry){
+        tripCountry = localStorage.getItem("appIconChoice") || "";
+        if(tripCountry) localStorage.setItem(TRIP_COUNTRY_KEY,tripCountry);
     }
     if(!localStorage.getItem(TRIP_CREATED_KEY)){
         localStorage.setItem(TRIP_CREATED_KEY,"1");
@@ -531,8 +543,8 @@ if (
 
 function updateConverterCountryHeader(){
 
-    const country = COUNTRIES[appIconChoice];
-    const icon = APP_ICONS[appIconChoice];
+    const country = COUNTRIES[tripCountry];
+    const icon = APP_ICONS[tripCountry];
 
     const header = document.getElementById("converterCountryHeader");
     const nameEl = document.getElementById("converterCountryName");
@@ -962,6 +974,8 @@ deleteTripBtn.addEventListener("click",()=>{
 
             localStorage.removeItem("vacationPlanning");
             localStorage.removeItem(TRIP_NAME_KEY);
+            localStorage.removeItem(TRIP_CREATED_KEY);
+            localStorage.removeItem(TRIP_COUNTRY_KEY);
             localStorage.removeItem("startDate");
             localStorage.removeItem("dayCount");
             localStorage.removeItem("appIconChoice");
@@ -1690,9 +1704,11 @@ Object.keys(APP_ICONS).forEach(key=>{
 
 welcomeCountrySelect.classList.add("welcome-select-placeholder");
 
-let welcomeCountryConfirmed = "";
+let welcomeIconChoice = "default";
 
 welcomeCountrySelect.addEventListener("change",()=>{
+
+    welcomeCountrySelect.classList.remove("welcome-select-placeholder");
 
     const newChoice = welcomeCountrySelect.value;
     const meta = APP_ICONS[newChoice];
@@ -1700,17 +1716,12 @@ welcomeCountrySelect.addEventListener("change",()=>{
     showConfirmModal(
         `Utiliser « ${meta.label} » comme logo de l'application ?`,
         ()=>{
-            welcomeCountryConfirmed = newChoice;
-            welcomeCountrySelect.classList.remove("welcome-select-placeholder");
+            welcomeIconChoice = newChoice;
         },
         {
             previewSrc: meta.icon512,
             onCancel: ()=>{
-                welcomeCountrySelect.value = welcomeCountryConfirmed;
-                welcomeCountrySelect.classList.toggle(
-                    "welcome-select-placeholder",
-                    !welcomeCountryConfirmed
-                );
+                welcomeIconChoice = "default";
             }
         }
     );
@@ -1753,7 +1764,8 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
     }
 
     localStorage.setItem(TRIP_NAME_KEY,name);
-    localStorage.setItem("appIconChoice",country);
+    localStorage.setItem("appIconChoice",welcomeIconChoice);
+    localStorage.setItem(TRIP_COUNTRY_KEY,country);
     if(startDateVal) localStorage.setItem("startDate",startDateVal);
     localStorage.setItem("dayCount",String(Math.min(30,Math.max(1,dayCountVal))));
 
@@ -3125,7 +3137,7 @@ async function geocodeAddress(address){
 
     const overrides = loadGeocodeOverrides();
     const queryText = overrides[address] || address;
-    const countryCode = COUNTRY_ISO_CODES[appIconChoice] || null;
+    const countryCode = COUNTRY_ISO_CODES[tripCountry] || null;
 
     let results = countryCode ? await queryNominatim(queryText,countryCode) : [];
 
@@ -3224,7 +3236,7 @@ const mapCountryToggle = document.getElementById("mapCountryToggle");
 let mapCountryFilterActive = false;
 
 function updateMapCountryToggleLabel(){
-    const country = COUNTRIES[appIconChoice];
+    const country = COUNTRIES[tripCountry];
     mapCountryToggle.textContent = country
         ? `🌍 ${country.fr} uniquement`
         : "🌍 Pays de vacances uniquement";
@@ -3388,7 +3400,7 @@ async function renderMapView(){
     let countryBbox = null;
 
     if(mapCountryFilterActive){
-        countryBbox = getCountryBbox(appIconChoice);
+        countryBbox = getCountryBbox(tripCountry);
         if(!countryBbox){
             showToast(
                 "Choisis d'abord un pays de destination pour utiliser ce filtre.",
