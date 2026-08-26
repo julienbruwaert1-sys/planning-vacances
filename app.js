@@ -1555,6 +1555,7 @@ const COUNTRIES = {
     belgium:{fr:"Belgique",en:"Belgium"},
     brazil:{fr:"Brésil",en:"Brazil"},
     canada:{fr:"Canada",en:"Canada"},
+    chile:{fr:"Chili",en:"Chile"},
     china:{fr:"Chine",en:"China"},
     southkorea:{fr:"Corée du Sud",en:"South Korea"},
     croatia:{fr:"Croatie",en:"Croatia"},
@@ -1586,12 +1587,14 @@ const COUNTRIES = {
 /* --- Logo de l'application (icône PWA à l'installation) --- */
 
 const APP_ICONS = {
+    default:{label:"🌍 Par défaut",icon192:"icons/icon-192-default.png",icon512:"icons/icon-512-default.png"},
     germany:{label:"🇩🇪 Allemagne",icon192:"icons/icon-192-germany.png",icon512:"icons/icon-512-germany.png"},
     australia:{label:"🇦🇺 Australie",icon192:"icons/icon-192-australia.png",icon512:"icons/icon-512-australia.png"},
     austria:{label:"🇦🇹 Autriche",icon192:"icons/icon-192-austria.png",icon512:"icons/icon-512-austria.png"},
     belgium:{label:"🇧🇪 Belgique",icon192:"icons/icon-192-belgium.png",icon512:"icons/icon-512-belgium.png"},
     brazil:{label:"🇧🇷 Brésil",icon192:"icons/icon-192-brazil.png",icon512:"icons/icon-512-brazil.png"},
     canada:{label:"🇨🇦 Canada",icon192:"icons/icon-192-canada.png",icon512:"icons/icon-512-canada.png"},
+    chile:{label:"🇨🇱 Chili",icon192:"icons/icon-192-chile.png",icon512:"icons/icon-512-chile.png"},
     china:{label:"🇨🇳 Chine",icon192:"icons/icon-192-china.png",icon512:"icons/icon-512-china.png"},
     southkorea:{label:"🇰🇷 Corée du Sud",icon192:"icons/icon-192-southkorea.png",icon512:"icons/icon-512-southkorea.png"},
     croatia:{label:"🇭🇷 Croatie",icon192:"icons/icon-192-croatia.png",icon512:"icons/icon-512-croatia.png"},
@@ -1624,7 +1627,7 @@ const APP_ICONS = {
    d'arrivée du Convertisseur à la création du voyage (voir welcomeCreateBtn). */
 const COUNTRY_CURRENCIES = {
     germany:"EUR", australia:"AUD", austria:"EUR", belgium:"EUR", brazil:"BRL",
-    canada:"CAD", china:"CNY", southkorea:"KRW", croatia:"EUR", denmark:"DKK",
+    canada:"CAD", chile:"CLP", china:"CNY", southkorea:"KRW", croatia:"EUR", denmark:"DKK",
     egypt:"EGP", spain:"EUR", usa:"USD", finland:"EUR", france:"EUR",
     greece:"EUR", hungary:"HUF", india:"INR", iceland:"ISK", italy:"EUR",
     japan:"JPY", nepal:"NPR", norway:"NOK", netherlands:"EUR", portugal:"EUR",
@@ -1654,6 +1657,7 @@ welcomeCountryPlaceholder.selected = true;
 welcomeCountrySelect.appendChild(welcomeCountryPlaceholder);
 
 Object.keys(APP_ICONS).forEach(key=>{
+    if(key==="default") return;
     const opt = document.createElement("option");
     opt.value = key;
     opt.textContent = APP_ICONS[key].label;
@@ -1718,7 +1722,7 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
 });
 
 const APP_ICON_KEY = "appIconChoice";
-let appIconChoice = localStorage.getItem(APP_ICON_KEY) || "france";
+let appIconChoice = localStorage.getItem(APP_ICON_KEY) || "default";
 appIconSelect.value = appIconChoice;
 
 let lastManifestBlobUrl = null;
@@ -1729,7 +1733,7 @@ function absUrl(path){
 
 function applyAppIcon(key){
 
-    const meta = APP_ICONS[key] || APP_ICONS.france;
+    const meta = APP_ICONS[key] || APP_ICONS.default;
 
     faviconLink.href = meta.icon192;
     appleTouchIconLink.href = meta.icon512;
@@ -3008,7 +3012,7 @@ function saveGeocodeOverrides(overrides){
    le chargement de la page (avant que le reste du script ne s'exécute). */
 const COUNTRY_ISO_CODES = {
     germany:"de", australia:"au", austria:"at", belgium:"be", brazil:"br",
-    canada:"ca", china:"cn", southkorea:"kr", croatia:"hr", denmark:"dk",
+    canada:"ca", chile:"cl", china:"cn", southkorea:"kr", croatia:"hr", denmark:"dk",
     egypt:"eg", spain:"es", usa:"us", finland:"fi", france:"fr",
     greece:"gr", hungary:"hu", india:"in", iceland:"is", italy:"it",
     japan:"jp", nepal:"np", norway:"no", netherlands:"nl", portugal:"pt",
@@ -3158,6 +3162,7 @@ const COUNTRY_BBOXES = {
     belgium:{south:49.5,north:51.5,west:2.5,east:6.4},
     brazil:{south:-33.8,north:5.3,west:-73.9,east:-34.8},
     canada:{south:41.7,north:83.1,west:-141.0,east:-52.6},
+    chile:{south:-55.9,north:-17.5,west:-75.6,east:-66.4},
     china:{south:18.2,north:53.6,west:73.5,east:135.1},
     southkorea:{south:33.1,north:38.6,west:125.0,east:129.6},
     croatia:{south:42.4,north:46.6,west:13.5,east:19.5},
@@ -3602,6 +3607,7 @@ const CURRENCIES = {
     AUD:{symbol:"A$",decimals:2,label:"Dollar australien (AUD)"},
     BRL:{symbol:"R$",decimals:2,label:"Real brésilien (BRL)"},
     CAD:{symbol:"C$",decimals:2,label:"Dollar canadien (CAD)"},
+    CLP:{symbol:"CLP$",decimals:0,label:"Peso chilien (CLP)"},
     CHF:{symbol:"Fr",decimals:2,label:"Franc suisse (CHF)"},
     CNY:{symbol:"¥",decimals:2,label:"Yuan (CNY)"},
     EGP:{symbol:"E£",decimals:2,label:"Livre égyptienne (EGP)"},

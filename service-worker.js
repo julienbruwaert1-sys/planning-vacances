@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v115";
+const CACHE_NAME = "planning-v116";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -75,6 +75,10 @@ const APP_SHELL = [
     "./icons/icon-512-singapore.png",
     "./icons/icon-192-turkey.png",
     "./icons/icon-512-turkey.png",
+    "./icons/icon-192-chile.png",
+    "./icons/icon-512-chile.png",
+    "./icons/icon-192-default.png",
+    "./icons/icon-512-default.png",
     "./vendor/xlsx.full.min.js",
     "./vendor/firebase-app-compat.js",
     "./vendor/firebase-database-compat.js",
