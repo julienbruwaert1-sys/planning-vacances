@@ -171,13 +171,12 @@
 
 <div id="budgetTabContent">
 <div class="mobile-tab-header"><button class="back-btn mobile-tab-back" type="button" aria-label="Retour au planning">←</button><span class="mobile-tab-header-icon">💱</span><h2>Convertisseur</h2></div>
-<div id="tripSummary" class="trip-summary"></div>
-
 <div class="converter-card">
-<div class="converter-head">
-<span class="converter-icon">💱</span>
-<h3 id="converterTitle">GBP ↔ JPY</h3>
+<div class="converter-country-header" id="converterCountryHeader">
+<div class="converter-country-name" id="converterCountryName"></div>
+<div class="converter-country-sub" id="converterCountrySub"></div>
 </div>
+<div class="converter-body">
 <div class="converter-row">
 <div class="converter-field">
 <select id="baseCurrencySelect" class="converter-currency-select" aria-label="Devise de départ du convertisseur">
@@ -195,6 +194,7 @@
 </div>
 </div>
 <div id="rateInfo" class="rate-info">Chargement du taux…</div>
+</div>
 </div>
 </div>
 

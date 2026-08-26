@@ -1941,55 +1941,58 @@ body.dark .dropzone{
 /* Convertisseur de devises */
 
 .converter-card{
-    max-width:230px;
+    max-width:340px;
     margin:0 auto 16px;
     background:#FFFFFF;
-    border-radius:14px;
+    border-radius:18px;
     box-shadow:0 4px 16px rgba(51,64,74,.07);
-    padding:9px 11px;
+    overflow:hidden;
     text-align:center;
 }
 
-.converter-head{
+.converter-country-header{
+    position:relative;
+    min-height:76px;
+    padding:16px 14px;
     display:flex;
-    align-items:center;
-    gap:6px;
-    margin-bottom:8px;
+    flex-direction:column;
+    justify-content:flex-end;
+    background-size:cover;
+    background-position:center;
+    background-color:#F1F7FB;
+    text-align:left;
 }
 
-.converter-icon{
-    width:20px;
-    height:20px;
-    border-radius:50%;
-    background:#FCEEE8;
-    color:#D2503B;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:11px;
-    flex-shrink:0;
+.converter-country-header::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,rgba(10,10,10,.05) 0%,rgba(10,10,10,.55) 100%);
 }
 
-body.dark .converter-icon{
-    background:rgba(61,124,255,.14);
-    color:#3D7CFF;
+.converter-country-name{
+    position:relative;
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:16px;
+    font-weight:700;
+    color:#FFFFFF;
+    text-shadow:0 1px 6px rgba(0,0,0,.4);
 }
 
-.converter-card h3{
-    margin:0;
-    background:none;
-    color:#33404A;
-    padding:0;
-    font-size:11px;
-    font-family:Georgia,'Playfair Display',serif;
+.converter-country-sub{
+    position:relative;
+    font-size:10.5px;
+    color:rgba(255,255,255,.85);
+    margin-top:2px;
+    text-shadow:0 1px 4px rgba(0,0,0,.4);
+}
+
+.converter-body{
+    padding:12px 14px;
 }
 
 body.dark .converter-card{
-    background:#2d2d2d;
-}
-
-body.dark .converter-card h3{
-    color:white;
+    background:#121A2E;
 }
 
 .converter-row{

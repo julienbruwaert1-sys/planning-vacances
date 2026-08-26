@@ -5,7 +5,7 @@
 var syncRef = null;
 var applyingRemoteUpdate = false;
 
-/* Déclarée tôt pour la même raison : renderActivities()/updateTripSummary()
+/* Déclarée tôt pour la même raison : renderActivities()/updateConverterCountryHeader()
    (bien plus bas) s'exécutent dès le chargement initial et affichent le
    symbole de devise des prix. */
 let priceCurrencySymbol = localStorage.getItem("priceCurrencySymbol") || "£";
@@ -480,39 +480,40 @@ if (
     renderActivities();
 }
 
-function updateTripSummary(){
+function updateConverterCountryHeader(){
 
-    let total = 0;
-    let hasAny = false;
+    const country = COUNTRIES[appIconChoice];
+    const icon = APP_ICONS[appIconChoice];
+
+    const header = document.getElementById("converterCountryHeader");
+    const nameEl = document.getElementById("converterCountryName");
+    const subEl = document.getElementById("converterCountrySub");
+
+    const flag = icon ? icon.label.split(" ")[0] : "🌍";
+    nameEl.textContent = `${flag} ${country ? country.fr : "Voyage"}`;
+
+    header.style.backgroundImage = icon
+        ? `url('${icon.icon512}')`
+        : "none";
+
     let dayWithData = 0;
 
     Object.keys(planning).forEach(day=>{
 
-        let dayTotal = 0;
         let dayHas = false;
 
         ["matin","midi","apresMidi","soir"].forEach(slot=>{
             (planning[day][slot] || []).forEach(a=>{
-                if(a.price!==null && a.price!==undefined){
-                    dayTotal += a.price;
-                    dayHas = true;
-                }
+                if(a.price!==null && a.price!==undefined) dayHas = true;
             });
         });
 
-        if(dayHas){
-            total += dayTotal;
-            hasAny = true;
-            dayWithData++;
-        }
+        if(dayHas) dayWithData++;
     });
 
-    const tripSummary = document.getElementById("tripSummary");
-
-    tripSummary.textContent = hasAny
-        ? `💷 Budget total du séjour : ${total.toFixed(2)} ${priceCurrencySymbol} `
-          + `(sur ${dayWithData} jour${dayWithData>1?"s":""} renseigné${dayWithData>1?"s":""})`
-        : "";
+    subEl.textContent = dayWithData>0
+        ? `${dayWithData} jour${dayWithData>1?"s":""} renseigné${dayWithData>1?"s":""}`
+        : "Aucun budget renseigné";
 }
 
 function renderActivities(){
@@ -564,7 +565,7 @@ function renderActivities(){
         summary.appendChild(travelSpan);
     }
 
-    updateTripSummary();
+    updateConverterCountryHeader();
 
     sections.forEach(section=>{
 
@@ -1614,6 +1615,7 @@ appIconSelect.addEventListener("change",()=>{
             localStorage.setItem(APP_ICON_KEY,appIconChoice);
             applyAppIcon(appIconChoice);
             updateMapCountryToggleLabel();
+            updateConverterCountryHeader();
             showToast(
                 "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
                 {type:"success",duration:6000}
@@ -3242,7 +3244,6 @@ const baseInput = document.getElementById("baseInput");
 const baseCurrencySelect = document.getElementById("baseCurrencySelect");
 const targetInput = document.getElementById("targetInput");
 const targetFieldLabel = document.getElementById("targetFieldLabel");
-const converterTitle = document.getElementById("converterTitle");
 const targetCurrencySelect = document.getElementById("targetCurrency");
 const rateInfo = document.getElementById("rateInfo");
 
@@ -3264,7 +3265,6 @@ function applyCurrencyMeta(){
     baseInput.step = baseMeta.decimals===0 ? "1" : "0.01";
     targetFieldLabel.textContent = targetMeta.symbol;
     targetInput.step = targetMeta.decimals===0 ? "1" : "0.01";
-    converterTitle.textContent = `${baseCurrency} ↔ ${targetCurrency}`;
 }
 
 applyCurrencyMeta();
