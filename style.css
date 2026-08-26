@@ -1586,21 +1586,21 @@ select{
     color:#33404A;
 }
 
-#activityName::placeholder{
+.form input::placeholder{
     color:#9AAAB4;
     opacity:1;
 }
 
-body.dark #activityName::placeholder{
+body.dark .form input::placeholder{
     color:#B7C4D6;
     opacity:1;
 }
 
-.select-placeholder{
+select.select-placeholder{
     color:#9AAAB4;
 }
 
-body.dark .select-placeholder{
+body.dark select.select-placeholder{
     color:#B7C4D6;
 }
 
