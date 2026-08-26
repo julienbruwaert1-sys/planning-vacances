@@ -537,7 +537,7 @@ function updateConverterCountryHeader(){
 
     subEl.textContent = dayWithData>0
         ? `${dayWithData} jour${dayWithData>1?"s":""} renseigné${dayWithData>1?"s":""}`
-        : "Aucun budget renseigné";
+        : "";
 }
 
 function renderActivities(){
