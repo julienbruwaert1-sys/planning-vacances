@@ -2951,7 +2951,6 @@ mapTypeSelect.addEventListener("change",renderMapView);
 
 /* --- Filtre "pays de vacances" (réutilise le pays du logo choisi) --- */
 
-const COUNTRY_BBOX_CACHE_KEY = "countryBboxCache";
 const mapCountryToggle = document.getElementById("mapCountryToggle");
 let mapCountryFilterActive = false;
 
@@ -2962,37 +2961,36 @@ function updateMapCountryToggleLabel(){
         : "🌍 Pays de vacances uniquement";
 }
 
-async function getCountryBbox(countryKey){
+/* Zones approximatives du territoire principal (métropole), sans les
+   territoires d'outre-mer — Nominatim renvoie les frontières
+   administratives complètes (ex. la France avec la Guyane), ce qui
+   étale la carte sur toute la planète au lieu de recentrer localement. */
+const COUNTRY_BBOXES = {
+    germany:{south:47.3,north:55.1,west:5.9,east:15.0},
+    australia:{south:-43.7,north:-10.5,west:112.9,east:153.7},
+    austria:{south:46.4,north:49.0,west:9.5,east:17.2},
+    belgium:{south:49.5,north:51.5,west:2.5,east:6.4},
+    brazil:{south:-33.8,north:5.3,west:-73.9,east:-34.8},
+    canada:{south:41.7,north:83.1,west:-141.0,east:-52.6},
+    china:{south:18.2,north:53.6,west:73.5,east:135.1},
+    southkorea:{south:33.1,north:38.6,west:125.0,east:129.6},
+    egypt:{south:22.0,north:31.7,west:25.0,east:35.0},
+    spain:{south:36.0,north:43.8,west:-9.3,east:4.3},
+    usa:{south:24.5,north:49.4,west:-125.0,east:-66.9},
+    france:{south:41.3,north:51.1,west:-5.2,east:9.6},
+    greece:{south:34.8,north:41.8,west:19.3,east:28.3},
+    india:{south:6.5,north:35.5,west:68.1,east:97.4},
+    italy:{south:36.6,north:47.1,west:6.6,east:18.5},
+    japan:{south:24.0,north:45.6,west:122.9,east:145.9},
+    nepal:{south:26.3,north:30.5,west:80.0,east:88.2},
+    netherlands:{south:50.7,north:53.6,west:3.3,east:7.3},
+    portugal:{south:36.8,north:42.2,west:-9.6,east:-6.1},
+    switzerland:{south:45.8,north:47.9,west:5.9,east:10.6},
+    thailand:{south:5.6,north:20.5,west:97.3,east:105.7}
+};
 
-    const country = COUNTRIES[countryKey];
-    if(!country) return null;
-
-    const cache = JSON.parse(localStorage.getItem(COUNTRY_BBOX_CACHE_KEY) || "{}");
-    if(cache[countryKey]) return cache[countryKey];
-
-    const response = await fetchWithTimeout(
-        "https://nominatim.openstreetmap.org/search?format=json&limit=1&country="
-        + encodeURIComponent(country.en),
-        8000
-    );
-
-    if(!response.ok){
-        throw new Error("Nominatim (pays) : réponse HTTP "+response.status);
-    }
-
-    const results = await response.json();
-
-    if(!results.length || !results[0].boundingbox){
-        throw new Error(`Pays introuvable : ${country.en}`);
-    }
-
-    const [south,north,west,east] = results[0].boundingbox.map(parseFloat);
-    const bbox = {south,north,west,east};
-
-    cache[countryKey] = bbox;
-    localStorage.setItem(COUNTRY_BBOX_CACHE_KEY,JSON.stringify(cache));
-
-    return bbox;
+function getCountryBbox(countryKey){
+    return COUNTRY_BBOXES[countryKey] || null;
 }
 
 function isWithinBbox(lat,lon,bbox){
@@ -3104,17 +3102,12 @@ async function renderMapView(){
     let countryBbox = null;
 
     if(mapCountryFilterActive){
-        try{
-            countryBbox = await getCountryBbox(appIconChoice);
-            if(!countryBbox){
-                showToast(
-                    "Choisis d'abord un pays dans le sélecteur de logo (Profil) pour utiliser ce filtre.",
-                    {type:"error"}
-                );
-            }
-        }catch(err){
-            console.error("Impossible de localiser le pays :",err);
-            showToast("Impossible de localiser ce pays pour l'instant.",{type:"error"});
+        countryBbox = getCountryBbox(appIconChoice);
+        if(!countryBbox){
+            showToast(
+                "Choisis d'abord un pays dans le sélecteur de logo (Profil) pour utiliser ce filtre.",
+                {type:"error"}
+            );
         }
     }
 
