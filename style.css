@@ -515,6 +515,10 @@ body.has-bottom-nav{
     padding-bottom:var(--bottom-nav-h,64px);
 }
 
+body.has-bottom-nav #planningTabContent{
+    padding-bottom:24px;
+}
+
 .profile-title{
     font-family:'Playfair Display',Georgia,serif;
     font-size:26px;
