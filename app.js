@@ -20,6 +20,31 @@ const profileTabContent = document.getElementById("profileTabContent");
 const appTitle = document.getElementById("appTitle");
 let activeMainTab = "planning";
 
+/* Écran de création de voyage — affiché uniquement si aucune des clés
+   ci-dessous n'existe (vrai premier lancement). Ne PAS se baser sur la
+   seule absence de tripName : après le déploiement de cette fonctionnalité,
+   tous les utilisateurs déjà actifs auraient tripName absent aussi, et se
+   verraient à tort proposer de "créer" un voyage qu'ils ont déjà. */
+const TRIP_NAME_KEY = "tripName";
+let tripName = localStorage.getItem(TRIP_NAME_KEY) || "";
+
+const isFirstLaunch =
+    localStorage.getItem("vacationPlanning")===null &&
+    localStorage.getItem("startDate")===null &&
+    localStorage.getItem("dayCount")===null &&
+    localStorage.getItem("appIconChoice")===null;
+
+if(isFirstLaunch){
+    document.getElementById("welcomeView").hidden = false;
+}else if(!tripName){
+    tripName = "Mon voyage";
+    localStorage.setItem(TRIP_NAME_KEY,tripName);
+}
+
+if(tripName){
+    appTitle.textContent = "🌴 "+tripName;
+}
+
 const optionsMenuItem = document.getElementById("optionsMenuItem");
 const syncMenuItem = document.getElementById("syncMenuItem");
 const dataSettingsContent = document.getElementById("dataSettingsContent");
@@ -1559,6 +1584,38 @@ Object.keys(APP_ICONS).forEach(key=>{
     opt.value = key;
     opt.textContent = APP_ICONS[key].label;
     appIconSelect.appendChild(opt);
+});
+
+const welcomeCountrySelect = document.getElementById("welcomeCountrySelect");
+
+Object.keys(APP_ICONS).forEach(key=>{
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = APP_ICONS[key].label;
+    welcomeCountrySelect.appendChild(opt);
+});
+
+welcomeCountrySelect.value = "france";
+
+document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
+
+    const name = document.getElementById("welcomeTripName").value.trim();
+
+    if(!name){
+        showToast("Donne un nom à ton voyage pour continuer.",{type:"error"});
+        return;
+    }
+
+    const country = welcomeCountrySelect.value;
+    const startDateVal = document.getElementById("welcomeStartDate").value;
+    const dayCountVal = parseInt(document.getElementById("welcomeDayCount").value,10) || 7;
+
+    localStorage.setItem(TRIP_NAME_KEY,name);
+    localStorage.setItem("appIconChoice",country);
+    if(startDateVal) localStorage.setItem("startDate",startDateVal);
+    localStorage.setItem("dayCount",String(Math.min(30,Math.max(1,dayCountVal))));
+
+    location.reload();
 });
 
 const APP_ICON_KEY = "appIconChoice";
