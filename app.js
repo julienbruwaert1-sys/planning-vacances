@@ -170,6 +170,8 @@ function showConfirmModal(message,onConfirm,options){
     options = options || {};
 
     modalMessage.textContent = message;
+    modalConfirm.textContent = options.confirmLabel || "Confirmer";
+    modalCancel.textContent = options.cancelLabel || "Annuler";
 
     if(options.previewSrc){
         modalPreviewImage.src = options.previewSrc;
@@ -1768,6 +1770,8 @@ welcomeCountrySelect.addEventListener("change",()=>{
         },
         {
             previewSrc: meta.icon512,
+            confirmLabel: "Oui",
+            cancelLabel: "Non",
             onCancel: ()=>{
                 welcomeIconChoice = "default";
             }
