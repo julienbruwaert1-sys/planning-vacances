@@ -3510,14 +3510,21 @@ function getDayWeatherLocation(day){
         for(const slot of sections){
             for(const activity of (dayData[slot] || [])){
                 const address = activity.address && activity.address.trim();
-                if(address && geocodeCache[address]) return geocodeCache[address];
+                if(address && geocodeCache[address]){
+                    return { ...geocodeCache[address], label: address };
+                }
             }
         }
     }
 
     const bbox = getCountryBbox(tripCountry);
     if(bbox){
-        return { lat:(bbox.south+bbox.north)/2, lon:(bbox.west+bbox.east)/2 };
+        const country = COUNTRIES[tripCountry];
+        return {
+            lat:(bbox.south+bbox.north)/2,
+            lon:(bbox.west+bbox.east)/2,
+            label: country ? country.fr : ""
+        };
     }
 
     return null;
@@ -3527,16 +3534,24 @@ const dayWeatherCard = document.getElementById("dayWeatherCard");
 const weatherIcon = document.getElementById("weatherIcon");
 const weatherCondition = document.getElementById("weatherCondition");
 const weatherTemps = document.getElementById("weatherTemps");
-const weatherDayLabel = document.getElementById("weatherDayLabel");
+const weatherDayDate = document.getElementById("weatherDayDate");
+const weatherPlace = document.getElementById("weatherPlace");
 
-function showWeatherCard(dayData,dateObj){
+function showWeatherCard(dayData,dateObj,label){
     dayWeatherCard.hidden = false;
     dayWeatherCard.classList.remove("weather-offline");
     const info = weatherInfoFor(dayData.code);
     weatherIcon.textContent = info.icon;
     weatherCondition.textContent = info.label;
-    weatherTemps.innerHTML = `<b>${dayData.max}°</b> / ${dayData.min}°`;
-    weatherDayLabel.textContent = dateObj.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+
+    const maxSpan = document.createElement("b");
+    maxSpan.textContent = `${dayData.max}°`;
+    weatherTemps.textContent = "";
+    weatherTemps.appendChild(maxSpan);
+    weatherTemps.appendChild(document.createTextNode(` / ${dayData.min}°`));
+
+    weatherDayDate.textContent = dateObj.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+    weatherPlace.textContent = label || "";
 }
 
 function showWeatherOffline(){
@@ -3545,7 +3560,8 @@ function showWeatherOffline(){
     weatherIcon.textContent = "📡";
     weatherCondition.textContent = "Météo indisponible hors-ligne";
     weatherTemps.textContent = "";
-    weatherDayLabel.textContent = "";
+    weatherDayDate.textContent = "";
+    weatherPlace.textContent = "";
 }
 
 async function renderDayWeather(){
@@ -3570,12 +3586,12 @@ async function renderDayWeather(){
     const cached = cache[cacheKey];
 
     if(cached && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS){
-        showWeatherCard(cached.data,dateObj);
+        showWeatherCard(cached.data,dateObj,loc.label);
         return;
     }
 
     if(!navigator.onLine){
-        if(cached) showWeatherCard(cached.data,dateObj);
+        if(cached) showWeatherCard(cached.data,dateObj,loc.label);
         else showWeatherOffline();
         return;
     }
@@ -3609,11 +3625,11 @@ async function renderDayWeather(){
         cache[cacheKey] = {data:dayWeather,timestamp:Date.now()};
         saveWeatherCache(cache);
 
-        showWeatherCard(dayWeather,dateObj);
+        showWeatherCard(dayWeather,dateObj,loc.label);
 
     }catch(err){
         console.error("Météo indisponible :",err);
-        if(cached) showWeatherCard(cached.data,dateObj);
+        if(cached) showWeatherCard(cached.data,dateObj,loc.label);
         else showWeatherOffline();
     }
 }

@@ -1748,6 +1748,13 @@ body.dark .category-tab.active{
     color:#9AAAB4;
     text-align:right;
     line-height:1.4;
+    max-width:120px;
+}
+
+#weatherPlace{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 .weather-card.weather-offline{
