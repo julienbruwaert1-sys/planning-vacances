@@ -2856,16 +2856,6 @@ body.dark select:focus-visible{
     color:#9AAAB4;
 }
 
-.welcome-row{
-    display:flex;
-    gap:12px;
-}
-
-.welcome-row .welcome-field{
-    flex:1;
-    min-width:0;
-}
-
 .welcome-create-btn{
     width:100%;
     padding:13px 16px;
