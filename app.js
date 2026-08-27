@@ -3605,7 +3605,7 @@ function showWeatherOffline(){
     dayWeatherCard.hidden = false;
     dayWeatherCard.classList.add("weather-offline");
     weatherIcon.textContent = "📡";
-    weatherCondition.textContent = "Météo indisponible hors-ligne";
+    weatherCondition.textContent = "Météo indisponible pour le moment";
     weatherTemps.textContent = "";
     weatherDayDate.textContent = "";
     weatherPlace.textContent = "";
@@ -3637,12 +3637,9 @@ async function renderDayWeather(){
         return;
     }
 
-    if(!navigator.onLine){
-        if(cached) showWeatherCard(cached.data,dateObj,loc.label);
-        else showWeatherOffline();
-        return;
-    }
-
+    /* navigator.onLine n'est pas fiable (peut être faux même avec une vraie
+       connexion, selon le réseau/le pilote) — on tente toujours la requête
+       et on ne bascule sur "hors ligne" qu'en cas d'échec réel. */
     try{
 
         const url =
