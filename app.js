@@ -357,6 +357,8 @@ function renderTabs(){
     if(customTitle) heading += ` — ${customTitle}`;
 
     document.getElementById("dayTitle").textContent = heading;
+
+    renderDayWeather();
 }
 
 let editingActivity = null;
@@ -3451,6 +3453,171 @@ function isWithinBbox(lat,lon,bbox){
     return lat>=bbox.south && lat<=bbox.north && lon>=bbox.west && lon<=bbox.east;
 }
 
+/* --- Météo du jour (Open-Meteo, gratuit, sans clé) ---
+   Nécessite une date de départ (pour associer "Jour N" à une date réelle) ;
+   sans elle, la carte reste masquée plutôt que d'afficher une donnée fausse. */
+
+const WEATHER_CACHE_KEY = "weatherCache";
+const WEATHER_CACHE_TTL_MS = 3*60*60*1000;
+
+const WEATHER_CODES = {
+    0:{icon:"☀️",label:"Ciel dégagé"},
+    1:{icon:"🌤️",label:"Plutôt dégagé"},
+    2:{icon:"⛅",label:"Partiellement nuageux"},
+    3:{icon:"☁️",label:"Couvert"},
+    45:{icon:"🌫️",label:"Brouillard"},
+    48:{icon:"🌫️",label:"Brouillard givrant"},
+    51:{icon:"🌦️",label:"Bruine légère"},
+    53:{icon:"🌦️",label:"Bruine"},
+    55:{icon:"🌦️",label:"Bruine dense"},
+    61:{icon:"🌧️",label:"Pluie légère"},
+    63:{icon:"🌧️",label:"Pluie"},
+    65:{icon:"🌧️",label:"Forte pluie"},
+    71:{icon:"🌨️",label:"Neige légère"},
+    73:{icon:"🌨️",label:"Neige"},
+    75:{icon:"❄️",label:"Forte neige"},
+    80:{icon:"🌦️",label:"Averses"},
+    81:{icon:"🌧️",label:"Fortes averses"},
+    82:{icon:"⛈️",label:"Averses violentes"},
+    95:{icon:"⛈️",label:"Orage"},
+    96:{icon:"⛈️",label:"Orage avec grêle"},
+    99:{icon:"⛈️",label:"Orage violent"}
+};
+
+function weatherInfoFor(code){
+    return WEATHER_CODES[code] || {icon:"🌡️",label:"Météo"};
+}
+
+function loadWeatherCache(){
+    return JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || "{}");
+}
+
+function saveWeatherCache(cache){
+    localStorage.setItem(WEATHER_CACHE_KEY,JSON.stringify(cache));
+}
+
+function toISODateLocal(d){
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+
+function getDayWeatherLocation(day){
+
+    const sections = ["matin","midi","apresMidi","soir"];
+    const dayData = planning[day];
+
+    if(dayData){
+        const geocodeCache = loadGeocodeCache();
+        for(const slot of sections){
+            for(const activity of (dayData[slot] || [])){
+                const address = activity.address && activity.address.trim();
+                if(address && geocodeCache[address]) return geocodeCache[address];
+            }
+        }
+    }
+
+    const bbox = getCountryBbox(tripCountry);
+    if(bbox){
+        return { lat:(bbox.south+bbox.north)/2, lon:(bbox.west+bbox.east)/2 };
+    }
+
+    return null;
+}
+
+const dayWeatherCard = document.getElementById("dayWeatherCard");
+const weatherIcon = document.getElementById("weatherIcon");
+const weatherCondition = document.getElementById("weatherCondition");
+const weatherTemps = document.getElementById("weatherTemps");
+const weatherDayLabel = document.getElementById("weatherDayLabel");
+
+function showWeatherCard(dayData,dateObj){
+    dayWeatherCard.hidden = false;
+    dayWeatherCard.classList.remove("weather-offline");
+    const info = weatherInfoFor(dayData.code);
+    weatherIcon.textContent = info.icon;
+    weatherCondition.textContent = info.label;
+    weatherTemps.innerHTML = `<b>${dayData.max}°</b> / ${dayData.min}°`;
+    weatherDayLabel.textContent = dateObj.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+}
+
+function showWeatherOffline(){
+    dayWeatherCard.hidden = false;
+    dayWeatherCard.classList.add("weather-offline");
+    weatherIcon.textContent = "📡";
+    weatherCondition.textContent = "Météo indisponible hors-ligne";
+    weatherTemps.textContent = "";
+    weatherDayLabel.textContent = "";
+}
+
+async function renderDayWeather(){
+
+    const dateObj = dateForDay(currentDay);
+
+    if(!dateObj){
+        dayWeatherCard.hidden = true;
+        return;
+    }
+
+    const loc = getDayWeatherLocation(currentDay);
+
+    if(!loc){
+        dayWeatherCard.hidden = true;
+        return;
+    }
+
+    const dateStr = toISODateLocal(dateObj);
+    const cacheKey = `${loc.lat.toFixed(2)},${loc.lon.toFixed(2)}_${dateStr}`;
+    const cache = loadWeatherCache();
+    const cached = cache[cacheKey];
+
+    if(cached && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS){
+        showWeatherCard(cached.data,dateObj);
+        return;
+    }
+
+    if(!navigator.onLine){
+        if(cached) showWeatherCard(cached.data,dateObj);
+        else showWeatherOffline();
+        return;
+    }
+
+    try{
+
+        const url =
+            "https://api.open-meteo.com/v1/forecast?latitude="+loc.lat
+            + "&longitude="+loc.lon
+            + "&daily=weathercode,temperature_2m_max,temperature_2m_min"
+            + "&timezone=auto&start_date="+dateStr+"&end_date="+dateStr;
+
+        const response = await fetchWithTimeout(url,8000);
+
+        if(!response.ok){
+            throw new Error("Open-Meteo: réponse HTTP "+response.status);
+        }
+
+        const data = await response.json();
+
+        if(!data.daily || !data.daily.time || !data.daily.time.length){
+            throw new Error("Open-Meteo: pas de données pour cette date");
+        }
+
+        const dayWeather = {
+            code: data.daily.weathercode[0],
+            max: Math.round(data.daily.temperature_2m_max[0]),
+            min: Math.round(data.daily.temperature_2m_min[0])
+        };
+
+        cache[cacheKey] = {data:dayWeather,timestamp:Date.now()};
+        saveWeatherCache(cache);
+
+        showWeatherCard(dayWeather,dateObj);
+
+    }catch(err){
+        console.error("Météo indisponible :",err);
+        if(cached) showWeatherCard(cached.data,dateObj);
+        else showWeatherOffline();
+    }
+}
+
 mapCountryToggle.addEventListener("click",()=>{
     mapCountryFilterActive = !mapCountryFilterActive;
     mapCountryToggle.classList.toggle("active",mapCountryFilterActive);
@@ -4579,4 +4746,10 @@ function updateCacheVersionBadge(){
 }
 
 updateCacheVersionBadge();
+
+/* Rendu initial : createTabs()/renderTabs() s'exécutent bien plus tôt dans le
+   script (avant COUNTRY_BBOXES etc.), donc le tout premier appel à
+   renderDayWeather() échoue silencieusement (promesse rejetée, sans casser le
+   reste du script). On la relance ici une fois tout initialisé. */
+renderDayWeather();
 

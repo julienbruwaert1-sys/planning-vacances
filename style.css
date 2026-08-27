@@ -1701,6 +1701,97 @@ body.dark .category-tab.active{
     box-shadow:0 2px 8px rgba(51,64,74,.07);
 }
 
+.weather-card{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background:linear-gradient(135deg,#F1F7FB,#FFFFFF);
+    border-radius:16px;
+    padding:14px 16px;
+    margin-bottom:14px;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+.weather-card[hidden]{
+    display:none;
+}
+
+.weather-icon-big{
+    font-size:32px;
+    line-height:1;
+}
+
+.weather-details{
+    flex:1;
+}
+
+.weather-condition{
+    font-size:13px;
+    font-weight:700;
+    color:#33404A;
+    margin-bottom:2px;
+}
+
+.weather-temps{
+    font-size:12px;
+    color:#9AAAB4;
+    font-variant-numeric:tabular-nums;
+}
+
+.weather-temps b{
+    color:#33404A;
+    font-weight:700;
+}
+
+.weather-day-label{
+    font-size:10.5px;
+    color:#9AAAB4;
+    text-align:right;
+    line-height:1.4;
+}
+
+.weather-card.weather-offline{
+    background:#F1F7FB;
+}
+
+.weather-card.weather-offline .weather-icon-big{
+    font-size:24px;
+    color:#9AAAB4;
+}
+
+.weather-card.weather-offline .weather-condition{
+    color:#9AAAB4;
+    font-weight:600;
+    font-size:12.5px;
+}
+
+body.dark .weather-card{
+    background:linear-gradient(135deg,#182238,#121A2E);
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+body.dark .weather-condition{
+    color:#EAF0FB;
+}
+
+body.dark .weather-temps,
+body.dark .weather-day-label{
+    color:#7C8BAE;
+}
+
+body.dark .weather-temps b{
+    color:#EAF0FB;
+}
+
+body.dark .weather-card.weather-offline{
+    background:#182238;
+}
+
+body.dark .weather-card.weather-offline .weather-icon-big,
+body.dark .weather-card.weather-offline .weather-condition{
+    color:#7C8BAE;
+}
+
 .form-toggle-btn{
     display:flex;
     align-items:center;
