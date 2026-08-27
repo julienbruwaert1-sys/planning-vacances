@@ -715,7 +715,6 @@ body.dark .help-notes-input{
     margin-top:8px;
 }
 
-.help-notes-copy-btn,
 .help-notes-send-btn{
     padding:8px 14px;
     border:none;
@@ -724,16 +723,6 @@ body.dark .help-notes-input{
     font-size:13px;
     font-weight:600;
     cursor:pointer;
-}
-
-.help-notes-copy-btn{
-    background:#F1F7FB;
-    color:#33404A;
-}
-
-body.dark .help-notes-copy-btn{
-    background:#182238;
-    color:#EAF0FB;
 }
 
 .help-notes-send-btn{
@@ -753,7 +742,7 @@ body.dark .help-notes-send-btn{
 
 .help-report-item{
     position:relative;
-    padding:12px 34px 12px 14px;
+    padding:12px 60px 12px 14px;
     border-radius:12px;
     background:#F1F7FB;
 }
@@ -784,20 +773,50 @@ body.dark .help-report-text{
     color:#EAF0FB;
 }
 
-.help-report-remove{
+.help-report-icons{
     position:absolute;
-    top:10px;
-    right:10px;
+    top:8px;
+    right:8px;
+    display:flex;
+    gap:4px;
+}
+
+.help-report-icon{
+    width:26px;
+    height:26px;
+    border-radius:8px;
     border:none;
     background:none;
     color:#9AAAB4;
-    font-size:14px;
+    font-size:13px;
     cursor:pointer;
-    padding:2px 6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
-body.dark .help-report-remove{
+.help-report-icon:hover{
+    background:#FFFFFF;
+}
+
+.help-report-icon-copy:hover{
+    color:#D2503B;
+}
+
+.help-report-icon-delete:hover{
+    color:#A8323A;
+}
+
+body.dark .help-report-icon{
     color:#7C8BAE;
+}
+
+body.dark .help-report-icon:hover{
+    background:#121A2E;
+}
+
+body.dark .help-report-icon-copy:hover{
+    color:#3D7CFF;
 }
 
 .profile-stats{

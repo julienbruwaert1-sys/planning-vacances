@@ -2990,23 +2990,14 @@ helpNotesInput.addEventListener("input",()=>{
     pushToSync();
 });
 
-const helpNotesCopyBtn = document.getElementById("helpNotesCopyBtn");
-
-helpNotesCopyBtn.addEventListener("click",async()=>{
-
-    if(!helpNotesInput.value.trim()){
-        showToast("Rien à copier pour l'instant.",{type:"error"});
-        return;
-    }
-
+async function copyTextToClipboard(text){
     try{
-        await navigator.clipboard.writeText(helpNotesInput.value);
+        await navigator.clipboard.writeText(text);
         showToast("Texte copié dans le presse-papier.",{type:"success"});
     }catch(err){
-        helpNotesInput.select();
-        showToast("Impossible de copier automatiquement : le texte est sélectionné, copie-le manuellement (Ctrl+C).",{type:"error",duration:6000});
+        showToast("Impossible de copier automatiquement.",{type:"error"});
     }
-});
+}
 
 /* --- Aide et support : historique des rapports envoyés --- */
 
@@ -3046,19 +3037,35 @@ function renderHelpReportsHistory(){
         textEl.className = "help-report-text";
         textEl.textContent = report.text;
 
+        const iconsWrap = document.createElement("div");
+        iconsWrap.className = "help-report-icons";
+
+        const copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "help-report-icon help-report-icon-copy";
+        copyBtn.textContent = "📋";
+        copyBtn.title = "Copier ce rapport";
+        copyBtn.addEventListener("click",()=>{
+            copyTextToClipboard(report.text);
+        });
+
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
-        removeBtn.className = "help-report-remove";
+        removeBtn.className = "help-report-icon help-report-icon-delete";
         removeBtn.textContent = "✕";
+        removeBtn.title = "Supprimer ce rapport";
         removeBtn.addEventListener("click",()=>{
             helpReportsHistory.splice(index,1);
             saveHelpReportsHistory();
             renderHelpReportsHistory();
         });
 
+        iconsWrap.appendChild(copyBtn);
+        iconsWrap.appendChild(removeBtn);
+
+        item.appendChild(iconsWrap);
         item.appendChild(dateEl);
         item.appendChild(textEl);
-        item.appendChild(removeBtn);
         container.appendChild(item);
     }
 }
