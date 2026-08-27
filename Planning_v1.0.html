@@ -201,73 +201,6 @@
 </div>
 </div>
 
-<div id="budgetTabContent">
-<div class="mobile-tab-header"><button class="back-btn mobile-tab-back" type="button" aria-label="Retour au planning">←</button><span class="mobile-tab-header-icon">💱</span><h2>Convertisseur</h2></div>
-<div class="converter-card">
-<div class="converter-country-header" id="converterCountryHeader">
-<div class="converter-country-name" id="converterCountryName"></div>
-<div class="converter-country-sub" id="converterCountrySub"></div>
-</div>
-<div class="converter-body">
-<div class="converter-row">
-<div class="converter-field">
-<span id="baseCurrencyDisplay" class="converter-currency-select converter-currency-display"></span>
-<input type="number" id="baseInput" placeholder="0" step="0.01">
-</div>
-<span class="converter-eq">⇄</span>
-<div class="converter-field">
-<span id="targetCurrencyDisplay" class="converter-currency-select converter-currency-display"></span>
-<input type="number" id="targetInput" placeholder="0" step="1">
-</div>
-</div>
-<div id="rateInfo" class="rate-info">Chargement du taux…</div>
-</div>
-</div>
-</div>
-
-<button id="checklistToggle" class="form-toggle-btn checklist-toggle-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
-<span>🎒</span><span id="checklistToggleLabel">Checklist de voyage</span>
-</button>
-
-<div id="checklistView" class="fullscreen-view" role="dialog" aria-modal="true" aria-labelledby="checklistViewTitle" hidden>
-<div class="fullscreen-header">
-<button id="checklistBackBtn" class="back-btn" type="button" aria-label="Retour">←</button>
-<h2 id="checklistViewTitle">🎒 Checklist de voyage</h2>
-</div>
-<div class="fullscreen-body">
-
-<div class="checklist-progress-wrap">
-<div class="checklist-progress-label">
-<span id="checklistProgressText">0 / 0 préparés</span>
-<span id="checklistProgressPct">0%</span>
-</div>
-<div class="checklist-progress-bar"><div id="checklistProgressFill" class="checklist-progress-fill"></div></div>
-</div>
-
-<div class="checklist-toolbar">
-<label class="checklist-hide-toggle">
-<input type="checkbox" id="checklistHideChecked">
-Masquer les éléments cochés
-</label>
-</div>
-
-<div class="checklist-template-label">Modèles</div>
-<div id="checklistTemplateChips" class="checklist-template-chips"></div>
-
-<div id="checklistItems" class="checklist-categories"></div>
-
-<div class="checklist-suggest-label">Ajouter rapidement</div>
-<div id="checklistSuggestions" class="checklist-suggest-chips"></div>
-
-<div class="checklist-add-row">
-<input type="text" id="checklistNewItem" placeholder="Ajouter un élément…">
-<button id="checklistAddBtn" class="add" type="button">Ajouter</button>
-</div>
-
-</div>
-</div>
-
-
 <div id="planningTabContent">
 <div class="planning-search-wrap">
 <button id="searchToggleBtn" class="planning-search-bar" type="button" aria-haspopup="true" aria-expanded="false">
@@ -355,6 +288,73 @@ Ajouter
 <div id="activities"></div>
 </div>
 </div>
+
+<div id="budgetTabContent">
+<div class="mobile-tab-header"><button class="back-btn mobile-tab-back" type="button" aria-label="Retour au planning">←</button><span class="mobile-tab-header-icon">💱</span><h2>Convertisseur</h2></div>
+<div class="converter-card">
+<div class="converter-country-header" id="converterCountryHeader">
+<div class="converter-country-name" id="converterCountryName"></div>
+<div class="converter-country-sub" id="converterCountrySub"></div>
+</div>
+<div class="converter-body">
+<div class="converter-row">
+<div class="converter-field">
+<span id="baseCurrencyDisplay" class="converter-currency-select converter-currency-display"></span>
+<input type="number" id="baseInput" placeholder="0" step="0.01">
+</div>
+<span class="converter-eq">⇄</span>
+<div class="converter-field">
+<span id="targetCurrencyDisplay" class="converter-currency-select converter-currency-display"></span>
+<input type="number" id="targetInput" placeholder="0" step="1">
+</div>
+</div>
+<div id="rateInfo" class="rate-info">Chargement du taux…</div>
+</div>
+</div>
+</div>
+
+<button id="checklistToggle" class="form-toggle-btn checklist-toggle-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
+<span>🎒</span><span id="checklistToggleLabel">Checklist de voyage</span>
+</button>
+
+<div id="checklistView" class="fullscreen-view" role="dialog" aria-modal="true" aria-labelledby="checklistViewTitle" hidden>
+<div class="fullscreen-header">
+<button id="checklistBackBtn" class="back-btn" type="button" aria-label="Retour">←</button>
+<h2 id="checklistViewTitle">🎒 Checklist de voyage</h2>
+</div>
+<div class="fullscreen-body">
+
+<div class="checklist-progress-wrap">
+<div class="checklist-progress-label">
+<span id="checklistProgressText">0 / 0 préparés</span>
+<span id="checklistProgressPct">0%</span>
+</div>
+<div class="checklist-progress-bar"><div id="checklistProgressFill" class="checklist-progress-fill"></div></div>
+</div>
+
+<div class="checklist-toolbar">
+<label class="checklist-hide-toggle">
+<input type="checkbox" id="checklistHideChecked">
+Masquer les éléments cochés
+</label>
+</div>
+
+<div class="checklist-template-label">Modèles</div>
+<div id="checklistTemplateChips" class="checklist-template-chips"></div>
+
+<div id="checklistItems" class="checklist-categories"></div>
+
+<div class="checklist-suggest-label">Ajouter rapidement</div>
+<div id="checklistSuggestions" class="checklist-suggest-chips"></div>
+
+<div class="checklist-add-row">
+<input type="text" id="checklistNewItem" placeholder="Ajouter un élément…">
+<button id="checklistAddBtn" class="add" type="button">Ajouter</button>
+</div>
+
+</div>
+</div>
+
 
 <div id="profileTabContent" hidden>
 
