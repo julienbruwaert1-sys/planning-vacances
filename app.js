@@ -1677,13 +1677,13 @@ async function fetchICSFromURL(url){
    localStorage/service worker, la synchro Firebase existante réconcilie
    les données si le même code de synchro est actif des deux côtés). */
 
-const LIVE_SERVER_URL = "http://192.168.1.254:5500/Planning_v1.0.html";
+const LIVE_SERVER_URL = "http://192.168.1.118:5500/Planning_v1.0.html";
 const GITHUB_PAGES_URL = "https://julienbruwaert1-sys.github.io/planning-vacances/";
 
 const switchServerBtn = document.getElementById("switchServerBtn");
 const switchServerLabel = document.getElementById("switchServerLabel");
 
-const isOnLiveServer = location.hostname === "192.168.1.254";
+const isOnLiveServer = location.hostname === "192.168.1.118";
 
 switchServerLabel.textContent = isOnLiveServer
     ? "Passer à la version en ligne"
