@@ -1685,6 +1685,9 @@ switchServerBtn.addEventListener("click",()=>{
     location.href = isOnLiveServer ? GITHUB_PAGES_URL : LIVE_SERVER_URL;
 });
 
+document.getElementById("serverOriginBadge").textContent =
+    isOnLiveServer ? "📡 Live Server (WiFi maison)" : "🌐 Version en ligne";
+
 let sheetJsLoadingPromise = null;
 
 function loadSheetJS(){
