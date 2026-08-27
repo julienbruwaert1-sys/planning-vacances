@@ -3557,9 +3557,11 @@ async function reverseGeocodeCity(lat,lon){
     return city;
 }
 
+let geolocationForWeatherFailed = false;
+
 function requestUserLocationForWeather(){
 
-    if(!navigator.geolocation || geolocationRequestPending) return;
+    if(!navigator.geolocation || geolocationRequestPending || geolocationForWeatherFailed) return;
     geolocationRequestPending = true;
 
     navigator.geolocation.getCurrentPosition(
@@ -3581,8 +3583,14 @@ function requestUserLocationForWeather(){
             lastKnownPosition = { lat, lon, city, timestamp: Date.now() };
             renderDayWeather();
         },
-        ()=>{
+        err=>{
             geolocationRequestPending = false;
+            geolocationForWeatherFailed = true;
+            console.error("Géolocalisation pour la météo impossible :",err);
+            showToast(
+                "Position indisponible pour la météo (permission refusée ou désactivée) — utilisation du pays du voyage.",
+                {type:"error",duration:6000}
+            );
         },
         { timeout:8000 }
     );
