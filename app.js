@@ -1446,6 +1446,224 @@ function importRows(rows){
     );
 }
 
+/* --- Import de calendrier .ics (Airbnb, etc.) ---
+   Parseur minimal : gère le dépliage de lignes (RFC 5545), les valeurs
+   DTSTART/DTEND en date seule (VALUE=DATE) ou date-heure, et échappe le
+   texte SUMMARY/LOCATION/DESCRIPTION. Ne gère pas les évènements récurrents
+   (RRULE) — un seul VEVENT par réservation dans les exports habituels. */
+
+function unescapeICSText(value){
+    return value
+        .replace(/\\n/gi,"\n")
+        .replace(/\\,/g,",")
+        .replace(/\\;/g,";")
+        .replace(/\\\\/g,"\\");
+}
+
+function parseICSDate(value){
+
+    const match = value.match(/^(\d{4})(\d{2})(\d{2})(T(\d{2})(\d{2})(\d{2})Z?)?$/);
+    if(!match) return null;
+
+    const [,y,mo,d,,h,mi] = match;
+
+    return {
+        year: parseInt(y,10),
+        month: parseInt(mo,10),
+        day: parseInt(d,10),
+        hour: h!==undefined ? parseInt(h,10) : null,
+        minute: mi!==undefined ? parseInt(mi,10) : null
+    };
+}
+
+function parseICS(text){
+
+    const lines = text.split(/\r\n|\n|\r/);
+
+    const unfolded = [];
+    lines.forEach(line=>{
+        if((line.startsWith(" ") || line.startsWith("\t")) && unfolded.length){
+            unfolded[unfolded.length-1] += line.slice(1);
+        }else{
+            unfolded.push(line);
+        }
+    });
+
+    const events = [];
+    let current = null;
+
+    unfolded.forEach(line=>{
+
+        if(line==="BEGIN:VEVENT"){
+            current = {};
+            return;
+        }
+
+        if(line==="END:VEVENT"){
+            if(current && current.start) events.push(current);
+            current = null;
+            return;
+        }
+
+        if(!current) return;
+
+        const colonIdx = line.indexOf(":");
+        if(colonIdx<0) return;
+
+        const key = line.slice(0,colonIdx).split(";")[0];
+        const value = line.slice(colonIdx+1).trim();
+
+        if(key==="DTSTART") current.start = value;
+        else if(key==="DTEND") current.end = value;
+        else if(key==="SUMMARY") current.summary = unescapeICSText(value);
+        else if(key==="LOCATION") current.location = unescapeICSText(value);
+    });
+
+    return events;
+}
+
+function icsDateToDayNumber(dateInfo){
+    const eventDate = new Date(dateInfo.year,dateInfo.month-1,dateInfo.day);
+    const base = new Date(startDate+"T00:00:00");
+    return Math.round((eventDate-base)/86400000) + 1;
+}
+
+function importICSEvents(text){
+
+    if(!startDate){
+        showToast(
+            "Ajoute une date de départ (Profil → Dates & devise) avant d'importer un calendrier .ics.",
+            {type:"error",duration:6000}
+        );
+        return;
+    }
+
+    const events = parseICS(text);
+
+    if(!events.length){
+        showToast("Aucune réservation trouvée dans ce calendrier.",{type:"error"});
+        return;
+    }
+
+    let imported = 0;
+    let skipped = 0;
+    let maxDay = dayCount;
+
+    events.forEach(event=>{
+
+        const startInfo = parseICSDate(event.start);
+        if(!startInfo){ skipped++; return; }
+
+        const dayNumber = icsDateToDayNumber(startInfo);
+        if(dayNumber<1){ skipped++; return; }
+
+        if(!planning[dayNumber]){
+            planning[dayNumber] = { matin:[], midi:[], apresMidi:[], soir:[], title:"" };
+        }
+
+        if(dayNumber > maxDay) maxDay = dayNumber;
+
+        const time = startInfo.hour!==null
+            ? `${String(startInfo.hour).padStart(2,"0")}:${String(startInfo.minute).padStart(2,"0")}`
+            : null;
+
+        let note = null;
+        const endInfo = event.end ? parseICSDate(event.end) : null;
+        if(endInfo){
+            note = `Jusqu'au ${String(endInfo.day).padStart(2,"0")}/${String(endInfo.month).padStart(2,"0")}/${endInfo.year}`;
+        }
+
+        planning[dayNumber].matin.push({
+            name: event.summary || "Réservation importée",
+            type: "Logement",
+            address: event.location || "",
+            price: null,
+            travelTime: null,
+            time,
+            duration: null,
+            note,
+            reservationLink: null
+        });
+
+        imported++;
+    });
+
+    if(imported>0){
+
+        if(maxDay > dayCount){
+            dayCount = maxDay;
+            document.getElementById("dayCount").value = dayCount;
+            localStorage.setItem("dayCount",dayCount);
+        }
+
+        savePlanning();
+        createTabs();
+        renderActivities();
+    }
+
+    showToast(
+        `${imported} réservation(s) importée(s).`
+        + (skipped>0 ? ` ${skipped} ignorée(s) (date illisible).` : ""),
+        {type: skipped>0 ? undefined : "success", duration:6000}
+    );
+}
+
+const importIcsBtn = document.getElementById("importIcsBtn");
+const importIcsFile = document.getElementById("importIcsFile");
+
+importIcsBtn.addEventListener("click",()=>{
+
+    const url = prompt(
+        "Colle le lien de ton calendrier .ics (Airbnb, etc.), ou laisse vide pour choisir un fichier à la place :"
+    );
+
+    if(url===null) return;
+
+    if(url.trim()){
+        fetchICSFromURL(url.trim());
+    }else{
+        importIcsFile.click();
+    }
+});
+
+importIcsFile.addEventListener("change",()=>{
+
+    const file = importIcsFile.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = evt=>{
+        importICSEvents(evt.target.result);
+        importIcsFile.value = "";
+    };
+
+    reader.readAsText(file);
+});
+
+async function fetchICSFromURL(url){
+
+    try{
+
+        const response = await fetchWithTimeout(url,10000);
+
+        if(!response.ok){
+            throw new Error("Réponse HTTP "+response.status);
+        }
+
+        const text = await response.text();
+        importICSEvents(text);
+
+    }catch(err){
+        console.error("Import .ics par lien impossible :",err);
+        showToast(
+            "Impossible de récupérer ce calendrier directement (le service peut bloquer l'accès). "
+            + "Télécharge le fichier .ics puis réessaie en choisissant un fichier.",
+            {type:"error",duration:7000}
+        );
+    }
+}
+
 let sheetJsLoadingPromise = null;
 
 function loadSheetJS(){
