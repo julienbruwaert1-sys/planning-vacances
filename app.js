@@ -1517,6 +1517,8 @@ function parseICS(text){
         else if(key==="DTEND") current.end = value;
         else if(key==="SUMMARY") current.summary = unescapeICSText(value);
         else if(key==="LOCATION") current.location = unescapeICSText(value);
+        else if(key==="URL") current.url = unescapeICSText(value);
+        else if(key==="DESCRIPTION") current.description = unescapeICSText(value);
     });
 
     return events;
@@ -1573,6 +1575,12 @@ function importICSEvents(text){
             note = `Jusqu'au ${String(endInfo.day).padStart(2,"0")}/${String(endInfo.month).padStart(2,"0")}/${endInfo.year}`;
         }
 
+        let reservationLink = event.url || null;
+        if(!reservationLink && event.description){
+            const urlMatch = event.description.match(/https?:\/\/\S+/i);
+            if(urlMatch) reservationLink = urlMatch[0];
+        }
+
         planning[dayNumber].matin.push({
             name: event.summary || "Réservation importée",
             type: "Logement",
@@ -1582,7 +1590,7 @@ function importICSEvents(text){
             time,
             duration: null,
             note,
-            reservationLink: null
+            reservationLink
         });
 
         imported++;
