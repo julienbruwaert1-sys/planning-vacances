@@ -2065,6 +2065,11 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
 
     if(startDateVal && endDateVal){
 
+        if(endDateVal===startDateVal){
+            showToast("La date de retour doit être différente de la date de départ.",{type:"error"});
+            return;
+        }
+
         const diffDays = Math.round(
             (new Date(endDateVal) - new Date(startDateVal)) / 86400000
         ) + 1;
