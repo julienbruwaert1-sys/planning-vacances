@@ -2992,6 +2992,7 @@ body.dark select:focus-visible{
 }
 
 .welcome-theme-switch-track{
+    position:relative;
     display:flex;
     align-items:center;
     width:44px;
@@ -3003,7 +3004,26 @@ body.dark select:focus-visible{
     transition:background .2s ease;
 }
 
+.welcome-theme-switch-icon{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:11px;
+    line-height:1;
+    pointer-events:none;
+}
+
+.welcome-theme-switch-icon.sun{
+    left:4px;
+}
+
+.welcome-theme-switch-icon.moon{
+    right:4px;
+}
+
 .welcome-theme-switch-thumb{
+    position:relative;
+    z-index:1;
     width:20px;
     height:20px;
     border-radius:50%;
