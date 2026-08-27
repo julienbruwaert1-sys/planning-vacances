@@ -1794,6 +1794,13 @@ importFile.addEventListener("change",(e)=>{
 
     if(/\.json$/i.test(file.name)){
         handleImportBackupFile(file);
+    }else if(/\.ics$/i.test(file.name)){
+        const reader = new FileReader();
+        reader.onload = evt=>{
+            importICSEvents(evt.target.result);
+            importFile.value = "";
+        };
+        reader.readAsText(file);
     }else{
         handleImportFile(e);
     }
