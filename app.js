@@ -4576,7 +4576,7 @@ const cacheVersionBadge = document.getElementById("cacheVersionBadge");
 function updateCacheVersionBadge(){
     if(!("caches" in window)) return;
     caches.keys().then(keys=>{
-        const planningKeys = keys.filter(k=>k.startsWith("planning-"));
+        const planningKeys = keys.filter(k=>/^planning-v\d+$/.test(k));
         cacheVersionBadge.textContent = planningKeys.length
             ? `Cache : ${planningKeys[planningKeys.length-1]}`
             : "";
