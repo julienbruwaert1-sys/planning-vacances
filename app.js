@@ -33,6 +33,12 @@ let tripName = localStorage.getItem(TRIP_NAME_KEY) || "";
    l'icône ➕ qui permet de revenir créer un voyage plus tard. */
 const TRIP_CREATED_KEY = "tripCreated";
 
+/* Posée par le bouton "Plus tard" pour que le backfill silencieux ci-dessous
+   (destiné aux utilisateurs déjà actifs avant l'existence de cet écran) ne
+   pose pas TRIP_CREATED_KEY à leur place — sinon le raccourci ➕ disparaît
+   dès le rechargement suivant alors qu'aucun voyage n'a été créé. */
+const WELCOME_LATER_KEY = "welcomeSkipped";
+
 /* Pays de destination du voyage — distinct de appIconChoice (le logo réel
    de l'app) depuis qu'on peut garder le pays choisi tout en refusant
    d'appliquer son icône comme logo. Pilote la devise, le filtre carte et
@@ -58,7 +64,7 @@ if(isFirstLaunch){
         tripCountry = localStorage.getItem("appIconChoice") || "";
         if(tripCountry) localStorage.setItem(TRIP_COUNTRY_KEY,tripCountry);
     }
-    if(!localStorage.getItem(TRIP_CREATED_KEY)){
+    if(!localStorage.getItem(TRIP_CREATED_KEY) && !localStorage.getItem(WELCOME_LATER_KEY)){
         localStorage.setItem(TRIP_CREATED_KEY,"1");
     }
 }
@@ -2098,6 +2104,8 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
 
 document.getElementById("welcomeLaterBtn").addEventListener("click",()=>{
 
+    localStorage.setItem(WELCOME_LATER_KEY,"1");
+
     if(!localStorage.getItem("dayCount")){
         localStorage.setItem("dayCount",String(dayCount));
     }
@@ -2246,6 +2254,7 @@ dayCountInput.addEventListener("change",()=>{
     dayCount = val;
 
     localStorage.setItem("dayCount",dayCount);
+    pushToSync();
 
     ensureDaysExist();
 
@@ -2460,6 +2469,7 @@ startDateInput.addEventListener("change",()=>{
 
     startDate = startDateInput.value;
     localStorage.setItem("startDate",startDate);
+    pushToSync();
 
     updateCountdownBanner();
     updateDatePlacement();
@@ -4262,9 +4272,12 @@ function renderPoiMarkers(places){
             iconAnchor:[8,16]
         });
 
+        const popup = document.createElement("div");
+        popup.textContent = place.name;
+
         L.marker([place.lat,place.lon],{icon})
         .addTo(mapPoiLayer)
-        .bindPopup(place.name);
+        .bindPopup(popup);
     });
 }
 
