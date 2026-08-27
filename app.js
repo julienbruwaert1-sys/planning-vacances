@@ -3500,7 +3500,48 @@ function toISODateLocal(d){
     return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
-function getDayWeatherLocation(day){
+function isSameCalendarDate(a,b){
+    return a.getFullYear()===b.getFullYear()
+        && a.getMonth()===b.getMonth()
+        && a.getDate()===b.getDate();
+}
+
+const USER_LOCATION_TTL_MS = 15*60*1000;
+let lastKnownPosition = null;
+let geolocationRequestPending = false;
+
+function requestUserLocationForWeather(){
+
+    if(!navigator.geolocation || geolocationRequestPending) return;
+    geolocationRequestPending = true;
+
+    navigator.geolocation.getCurrentPosition(
+        pos=>{
+            geolocationRequestPending = false;
+            lastKnownPosition = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                timestamp: Date.now()
+            };
+            renderDayWeather();
+        },
+        ()=>{
+            geolocationRequestPending = false;
+        },
+        { timeout:8000 }
+    );
+}
+
+function getDayWeatherLocation(day,dateObj){
+
+    if(dateObj && isSameCalendarDate(dateObj,new Date())){
+
+        if(lastKnownPosition && (Date.now()-lastKnownPosition.timestamp)<USER_LOCATION_TTL_MS){
+            return { lat:lastKnownPosition.lat, lon:lastKnownPosition.lon, label:"Ma position actuelle" };
+        }
+
+        requestUserLocationForWeather();
+    }
 
     const sections = ["matin","midi","apresMidi","soir"];
     const dayData = planning[day];
@@ -3573,7 +3614,7 @@ async function renderDayWeather(){
         return;
     }
 
-    const loc = getDayWeatherLocation(currentDay);
+    const loc = getDayWeatherLocation(currentDay,dateObj);
 
     if(!loc){
         dayWeatherCard.hidden = true;
