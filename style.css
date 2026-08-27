@@ -1810,6 +1810,30 @@ body.dark .weather-card.weather-offline .weather-condition{
     color:#7C8BAE;
 }
 
+.weather-card.weather-location-unavailable{
+    background:#FBF3E3;
+}
+
+.weather-card.weather-location-unavailable .weather-icon-big{
+    font-size:24px;
+    color:#C98A2C;
+}
+
+.weather-card.weather-location-unavailable .weather-condition{
+    color:#C98A2C;
+    font-weight:600;
+    font-size:12.5px;
+}
+
+body.dark .weather-card.weather-location-unavailable{
+    background:#2B2412;
+}
+
+body.dark .weather-card.weather-location-unavailable .weather-icon-big,
+body.dark .weather-card.weather-location-unavailable .weather-condition{
+    color:#E0AE5C;
+}
+
 .form-toggle-btn{
     display:flex;
     align-items:center;

@@ -3848,44 +3848,10 @@ function requestUserLocationForWeather(){
             geolocationRequestPending = false;
             geolocationForWeatherFailed = true;
             console.error("Géolocalisation pour la météo impossible :",err);
-            showToast(
-                "Position indisponible pour la météo (permission refusée ou désactivée) — utilisation du pays du voyage.",
-                {type:"error",duration:6000}
-            );
             renderDayWeather();
         },
         { timeout:8000 }
     );
-}
-
-function getDayWeatherLocation(day){
-
-    const sections = ["matin","midi","apresMidi","soir"];
-    const dayData = planning[day];
-
-    if(dayData){
-        const geocodeCache = loadGeocodeCache();
-        for(const slot of sections){
-            for(const activity of (dayData[slot] || [])){
-                const address = activity.address && activity.address.trim();
-                if(address && geocodeCache[address]){
-                    return { ...geocodeCache[address], label: address };
-                }
-            }
-        }
-    }
-
-    const bbox = getCountryBbox(tripCountry);
-    if(bbox){
-        const country = COUNTRIES[tripCountry];
-        return {
-            lat:(bbox.south+bbox.north)/2,
-            lon:(bbox.west+bbox.east)/2,
-            label: country ? country.fr : ""
-        };
-    }
-
-    return null;
 }
 
 const dayWeatherCard = document.getElementById("dayWeatherCard");
@@ -3897,7 +3863,7 @@ const weatherPlace = document.getElementById("weatherPlace");
 
 function showWeatherCard(dayData,dateObj,label){
     dayWeatherCard.hidden = false;
-    dayWeatherCard.classList.remove("weather-offline");
+    dayWeatherCard.classList.remove("weather-offline","weather-location-unavailable");
     const info = weatherInfoFor(dayData.code);
     weatherIcon.textContent = info.icon;
     weatherCondition.textContent = info.label;
@@ -3914,6 +3880,7 @@ function showWeatherCard(dayData,dateObj,label){
 
 function showWeatherOffline(){
     dayWeatherCard.hidden = false;
+    dayWeatherCard.classList.remove("weather-location-unavailable");
     dayWeatherCard.classList.add("weather-offline");
     weatherIcon.textContent = "📡";
     weatherCondition.textContent = "Météo indisponible pour le moment";
@@ -3924,9 +3891,20 @@ function showWeatherOffline(){
 
 function showWeatherLoading(){
     dayWeatherCard.hidden = false;
-    dayWeatherCard.classList.remove("weather-offline");
+    dayWeatherCard.classList.remove("weather-offline","weather-location-unavailable");
     weatherIcon.textContent = "📍";
     weatherCondition.textContent = "Localisation…";
+    weatherTemps.textContent = "";
+    weatherDayDate.textContent = "";
+    weatherPlace.textContent = "";
+}
+
+function showWeatherLocationUnavailable(){
+    dayWeatherCard.hidden = false;
+    dayWeatherCard.classList.remove("weather-offline");
+    dayWeatherCard.classList.add("weather-location-unavailable");
+    weatherIcon.textContent = "🧭";
+    weatherCondition.textContent = "Localisation désactivée";
     weatherTemps.textContent = "";
     weatherDayDate.textContent = "";
     weatherPlace.textContent = "";
@@ -3994,31 +3972,21 @@ async function renderDayWeather(){
         return;
     }
 
+    /* Pas de géolocalisation possible : plus de repli sur la météo du pays du
+       voyage — état dédié, visuellement et textuellement différent de l'état
+       hors-ligne. */
+    if(geolocationForWeatherFailed || !navigator.geolocation){
+        showWeatherLocationUnavailable();
+        return;
+    }
+
     /* Position pas encore connue mais pas encore tentée non plus : affiche un
        état de chargement et attend la réponse de la géolocalisation (succès
-       ou échec) avant de basculer sur le pays du voyage, plutôt que de
-       montrer le pays puis de changer d'avis 1-2 secondes plus tard. */
-    if(navigator.geolocation && !geolocationForWeatherFailed && !geolocationRequestPending){
+       ou échec) avant d'afficher quoi que ce soit d'autre. */
+    if(!geolocationRequestPending){
         showWeatherLoading();
         requestUserLocationForWeather();
-        return;
     }
-
-    const dateObj = dateForDay(currentDay);
-
-    if(!dateObj){
-        dayWeatherCard.hidden = true;
-        return;
-    }
-
-    const loc = getDayWeatherLocation(currentDay);
-
-    if(!loc){
-        dayWeatherCard.hidden = true;
-        return;
-    }
-
-    await fetchAndShowWeather(loc.lat,loc.lon,dateObj,loc.label);
 }
 
 mapCountryToggle.addEventListener("click",()=>{
