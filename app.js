@@ -3520,19 +3520,65 @@ const USER_LOCATION_TTL_MS = 15*60*1000;
 let lastKnownPosition = null;
 let geolocationRequestPending = false;
 
+const REVERSE_GEOCODE_CACHE_KEY = "reverseGeocodeCache";
+
+function loadReverseGeocodeCache(){
+    return JSON.parse(localStorage.getItem(REVERSE_GEOCODE_CACHE_KEY) || "{}");
+}
+
+function saveReverseGeocodeCache(cache){
+    localStorage.setItem(REVERSE_GEOCODE_CACHE_KEY,JSON.stringify(cache));
+}
+
+async function reverseGeocodeCity(lat,lon){
+
+    const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    const cache = loadReverseGeocodeCache();
+    if(cache[key]) return cache[key];
+
+    const response = await fetchWithTimeout(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`,
+        8000
+    );
+
+    await wait(1100);
+
+    if(!response.ok) return "";
+
+    const data = await response.json();
+    const addr = data.address || {};
+    const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
+
+    if(city){
+        cache[key] = city;
+        saveReverseGeocodeCache(cache);
+    }
+
+    return city;
+}
+
 function requestUserLocationForWeather(){
 
     if(!navigator.geolocation || geolocationRequestPending) return;
     geolocationRequestPending = true;
 
     navigator.geolocation.getCurrentPosition(
-        pos=>{
+        async pos=>{
+
             geolocationRequestPending = false;
-            lastKnownPosition = {
-                lat: pos.coords.latitude,
-                lon: pos.coords.longitude,
-                timestamp: Date.now()
-            };
+
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            let city = "Ma position actuelle";
+
+            try{
+                const resolved = await reverseGeocodeCity(lat,lon);
+                if(resolved) city = resolved;
+            }catch(err){
+                console.error("Géocodage inverse impossible :",err);
+            }
+
+            lastKnownPosition = { lat, lon, city, timestamp: Date.now() };
             renderDayWeather();
         },
         ()=>{
@@ -3547,7 +3593,7 @@ function getDayWeatherLocation(day,dateObj){
     if(dateObj && isSameCalendarDate(dateObj,new Date())){
 
         if(lastKnownPosition && (Date.now()-lastKnownPosition.timestamp)<USER_LOCATION_TTL_MS){
-            return { lat:lastKnownPosition.lat, lon:lastKnownPosition.lon, label:"Ma position actuelle" };
+            return { lat:lastKnownPosition.lat, lon:lastKnownPosition.lon, label:lastKnownPosition.city };
         }
 
         requestUserLocationForWeather();
