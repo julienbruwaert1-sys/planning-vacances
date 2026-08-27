@@ -2987,6 +2987,7 @@ helpNotesInput.value = localStorage.getItem(HELP_NOTES_KEY) || "";
 
 helpNotesInput.addEventListener("input",()=>{
     localStorage.setItem(HELP_NOTES_KEY,helpNotesInput.value);
+    pushToSync();
 });
 
 const helpNotesCopyBtn = document.getElementById("helpNotesCopyBtn");
@@ -4173,6 +4174,7 @@ function collectSyncData(){
         checklist,
         dayCount,
         startDate,
+        helpNotes: helpNotesInput.value,
         updatedAt: Date.now(),
         deviceId: syncDeviceId
     };
@@ -4242,6 +4244,11 @@ function applySyncData(data){
         startDate = data.startDate;
         startDateInput.value = startDate;
         localStorage.setItem("startDate",startDate);
+    }
+
+    if(data.helpNotes!==undefined){
+        helpNotesInput.value = data.helpNotes;
+        localStorage.setItem(HELP_NOTES_KEY,data.helpNotes);
     }
 
     ensureDaysExist();
