@@ -709,6 +709,24 @@ body.dark .help-notes-input{
     border-color:rgba(234,240,251,.15);
 }
 
+.help-notes-copy-btn{
+    margin-top:8px;
+    padding:8px 14px;
+    border:none;
+    border-radius:10px;
+    background:#F1F7FB;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+body.dark .help-notes-copy-btn{
+    background:#182238;
+    color:#EAF0FB;
+}
+
 .profile-stats{
     display:grid;
     grid-template-columns:repeat(3,1fr);

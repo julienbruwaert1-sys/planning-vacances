@@ -2989,6 +2989,24 @@ helpNotesInput.addEventListener("input",()=>{
     localStorage.setItem(HELP_NOTES_KEY,helpNotesInput.value);
 });
 
+const helpNotesCopyBtn = document.getElementById("helpNotesCopyBtn");
+
+helpNotesCopyBtn.addEventListener("click",async()=>{
+
+    if(!helpNotesInput.value.trim()){
+        showToast("Rien à copier pour l'instant.",{type:"error"});
+        return;
+    }
+
+    try{
+        await navigator.clipboard.writeText(helpNotesInput.value);
+        showToast("Texte copié dans le presse-papier.",{type:"success"});
+    }catch(err){
+        helpNotesInput.select();
+        showToast("Impossible de copier automatiquement : le texte est sélectionné, copie-le manuellement (Ctrl+C).",{type:"error",duration:6000});
+    }
+});
+
 /* --- Profil : statistiques du voyage --- */
 
 const profileStatsEl = document.getElementById("profileStats");
