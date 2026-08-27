@@ -92,9 +92,9 @@
 
 <div class="menu-divider"></div>
 <div class="menu-section-label">Données</div>
-<button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte, ICS ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
+<button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json,.ics" hidden>
-<button id="importIcsBtn" class="menu-item" type="button" role="menuitem" title="Importer un calendrier .ics (Airbnb, etc.)" aria-label="Importer un calendrier ICS"><span class="menu-item-icon">📅</span><span class="menu-item-label">Importer un calendrier (.ics)</span></button>
+<button id="importIcsBtn" class="menu-item" type="button" role="menuitem" title="Importer un calendrier .ics (Airbnb, etc.)" aria-label="Importer un calendrier .ics"><span class="menu-item-icon">📅</span><span class="menu-item-label">Importer un calendrier (.ics)</span></button>
 <input type="file" id="importIcsFile" accept=".ics,text/calendar" hidden>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
 <button id="printBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF / Imprimer" aria-label="Exporter le planning en PDF"><span class="menu-item-icon">🖨️</span><span class="menu-item-label">Exporter en PDF</span></button>
@@ -472,7 +472,7 @@ Masquer les éléments cochés
 <option>Pépite locale</option>
 <option>Pratique</option>
 </select>
-<button type="button" id="mapCountryToggle" class="map-country-toggle" aria-pressed="false">🌍 Pays de vacances uniquement</button>
+<button type="button" id="mapCountryToggle" class="map-country-toggle" aria-pressed="false">🌍 Pays du voyage uniquement</button>
 <button type="button" id="mapPoiToggle" class="map-country-toggle" aria-pressed="false">🔍 Rechercher sur la carte</button>
 <input type="text" id="mapPoiSearchInput" class="map-poi-search-input" placeholder="Pharmacie, supermarché, nom d'un lieu…" hidden>
 <button type="button" id="mapPoiSearchBtn" class="map-poi-search-btn" hidden>🔍 Rechercher ici</button>
@@ -528,10 +528,10 @@ Masquer les éléments cochés
 </div>
 
 <div class="profile-section" data-help-panel="notes">
-<p class="profile-about">Cette application est un projet personnel, sans équipe de support classique. Pour signaler un bug ou proposer une amélioration, note-le ci-dessous, puis clique sur "Envoyé" : il sera ajouté à l'historique, pour que tu puisses le reprendre à ta prochaine session avec l'assistant qui construit cette app.</p>
+<p class="profile-about">Cette application est un projet personnel, sans équipe de support classique. Pour signaler un bug ou proposer une amélioration, note-le ci-dessous, puis clique sur "Envoyer" : il sera ajouté à l'historique, pour que tu puisses le reprendre à ta prochaine session avec l'assistant qui construit cette app.</p>
 <textarea id="helpNotesInput" class="help-notes-input" rows="7" placeholder="Ex. : le bouton X ne fonctionne pas sur mon téléphone, j'aimerais pouvoir…"></textarea>
 <div class="help-notes-actions">
-<button id="helpNotesSendBtn" class="help-notes-send-btn" type="button">✅ Envoyé</button>
+<button id="helpNotesSendBtn" class="help-notes-send-btn" type="button">Envoyer</button>
 </div>
 <p class="menu-hint">Sauvegardé automatiquement, et synchronisé entre tes appareils si la synchro (☁️) est activée.</p>
 </div>

@@ -109,8 +109,7 @@ select:focus-visible{
 }
 
 body.dark .modal-box{
-    background:#2d2d2d;
-    color:white;
+    color:#EAF0FB;
 }
 
 .modal-box p{
@@ -149,11 +148,6 @@ body.dark .modal-box{
 .modal-btn-cancel{
     background:#F1F7FB;
     color:#33404A;
-}
-
-body.dark .modal-btn-cancel{
-    background:#555;
-    color:white;
 }
 
 .modal-btn-confirm{
@@ -402,23 +396,12 @@ body.dark .sync-history-info{
     box-shadow:none;
 }
 
-body.dark .date-wrap input,
-body.dark .jump-today-btn{
-    background:#444;
-    color:white;
-    border-color:#666;
-}
-
 .countdown-banner{
     text-align:center;
     font-weight:bold;
     color:#D2503B;
     margin-bottom:10px;
     font-size:14px;
-}
-
-body.dark .countdown-banner{
-    color:#7fc4ff;
 }
 
 /* Recherche globale */
@@ -1977,7 +1960,7 @@ button.add{
     display:flex;
     align-items:center;
     margin-top:4px;
-    color:#666;
+    color:#9AAAB4;
 }
 
 body.dark .activity small{
@@ -2144,11 +2127,6 @@ h3{
 
 #daySummary:empty{
     display:none;
-}
-
-body.dark #daySummary{
-    background:#2a3b4d;
-    color:#7fc4ff;
 }
 
 .badge-row{
@@ -2386,15 +2364,6 @@ body.dark .menu-hint{
     background:#8F2A31;
 }
 
-body.dark .icon-btn{
-    background:#3a3a3a;
-    color:white;
-}
-
-body.dark .icon-btn-danger{
-    background:#A8323A;
-}
-
 body.dark .options-menu-panel,
 body.dark .search-panel,
 body.dark .date-panel{
@@ -2437,39 +2406,8 @@ body.dark .menu-divider{
 
 /* Dark mode */
 
-body.dark{
-    background:#1e1e1e;
-    color:white;
-}
-
-body.dark h1{
-    color:white;
-}
-
-body.dark .day-content{
-    background:#2d2d2d;
-}
-
 body.dark .day-select-wrap{
     color:#EAF0FB;
-}
-
-body.dark .day-select-wrap select,
-body.dark .day-select-wrap input{
-    background:#444;
-    color:white;
-    border-color:#666;
-}
-
-body.dark .activity{
-    background:#3a3a3a;
-}
-
-body.dark input,
-body.dark select{
-    background:#444;
-    color:white;
-    border-color:#666;
 }
 
 body.dark .dropzone{
@@ -2530,10 +2468,6 @@ body.dark .dropzone{
 
 .converter-body{
     padding:12px 14px;
-}
-
-body.dark .converter-card{
-    background:#121A2E;
 }
 
 .converter-row{
@@ -2675,12 +2609,6 @@ body.dark .rate-info{
 
 .rate-retry-btn:hover{
     background:#FCEEE8;
-}
-
-body.dark .rate-retry-btn{
-    background:#444;
-    color:white;
-    border-color:#666;
 }
 
 .rate-info .rate-live{
@@ -2996,6 +2924,7 @@ body.dark .countdown-banner{
 
 body.dark .modal-btn-confirm{
     background:#a8323a;
+    color:#EAF0FB;
 }
 
 body.dark .modal-btn-cancel{

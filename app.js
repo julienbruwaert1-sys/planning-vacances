@@ -360,7 +360,7 @@ function renderTabs(){
         ? formatDayDate(currentDay)
         : "";
 
-    let heading = `Programme du Jour ${currentDay}`;
+    let heading = `Jour ${currentDay}`;
     if(dateLabel) heading += ` — ${dateLabel}`;
     if(customTitle) heading += ` — ${customTitle}`;
 
@@ -990,7 +990,7 @@ document.getElementById("resetPlanning");
 function resetPlanning(){
 
     showConfirmModal(
-        "Voulez-vous vraiment supprimer tout le planning ? "
+        "Veux-tu vraiment supprimer tout le planning ? "
         + "Cette action est irréversible.",
         ()=>{
 
@@ -1023,7 +1023,7 @@ deleteTripBtn.addEventListener("click",()=>{
 
     showConfirmModal(
         "Supprimer le voyage ? Le nom, les dates, le pays, le planning, la "
-        + "checklist et les infos voyageur seront effacés"
+        + "checklist et les infos voyageur seront supprimés"
         + (syncCode ? " et la synchronisation avec l'autre appareil sera coupée" : "")
         + ". Cette action est irréversible.",
         ()=>{
@@ -1777,7 +1777,7 @@ function handleImportFile(e){
 
         }catch(err){
             showToast(
-                "Impossible de lire ce fichier. Vérifiez qu'il "
+                "Impossible de lire ce fichier. Vérifie qu'il "
                 + "contient bien les colonnes : Jour, Créneau, "
                 + "Nom, Type, Adresse.",
                 {type:"error",duration:6000}
@@ -1787,7 +1787,7 @@ function handleImportFile(e){
         }).catch(()=>{
             showToast(
                 "Impossible de charger le module d'import "
-                + "(vérifiez votre connexion internet).",
+                + "(vérifie ta connexion internet).",
                 {type:"error",duration:6000}
             );
         }).finally(()=>{
@@ -2428,7 +2428,7 @@ function updateCountdownBanner(){
         const tripDay = -diffDays + 1;
         if(tripDay <= dayCount){
             countdownBanner.textContent =
-            `📍 Vous êtes en voyage — Jour ${tripDay}`;
+            `📍 Tu es en voyage — Jour ${tripDay}`;
         }else{
             countdownBanner.textContent =
             "🏠 Voyage terminé, bon retour !";
@@ -3421,7 +3421,7 @@ function renderProfileStats(){
         if(!isNaN(base.getTime())){
             const diffDays = Math.round((base-today)/(1000*60*60*24));
             if(diffDays>0){
-                daysRemainingText = `🧳 J-${diffDays} avant le départ`;
+                daysRemainingText = `🧳 J-${diffDays} avant le départ !`;
             }else if(diffDays===0){
                 daysRemainingText = "✈️ C'est le grand départ aujourd'hui !";
             }else{
@@ -3689,7 +3689,7 @@ function updateMapCountryToggleLabel(){
     const country = COUNTRIES[tripCountry];
     mapCountryToggle.textContent = country
         ? `🌍 ${country.fr} uniquement`
-        : "🌍 Pays de vacances uniquement";
+        : "🌍 Pays du voyage uniquement";
 }
 
 /* Zones approximatives du territoire principal (métropole), sans les
@@ -4053,7 +4053,7 @@ function showUserLocationOnMap(){
 
             L.marker([latitude,longitude],{icon:youIcon,zIndexOffset:1000})
             .addTo(mapUserLocationLayer)
-            .bindPopup("Vous êtes ici");
+            .bindPopup("Tu es ici");
         },
         ()=>{},
         { timeout:8000 }
@@ -5112,7 +5112,7 @@ if("serviceWorker" in navigator){
 
 if(sessionStorage.getItem("justUpdatedApp")){
     sessionStorage.removeItem("justUpdatedApp");
-    showToast("✅ Application mise à jour.",{type:"success",duration:3000});
+    showToast("Application mise à jour.",{type:"success",duration:3000});
 }
 
 /* --- Badge de version du cache (coin bas-droit, vérification rapide) --- */
