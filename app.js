@@ -3832,6 +3832,7 @@ function requestUserLocationForWeather(){
                 "Position indisponible pour la météo (permission refusée ou désactivée) — utilisation du pays du voyage.",
                 {type:"error",duration:6000}
             );
+            renderDayWeather();
         },
         { timeout:8000 }
     );
@@ -3901,6 +3902,16 @@ function showWeatherOffline(){
     weatherPlace.textContent = "";
 }
 
+function showWeatherLoading(){
+    dayWeatherCard.hidden = false;
+    dayWeatherCard.classList.remove("weather-offline");
+    weatherIcon.textContent = "📍";
+    weatherCondition.textContent = "Localisation…";
+    weatherTemps.textContent = "";
+    weatherDayDate.textContent = "";
+    weatherPlace.textContent = "";
+}
+
 async function fetchAndShowWeather(lat,lon,dateObj,label){
 
     const dateStr = toISODateLocal(dateObj);
@@ -3949,8 +3960,7 @@ async function fetchAndShowWeather(lat,lon,dateObj,label){
 
     }catch(err){
         console.error("Météo indisponible :",err);
-        if(cached) showWeatherCard(cached.data,dateObj,label);
-        else showWeatherOffline();
+        showWeatherOffline();
     }
 }
 
@@ -3964,7 +3974,15 @@ async function renderDayWeather(){
         return;
     }
 
-    requestUserLocationForWeather();
+    /* Position pas encore connue mais pas encore tentée non plus : affiche un
+       état de chargement et attend la réponse de la géolocalisation (succès
+       ou échec) avant de basculer sur le pays du voyage, plutôt que de
+       montrer le pays puis de changer d'avis 1-2 secondes plus tard. */
+    if(navigator.geolocation && !geolocationForWeatherFailed && !geolocationRequestPending){
+        showWeatherLoading();
+        requestUserLocationForWeather();
+        return;
+    }
 
     const dateObj = dateForDay(currentDay);
 
