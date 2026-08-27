@@ -2032,13 +2032,8 @@ dateTabButtons.forEach(btn=>{
 
 function updateDatePlacement(){
 
-    const desktop = isDesktopContext();
-
-    if(desktop){
-        dateInlineSlot.appendChild(dateWrap);
-    }else{
-        dateProfileSlot.appendChild(dateWrap);
-    }
+    dateProfileSlot.appendChild(dateTabs);
+    dateProfileSlot.appendChild(dateWrap);
 
     dateMenuItem.hidden = true;
     closeDatePanel();
