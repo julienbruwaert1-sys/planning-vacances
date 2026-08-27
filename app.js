@@ -3510,12 +3510,6 @@ function toISODateLocal(d){
     return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
-function isSameCalendarDate(a,b){
-    return a.getFullYear()===b.getFullYear()
-        && a.getMonth()===b.getMonth()
-        && a.getDate()===b.getDate();
-}
-
 const USER_LOCATION_TTL_MS = 15*60*1000;
 let lastKnownPosition = null;
 let geolocationRequestPending = false;
@@ -3596,16 +3590,7 @@ function requestUserLocationForWeather(){
     );
 }
 
-function getDayWeatherLocation(day,dateObj){
-
-    if(dateObj && isSameCalendarDate(dateObj,new Date())){
-
-        if(lastKnownPosition && (Date.now()-lastKnownPosition.timestamp)<USER_LOCATION_TTL_MS){
-            return { lat:lastKnownPosition.lat, lon:lastKnownPosition.lon, label:lastKnownPosition.city };
-        }
-
-        requestUserLocationForWeather();
-    }
+function getDayWeatherLocation(day){
 
     const sections = ["matin","midi","apresMidi","soir"];
     const dayData = planning[day];
@@ -3669,29 +3654,15 @@ function showWeatherOffline(){
     weatherPlace.textContent = "";
 }
 
-async function renderDayWeather(){
-
-    const dateObj = dateForDay(currentDay);
-
-    if(!dateObj){
-        dayWeatherCard.hidden = true;
-        return;
-    }
-
-    const loc = getDayWeatherLocation(currentDay,dateObj);
-
-    if(!loc){
-        dayWeatherCard.hidden = true;
-        return;
-    }
+async function fetchAndShowWeather(lat,lon,dateObj,label){
 
     const dateStr = toISODateLocal(dateObj);
-    const cacheKey = `${loc.lat.toFixed(2)},${loc.lon.toFixed(2)}_${dateStr}`;
+    const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)}_${dateStr}`;
     const cache = loadWeatherCache();
     const cached = cache[cacheKey];
 
     if(cached && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS){
-        showWeatherCard(cached.data,dateObj,loc.label);
+        showWeatherCard(cached.data,dateObj,label);
         return;
     }
 
@@ -3701,8 +3672,8 @@ async function renderDayWeather(){
     try{
 
         const url =
-            "https://api.open-meteo.com/v1/forecast?latitude="+loc.lat
-            + "&longitude="+loc.lon
+            "https://api.open-meteo.com/v1/forecast?latitude="+lat
+            + "&longitude="+lon
             + "&daily=weathercode,temperature_2m_max,temperature_2m_min"
             + "&timezone=auto&start_date="+dateStr+"&end_date="+dateStr;
 
@@ -3727,13 +3698,42 @@ async function renderDayWeather(){
         cache[cacheKey] = {data:dayWeather,timestamp:Date.now()};
         saveWeatherCache(cache);
 
-        showWeatherCard(dayWeather,dateObj,loc.label);
+        showWeatherCard(dayWeather,dateObj,label);
 
     }catch(err){
         console.error("Météo indisponible :",err);
-        if(cached) showWeatherCard(cached.data,dateObj,loc.label);
+        if(cached) showWeatherCard(cached.data,dateObj,label);
         else showWeatherOffline();
     }
+}
+
+async function renderDayWeather(){
+
+    /* Météo en temps réel à la position actuelle : toujours prioritaire,
+       quel que soit le jour affiché dans le planning (demande explicite de
+       l'utilisateur — pas seulement pour "aujourd'hui"). */
+    if(lastKnownPosition && (Date.now()-lastKnownPosition.timestamp) < USER_LOCATION_TTL_MS){
+        await fetchAndShowWeather(lastKnownPosition.lat,lastKnownPosition.lon,new Date(),lastKnownPosition.city);
+        return;
+    }
+
+    requestUserLocationForWeather();
+
+    const dateObj = dateForDay(currentDay);
+
+    if(!dateObj){
+        dayWeatherCard.hidden = true;
+        return;
+    }
+
+    const loc = getDayWeatherLocation(currentDay);
+
+    if(!loc){
+        dayWeatherCard.hidden = true;
+        return;
+    }
+
+    await fetchAndShowWeather(loc.lat,loc.lon,dateObj,loc.label);
 }
 
 mapCountryToggle.addEventListener("click",()=>{
