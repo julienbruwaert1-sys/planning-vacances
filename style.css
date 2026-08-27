@@ -773,6 +773,17 @@ body.dark .help-report-text{
     color:#EAF0FB;
 }
 
+.help-report-device{
+    font-size:10px;
+    color:#9AAAB4;
+    margin-top:6px;
+    word-break:break-all;
+}
+
+body.dark .help-report-device{
+    color:#7C8BAE;
+}
+
 .help-report-icons{
     position:absolute;
     top:8px;

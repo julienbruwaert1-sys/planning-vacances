@@ -3034,6 +3034,10 @@ function renderHelpReportsHistory(){
         textEl.className = "help-report-text";
         textEl.textContent = report.text;
 
+        const deviceEl = document.createElement("div");
+        deviceEl.className = "help-report-device";
+        deviceEl.textContent = report.device || "";
+
         const iconsWrap = document.createElement("div");
         iconsWrap.className = "help-report-icons";
 
@@ -3043,7 +3047,8 @@ function renderHelpReportsHistory(){
         copyBtn.textContent = "📋";
         copyBtn.title = "Copier ce rapport";
         copyBtn.addEventListener("click",()=>{
-            copyTextToClipboard(report.text);
+            const fullText = report.device ? `${report.text}\n\n${report.device}` : report.text;
+            copyTextToClipboard(fullText);
         });
 
         const removeBtn = document.createElement("button");
@@ -3063,6 +3068,7 @@ function renderHelpReportsHistory(){
         item.appendChild(iconsWrap);
         item.appendChild(dateEl);
         item.appendChild(textEl);
+        item.appendChild(deviceEl);
         container.appendChild(item);
     }
 }
@@ -3078,7 +3084,7 @@ helpNotesSendBtn.addEventListener("click",()=>{
         return;
     }
 
-    helpReportsHistory.push({text,timestamp:Date.now()});
+    helpReportsHistory.push({text,timestamp:Date.now(),device:navigator.userAgent});
     saveHelpReportsHistory();
     renderHelpReportsHistory();
 
