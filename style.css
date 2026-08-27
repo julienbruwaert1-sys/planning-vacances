@@ -2694,8 +2694,6 @@ body.dark .rate-info .rate-cached{
     }
     body:not(.desktop-mode) .activity{flex-direction:column;align-items:stretch;}
     body:not(.desktop-mode) .btn-group{justify-content:flex-end;}
-    body:not(.desktop-mode) .reorder-group{display:flex;}
-    body:not(.desktop-mode) .move-select{display:inline-block;}
     body:not(.desktop-mode) .icon-btn{
         width:36px;
         height:36px;
@@ -2717,8 +2715,6 @@ body.mobile-mode .form .field-suffix input{
 }
 body.mobile-mode .activity{flex-direction:column;align-items:stretch;}
 body.mobile-mode .btn-group{justify-content:flex-end;}
-body.mobile-mode .reorder-group{display:flex;}
-body.mobile-mode .move-select{display:inline-block;}
 body.mobile-mode .icon-btn{
     width:36px;
     height:36px;
