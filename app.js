@@ -3008,6 +3008,98 @@ helpNotesCopyBtn.addEventListener("click",async()=>{
     }
 });
 
+/* --- Aide et support : historique des rapports envoyés --- */
+
+const HELP_REPORTS_KEY = "helpReportsHistory";
+let helpReportsHistory = JSON.parse(localStorage.getItem(HELP_REPORTS_KEY) || "[]");
+
+function saveHelpReportsHistory(){
+    localStorage.setItem(HELP_REPORTS_KEY,JSON.stringify(helpReportsHistory));
+    pushToSync();
+}
+
+function renderHelpReportsHistory(){
+
+    const container = document.getElementById("helpReportsHistory");
+    container.innerHTML = "";
+
+    if(!helpReportsHistory.length){
+        const empty = document.createElement("p");
+        empty.className = "profile-hint";
+        empty.textContent = "Aucun rapport envoyé pour l'instant.";
+        container.appendChild(empty);
+        return;
+    }
+
+    for(let index=helpReportsHistory.length-1; index>=0; index--){
+
+        const report = helpReportsHistory[index];
+
+        const item = document.createElement("div");
+        item.className = "help-report-item";
+
+        const dateEl = document.createElement("div");
+        dateEl.className = "help-report-date";
+        dateEl.textContent = formatTimestamp(report.timestamp);
+
+        const textEl = document.createElement("div");
+        textEl.className = "help-report-text";
+        textEl.textContent = report.text;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "help-report-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.addEventListener("click",()=>{
+            helpReportsHistory.splice(index,1);
+            saveHelpReportsHistory();
+            renderHelpReportsHistory();
+        });
+
+        item.appendChild(dateEl);
+        item.appendChild(textEl);
+        item.appendChild(removeBtn);
+        container.appendChild(item);
+    }
+}
+
+const helpNotesSendBtn = document.getElementById("helpNotesSendBtn");
+
+helpNotesSendBtn.addEventListener("click",()=>{
+
+    const text = helpNotesInput.value.trim();
+
+    if(!text){
+        showToast("Rien à envoyer pour l'instant.",{type:"error"});
+        return;
+    }
+
+    helpReportsHistory.push({text,timestamp:Date.now()});
+    saveHelpReportsHistory();
+    renderHelpReportsHistory();
+
+    helpNotesInput.value = "";
+    localStorage.setItem(HELP_NOTES_KEY,"");
+    pushToSync();
+
+    showToast("Rapport envoyé et ajouté à l'historique.",{type:"success"});
+});
+
+document.querySelectorAll("[data-help-tab]").forEach(tabBtn=>{
+    tabBtn.addEventListener("click",()=>{
+
+        document.querySelectorAll("[data-help-tab]").forEach(b=>{
+            b.classList.toggle("active",b===tabBtn);
+        });
+
+        document.querySelectorAll("[data-help-panel]").forEach(panel=>{
+            panel.hidden = panel.dataset.helpPanel!==tabBtn.dataset.helpTab;
+        });
+
+        if(tabBtn.dataset.helpTab==="historique") renderHelpReportsHistory();
+    });
+});
+
 /* --- Profil : statistiques du voyage --- */
 
 const profileStatsEl = document.getElementById("profileStats");
@@ -4175,6 +4267,7 @@ function collectSyncData(){
         dayCount,
         startDate,
         helpNotes: helpNotesInput.value,
+        helpReports: helpReportsHistory,
         updatedAt: Date.now(),
         deviceId: syncDeviceId
     };
@@ -4249,6 +4342,12 @@ function applySyncData(data){
     if(data.helpNotes!==undefined){
         helpNotesInput.value = data.helpNotes;
         localStorage.setItem(HELP_NOTES_KEY,data.helpNotes);
+    }
+
+    if(Array.isArray(data.helpReports)){
+        helpReportsHistory = data.helpReports;
+        localStorage.setItem(HELP_REPORTS_KEY,JSON.stringify(helpReportsHistory));
+        renderHelpReportsHistory();
     }
 
     ensureDaysExist();

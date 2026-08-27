@@ -709,22 +709,95 @@ body.dark .help-notes-input{
     border-color:rgba(234,240,251,.15);
 }
 
-.help-notes-copy-btn{
+.help-notes-actions{
+    display:flex;
+    gap:8px;
     margin-top:8px;
+}
+
+.help-notes-copy-btn,
+.help-notes-send-btn{
     padding:8px 14px;
     border:none;
     border-radius:10px;
-    background:#F1F7FB;
-    color:#33404A;
     font-family:'Inter',Arial,sans-serif;
     font-size:13px;
     font-weight:600;
     cursor:pointer;
 }
 
+.help-notes-copy-btn{
+    background:#F1F7FB;
+    color:#33404A;
+}
+
 body.dark .help-notes-copy-btn{
     background:#182238;
     color:#EAF0FB;
+}
+
+.help-notes-send-btn{
+    background:#D2503B;
+    color:#FFFFFF;
+}
+
+body.dark .help-notes-send-btn{
+    background:#3D7CFF;
+}
+
+.help-reports-history{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.help-report-item{
+    position:relative;
+    padding:12px 34px 12px 14px;
+    border-radius:12px;
+    background:#F1F7FB;
+}
+
+body.dark .help-report-item{
+    background:#182238;
+}
+
+.help-report-date{
+    font-size:11px;
+    font-weight:600;
+    color:#9AAAB4;
+    margin-bottom:4px;
+}
+
+body.dark .help-report-date{
+    color:#7C8BAE;
+}
+
+.help-report-text{
+    font-size:13.5px;
+    color:#33404A;
+    line-height:1.5;
+    white-space:pre-wrap;
+}
+
+body.dark .help-report-text{
+    color:#EAF0FB;
+}
+
+.help-report-remove{
+    position:absolute;
+    top:10px;
+    right:10px;
+    border:none;
+    background:none;
+    color:#9AAAB4;
+    font-size:14px;
+    cursor:pointer;
+    padding:2px 6px;
+}
+
+body.dark .help-report-remove{
+    color:#7C8BAE;
 }
 
 .profile-stats{

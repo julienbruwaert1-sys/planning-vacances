@@ -496,11 +496,26 @@ Ajouter
 <h2>🆘 Aide et support</h2>
 </div>
 <div class="fullscreen-body">
-<div class="profile-section">
-<p class="profile-about">Cette application est un projet personnel, sans équipe de support classique. Pour signaler un bug ou proposer une amélioration, note-le ci-dessous : c'est sauvegardé sur cet appareil, pour que tu puisses le reprendre à ta prochaine session avec l'assistant qui construit cette app.</p>
+
+<div class="date-tabs">
+<div class="date-tabs-group">
+<button class="date-tab active" type="button" data-help-tab="notes">📝 Notes</button>
+<button class="date-tab" type="button" data-help-tab="historique">🕓 Historique</button>
+</div>
+</div>
+
+<div class="profile-section" data-help-panel="notes">
+<p class="profile-about">Cette application est un projet personnel, sans équipe de support classique. Pour signaler un bug ou proposer une amélioration, note-le ci-dessous, puis clique sur "Envoyé" : il sera ajouté à l'historique, pour que tu puisses le reprendre à ta prochaine session avec l'assistant qui construit cette app.</p>
 <textarea id="helpNotesInput" class="help-notes-input" rows="7" placeholder="Ex. : le bouton X ne fonctionne pas sur mon téléphone, j'aimerais pouvoir…"></textarea>
+<div class="help-notes-actions">
 <button id="helpNotesCopyBtn" class="help-notes-copy-btn" type="button">📋 Copier le texte</button>
+<button id="helpNotesSendBtn" class="help-notes-send-btn" type="button">✅ Envoyé</button>
+</div>
 <p class="menu-hint">Sauvegardé automatiquement, et synchronisé entre tes appareils si la synchro (☁️) est activée.</p>
+</div>
+
+<div class="profile-section" data-help-panel="historique" hidden>
+<div id="helpReportsHistory" class="help-reports-history"></div>
 </div>
 </div>
 </div>
