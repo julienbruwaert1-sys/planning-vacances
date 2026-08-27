@@ -2039,6 +2039,37 @@ body.dark .reorder-btn{
     min-height:40px;
 }
 
+.activity-title-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:8px;
+}
+
+.activity-edit-btn{
+    flex:none;
+    border:none;
+    background:transparent;
+    cursor:pointer;
+    font-size:14px;
+    padding:2px 6px;
+    border-radius:6px;
+    color:#9AAAB4;
+    transition:background .15s;
+}
+
+.activity-edit-btn:hover{
+    background:#F1F7FB;
+}
+
+body.dark .activity-edit-btn{
+    color:#7C8BAE;
+}
+
+body.dark .activity-edit-btn:hover{
+    background:#182238;
+}
+
 .map-btn:hover{
     background:rgba(210,80,59,.12);
 }

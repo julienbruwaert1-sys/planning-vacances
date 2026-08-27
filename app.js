@@ -797,6 +797,20 @@ dragged = null;
             + (activity.time ? `${activity.time} – ` : "")
             + activity.name;
 
+            const editBtn = document.createElement("button");
+            editBtn.className = "activity-edit-btn";
+            editBtn.textContent = "🖊️";
+            editBtn.title = "Modifier l'activité";
+            editBtn.setAttribute("aria-label","Modifier l'activité");
+            editBtn.addEventListener("click",()=>{
+                startEditActivity(section.key,index);
+            });
+
+            const titleRow = document.createElement("div");
+            titleRow.className = "activity-title-row";
+            titleRow.appendChild(strong);
+            titleRow.appendChild(editBtn);
+
             const small = document.createElement("small");
             const dot = document.createElement("span");
             dot.style.display = "inline-block";
@@ -811,7 +825,7 @@ dragged = null;
                 document.createTextNode(activity.type)
             );
 
-            infoDiv.appendChild(strong);
+            infoDiv.appendChild(titleRow);
             infoDiv.appendChild(document.createElement("br"));
             infoDiv.appendChild(small);
 
@@ -911,19 +925,10 @@ dragged = null;
                 moveActivity(section.key,index,moveSelect.value);
             });
 
-            const editBtn = document.createElement("button");
-            editBtn.className = "map-btn";
-            editBtn.textContent = "✏️";
-            editBtn.title = "Modifier l'activité";
-            editBtn.addEventListener("click",()=>{
-                startEditActivity(section.key,index);
-            });
-
             const btnGroup = document.createElement("div");
             btnGroup.className = "btn-group";
             btnGroup.appendChild(reorderGroup);
             btnGroup.appendChild(moveSelect);
-            btnGroup.appendChild(editBtn);
 
             if(activity.address && activity.address.trim()){
                 const mapBtn = document.createElement("button");
