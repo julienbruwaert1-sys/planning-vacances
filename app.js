@@ -1664,6 +1664,27 @@ async function fetchICSFromURL(url){
     }
 }
 
+/* --- Bascule Live Server (WiFi maison) ↔ version en ligne ---
+   Simple lien de navigation entre les deux origines (chacune a son propre
+   localStorage/service worker, la synchro Firebase existante réconcilie
+   les données si le même code de synchro est actif des deux côtés). */
+
+const LIVE_SERVER_URL = "http://192.168.1.254:5500/Planning_v1.0.html";
+const GITHUB_PAGES_URL = "https://julienbruwaert1-sys.github.io/planning-vacances/";
+
+const switchServerBtn = document.getElementById("switchServerBtn");
+const switchServerLabel = document.getElementById("switchServerLabel");
+
+const isOnLiveServer = location.hostname === "192.168.1.254";
+
+switchServerLabel.textContent = isOnLiveServer
+    ? "Passer à la version en ligne"
+    : "Passer à Live Server (WiFi maison)";
+
+switchServerBtn.addEventListener("click",()=>{
+    location.href = isOnLiveServer ? GITHUB_PAGES_URL : LIVE_SERVER_URL;
+});
+
 let sheetJsLoadingPromise = null;
 
 function loadSheetJS(){
