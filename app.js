@@ -1326,7 +1326,9 @@ priceCurrencySelect.addEventListener("change",()=>{
     localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
     activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
     activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
+    tricountExpenseAmountSuffix.textContent = `Montant (${priceCurrencySymbol})`;
     renderActivities();
+    renderTricount();
     if(activeMainTab==="profile") renderProfileStats();
 });
 
@@ -2247,6 +2249,8 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
         localStorage.removeItem(CHECKLIST_STORAGE_KEY);
         localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
         localStorage.removeItem(TRAVELER_INFO_KEY);
+        localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
+        localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
         localStorage.removeItem("startDate");
         localStorage.setItem("vacationPlanning",JSON.stringify({}));
     }
@@ -4723,6 +4727,8 @@ function restoreTrip(trip){
     localStorage.setItem("priceCurrencySymbol",trip.priceCurrencySymbol || "£");
     localStorage.setItem("targetCurrency",trip.targetCurrency || "");
     localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(trip.checklist || []));
+    localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(trip.tricountParticipants || []));
+    localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(trip.tricountExpenses || []));
     localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(trip.checklistTemplates || []));
     localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(trip.travelerInfo || {}));
     localStorage.setItem(CURRENT_TRIP_ID_KEY,trip.id);
@@ -5507,6 +5513,363 @@ window.addEventListener("online",()=>{
 
 setInterval(fetchExchangeRate,30*60*1000);
 
+/* --- Tricount (dépenses partagées) --- */
+
+const TRICOUNT_PARTICIPANTS_KEY = "tricountParticipants";
+const TRICOUNT_EXPENSES_KEY = "tricountExpenses";
+const TRICOUNT_EPS = 0.01;
+
+let tricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
+let tricountExpenses = JSON.parse(localStorage.getItem(TRICOUNT_EXPENSES_KEY)) || [];
+
+const tricountParticipantsList = document.getElementById("tricountParticipantsList");
+const tricountParticipantInput = document.getElementById("tricountParticipantInput");
+const tricountAddParticipantBtn = document.getElementById("tricountAddParticipantBtn");
+const tricountHint = document.getElementById("tricountHint");
+const tricountExpenseForm = document.getElementById("tricountExpenseForm");
+const tricountExpenseDesc = document.getElementById("tricountExpenseDesc");
+const tricountExpenseAmount = document.getElementById("tricountExpenseAmount");
+const tricountExpenseAmountSuffix = document.getElementById("tricountExpenseAmountSuffix");
+tricountExpenseAmountSuffix.textContent = `Montant (${priceCurrencySymbol})`;
+const tricountPayerSelect = document.getElementById("tricountPayerSelect");
+const tricountSplitCheckboxes = document.getElementById("tricountSplitCheckboxes");
+const tricountAddExpenseBtn = document.getElementById("tricountAddExpenseBtn");
+const tricountExpensesList = document.getElementById("tricountExpensesList");
+const tricountBalancesList = document.getElementById("tricountBalancesList");
+const tricountSettleList = document.getElementById("tricountSettleList");
+
+function saveTricountParticipants(){
+    localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(tricountParticipants));
+    pushToSync();
+}
+
+function saveTricountExpenses(){
+    localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(tricountExpenses));
+    pushToSync();
+}
+
+function computeTricountBalances(){
+    const paid = {}, owed = {};
+    tricountParticipants.forEach(p=>{ paid[p.id]=0; owed[p.id]=0; });
+    tricountExpenses.forEach(exp=>{
+        if(paid[exp.paidBy]!==undefined) paid[exp.paidBy] += exp.amount;
+        const n = exp.splitBetween.length;
+        if(n===0) return;
+        const share = exp.amount / n;
+        exp.splitBetween.forEach(pid=>{
+            if(owed[pid]!==undefined) owed[pid] += share;
+        });
+    });
+    return tricountParticipants.map(p=>({
+        id: p.id,
+        name: p.name,
+        amount: Math.round((paid[p.id]-owed[p.id])*100)/100
+    }));
+}
+
+function computeTricountSettlePlan(balances){
+
+    const creditors = balances.filter(b=>b.amount>TRICOUNT_EPS)
+        .map(b=>({...b})).sort((a,b)=>b.amount-a.amount);
+    const debtors = balances.filter(b=>b.amount<-TRICOUNT_EPS)
+        .map(b=>({...b,amount:-b.amount})).sort((a,b)=>b.amount-a.amount);
+
+    const transfers = [];
+    let i=0, j=0;
+
+    while(i<creditors.length && j<debtors.length){
+
+        const c = creditors[i], d = debtors[j];
+        const amt = Math.round(Math.min(c.amount,d.amount)*100)/100;
+
+        if(amt>TRICOUNT_EPS){
+            transfers.push({fromId:d.id,fromName:d.name,toId:c.id,toName:c.name,amount:amt});
+        }
+
+        c.amount -= amt;
+        d.amount -= amt;
+
+        if(c.amount<=TRICOUNT_EPS) i++;
+        if(d.amount<=TRICOUNT_EPS) j++;
+    }
+
+    return transfers;
+}
+
+function tricountIsParticipantReferenced(id){
+    return tricountExpenses.some(exp=>exp.paidBy===id || exp.splitBetween.includes(id));
+}
+
+function renderTricountParticipants(){
+
+    tricountParticipantsList.textContent = "";
+
+    tricountParticipants.forEach(p=>{
+
+        const row = document.createElement("div");
+        row.className = "tricount-participant-row";
+
+        const name = document.createElement("span");
+        name.textContent = p.name;
+        row.appendChild(name);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "tricount-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.setAttribute("aria-label",`Supprimer ${p.name}`);
+        removeBtn.addEventListener("click",()=>{
+            deleteTricountParticipant(p.id);
+        });
+        row.appendChild(removeBtn);
+
+        tricountParticipantsList.appendChild(row);
+    });
+
+    const enough = tricountParticipants.length>=2;
+    tricountHint.hidden = enough;
+    tricountExpenseForm.hidden = !enough;
+
+    renderTricountExpenseForm();
+}
+
+function renderTricountExpenseForm(){
+
+    const previousPayer = tricountPayerSelect.value;
+
+    tricountPayerSelect.textContent = "";
+    tricountParticipants.forEach(p=>{
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        tricountPayerSelect.appendChild(opt);
+    });
+
+    if(tricountParticipants.some(p=>p.id===previousPayer)){
+        tricountPayerSelect.value = previousPayer;
+    }else if(tricountParticipants.length){
+        tricountPayerSelect.value = tricountParticipants[0].id;
+    }
+
+    tricountSplitCheckboxes.textContent = "";
+    tricountParticipants.forEach(p=>{
+
+        const label = document.createElement("label");
+        label.className = "tricount-split-check";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = p.id;
+        checkbox.checked = true;
+        label.appendChild(checkbox);
+
+        label.appendChild(document.createTextNode(p.name));
+
+        tricountSplitCheckboxes.appendChild(label);
+    });
+}
+
+function renderTricountExpenses(){
+
+    tricountExpensesList.textContent = "";
+
+    const sorted = [...tricountExpenses].sort((a,b)=>b.timestamp-a.timestamp);
+
+    sorted.forEach(exp=>{
+
+        const row = document.createElement("div");
+        row.className = "tricount-expense-row";
+
+        const payer = tricountParticipants.find(p=>p.id===exp.paidBy);
+        const splitNames = exp.splitBetween
+            .map(id=>{
+                const p = tricountParticipants.find(pp=>pp.id===id);
+                return p ? p.name : null;
+            })
+            .filter(Boolean)
+            .join(", ");
+
+        const info = document.createElement("div");
+        const title = document.createElement("div");
+        title.textContent = `${exp.description} — ${exp.amount.toFixed(2)} ${priceCurrencySymbol}`;
+        info.appendChild(title);
+
+        const meta = document.createElement("small");
+        meta.textContent = `Payé par ${payer ? payer.name : "?"} · Pour ${splitNames || "personne"}`;
+        info.appendChild(meta);
+
+        row.appendChild(info);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "tricount-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.setAttribute("aria-label",`Supprimer la dépense ${exp.description}`);
+        removeBtn.addEventListener("click",()=>{
+            deleteTricountExpense(exp.id);
+        });
+        row.appendChild(removeBtn);
+
+        tricountExpensesList.appendChild(row);
+    });
+}
+
+function renderTricountBalances(){
+
+    tricountBalancesList.textContent = "";
+
+    const balances = computeTricountBalances();
+
+    balances.forEach(b=>{
+
+        const row = document.createElement("div");
+        row.className = "tricount-balance-row" + (b.amount>TRICOUNT_EPS ? " positive" : b.amount<-TRICOUNT_EPS ? " negative" : "");
+
+        const name = document.createElement("span");
+        name.textContent = b.name;
+        row.appendChild(name);
+
+        const amount = document.createElement("span");
+        amount.textContent = `${b.amount>0 ? "+" : ""}${b.amount.toFixed(2)} ${priceCurrencySymbol}`;
+        row.appendChild(amount);
+
+        tricountBalancesList.appendChild(row);
+    });
+}
+
+function renderTricountSettleUp(){
+
+    tricountSettleList.textContent = "";
+
+    const transfers = computeTricountSettlePlan(computeTricountBalances());
+
+    if(!transfers.length){
+        const row = document.createElement("div");
+        row.className = "tricount-settle-row";
+        row.textContent = tricountExpenses.length ? "Tout est équilibré ✅" : "Aucune dépense pour l'instant.";
+        tricountSettleList.appendChild(row);
+        return;
+    }
+
+    transfers.forEach(t=>{
+        const row = document.createElement("div");
+        row.className = "tricount-settle-row";
+        row.textContent = `${t.fromName} doit ${t.amount.toFixed(2)} ${priceCurrencySymbol} à ${t.toName}`;
+        tricountSettleList.appendChild(row);
+    });
+}
+
+function renderTricount(){
+    renderTricountParticipants();
+    renderTricountExpenses();
+    renderTricountBalances();
+    renderTricountSettleUp();
+}
+
+function addTricountParticipant(){
+
+    const name = tricountParticipantInput.value.trim();
+    if(!name) return;
+
+    tricountParticipants.push({id:generateId(),name});
+    saveTricountParticipants();
+    renderTricount();
+
+    tricountParticipantInput.value = "";
+    tricountParticipantInput.focus();
+}
+
+function deleteTricountParticipant(id){
+
+    if(tricountIsParticipantReferenced(id)){
+        const count = tricountExpenses.filter(exp=>exp.paidBy===id || exp.splitBetween.includes(id)).length;
+        showToast(
+            `Ce participant est lié à ${count} dépense(s) — supprime-les d'abord.`,
+            {type:"error"}
+        );
+        return;
+    }
+
+    const participant = tricountParticipants.find(p=>p.id===id);
+
+    showConfirmModal(
+        `Supprimer ${participant ? participant.name : "ce participant"} ?`,
+        ()=>{
+            tricountParticipants = tricountParticipants.filter(p=>p.id!==id);
+            saveTricountParticipants();
+            renderTricount();
+        }
+    );
+}
+
+function addTricountExpense(){
+
+    const description = tricountExpenseDesc.value.trim();
+    const amount = parseFloat(tricountExpenseAmount.value);
+    const payerId = tricountPayerSelect.value;
+    const splitBetween = [...tricountSplitCheckboxes.querySelectorAll("input:checked")].map(c=>c.value);
+
+    if(!description){
+        showToast("Donne une description à la dépense.",{type:"error"});
+        return;
+    }
+
+    if(isNaN(amount) || amount<=0){
+        showToast("Indique un montant valide.",{type:"error"});
+        return;
+    }
+
+    if(!payerId){
+        showToast("Choisis qui a payé.",{type:"error"});
+        return;
+    }
+
+    if(!splitBetween.length){
+        showToast("Sélectionne au moins un participant.",{type:"error"});
+        return;
+    }
+
+    tricountExpenses.push({
+        id: generateId(),
+        description,
+        amount,
+        paidBy: payerId,
+        splitBetween,
+        timestamp: Date.now()
+    });
+
+    saveTricountExpenses();
+    renderTricount();
+
+    tricountExpenseDesc.value = "";
+    tricountExpenseAmount.value = "";
+}
+
+function deleteTricountExpense(id){
+    const expense = tricountExpenses.find(e=>e.id===id);
+    showConfirmModal(
+        `Supprimer la dépense « ${expense ? expense.description : ""} » ?`,
+        ()=>{
+            tricountExpenses = tricountExpenses.filter(e=>e.id!==id);
+            saveTricountExpenses();
+            renderTricount();
+        }
+    );
+}
+
+tricountAddParticipantBtn.addEventListener("click",addTricountParticipant);
+
+tricountParticipantInput.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+        e.preventDefault();
+        addTricountParticipant();
+    }
+});
+
+tricountAddExpenseBtn.addEventListener("click",addTricountExpense);
+
+renderTricount();
+
 /* --- Synchronisation multi-appareils (Firebase Realtime Database) --- */
 
 const firebaseConfig = {
@@ -5593,6 +5956,8 @@ function collectSyncData(){
     return {
         planning,
         checklist,
+        tricountParticipants,
+        tricountExpenses,
         dayCount,
         startDate,
         helpNotes: helpNotesInput.value,
@@ -5676,6 +6041,8 @@ function buildCurrentTripSnapshot(){
         targetCurrency: localStorage.getItem("targetCurrency") || "",
         planning,
         checklist,
+        tricountParticipants,
+        tricountExpenses,
         checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
         travelerInfo: JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
         archivedAt: Date.now()
@@ -5743,6 +6110,16 @@ function applySyncData(data){
         saveChecklist();
     }
 
+    if(Array.isArray(data.tricountParticipants)){
+        tricountParticipants = data.tricountParticipants;
+        localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(tricountParticipants));
+    }
+
+    if(Array.isArray(data.tricountExpenses)){
+        tricountExpenses = data.tricountExpenses;
+        localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(tricountExpenses));
+    }
+
     if(data.dayCount){
         dayCount = data.dayCount;
         dayCountInput.value = dayCount;
@@ -5772,6 +6149,7 @@ function applySyncData(data){
     createTabs();
     renderActivities();
     renderChecklist();
+    renderTricount();
     updateCountdownBanner();
     updateDatePlacement();
 
