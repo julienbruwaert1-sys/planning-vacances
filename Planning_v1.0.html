@@ -54,6 +54,7 @@
 
 <button type="button" id="welcomeCreateBtn" class="add welcome-create-btn">Créer mon voyage</button>
 <button type="button" id="welcomeLaterBtn" class="welcome-later-btn">Plus tard</button>
+<button type="button" id="welcomeCancelBtn" class="welcome-later-btn" hidden>Annuler</button>
 </div>
 </div>
 
@@ -112,6 +113,9 @@
 <button id="switchServerBtn" class="menu-item" type="button" role="menuitem" title="Basculer entre Live Server (WiFi maison) et la version en ligne"><span class="menu-item-icon">🔀</span><span class="menu-item-label" id="switchServerLabel">Passer à Live Server</span></button>
 
 <div class="menu-divider"></div>
+<button id="newTripBtn" class="menu-item" type="button" role="menuitem" title="Créer un nouveau voyage" aria-label="Créer un nouveau voyage"><span class="menu-item-icon">🧳</span><span class="menu-item-label">Nouveau voyage</span></button>
+
+<div class="menu-divider"></div>
 <button id="resetPlanning" class="menu-item menu-item-danger" type="button" role="menuitem" title="Réinitialiser le planning" aria-label="Réinitialiser tout le planning"><span class="menu-item-icon">🗑️</span><span class="menu-item-label">Réinitialiser le planning</span></button>
 <button id="deleteTripBtn" class="menu-item menu-item-danger" type="button" role="menuitem" title="Supprimer le voyage" aria-label="Supprimer le voyage"><span class="menu-item-icon">❌</span><span class="menu-item-label">Supprimer le voyage</span></button>
 
@@ -163,6 +167,7 @@
 <button class="menu-item" type="button" role="menuitem" data-profile-view="reservationsView"><span class="menu-item-icon">🔗</span><span class="menu-item-label">Réservations</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="mapView"><span class="menu-item-icon">🗺️</span><span class="menu-item-label">Carte du voyage</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="albumView"><span class="menu-item-icon">🖼️</span><span class="menu-item-label">Album photos</span></button>
+<button class="menu-item" type="button" role="menuitem" data-profile-view="tripHistoryView"><span class="menu-item-icon">🗂️</span><span class="menu-item-label">Historique des voyages</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="helpSupportView"><span class="menu-item-icon">🆘</span><span class="menu-item-label">Aide et support</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="aboutView"><span class="menu-item-icon">ℹ️</span><span class="menu-item-label">À propos</span></button>
 </div>
@@ -411,6 +416,7 @@ Masquer les éléments cochés
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="checklistView"><span class="profile-row-icon">🎒</span><span class="profile-row-label">Checklist de voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="mapView"><span class="profile-row-icon">🗺️</span><span class="profile-row-label">Carte du voyage</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="tripHistoryView"><span class="profile-row-icon">🗂️</span><span class="profile-row-label">Historique des voyages</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="helpSupportView"><span class="profile-row-icon">🆘</span><span class="profile-row-label">Aide et support</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
 </div>
@@ -511,6 +517,28 @@ Masquer les éléments cochés
 </div>
 <div class="fullscreen-body">
 <div id="albumContent" class="album-content"></div>
+</div>
+</div>
+
+<div id="tripHistoryView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🗂️ Historique des voyages</h2>
+</div>
+<div class="fullscreen-body">
+<div id="tripHistoryList" class="profile-list"></div>
+</div>
+</div>
+
+<div id="tripHistoryDetailView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button id="tripHistoryDetailBack" class="back-btn" type="button" aria-label="Retour à l'historique">←</button>
+<h2 id="tripHistoryDetailTitle">Voyage</h2>
+</div>
+<div class="fullscreen-body">
+<div id="tripHistoryDetailInfo" class="trip-history-detail-info"></div>
+<button id="tripHistoryRestoreBtn" class="add trip-history-restore-btn" type="button">↩️ Restaurer ce voyage</button>
+<div id="tripHistoryDetailContent" class="album-content"></div>
 </div>
 </div>
 

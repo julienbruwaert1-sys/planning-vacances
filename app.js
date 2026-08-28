@@ -69,6 +69,19 @@ if(isFirstLaunch){
     }
 }
 
+/* Identifiant du voyage actif — permet de distinguer les photos (IndexedDB)
+   et l'historique d'un voyage de ceux d'un autre. N'existait pas avant
+   l'historique des voyages : les utilisateurs déjà actifs reçoivent un id
+   généré au premier chargement après cette mise à jour (les photos déjà
+   prises sont rattachées à ce même id lors de la migration, voir
+   migrateLegacyPhotos()). */
+const CURRENT_TRIP_ID_KEY = "currentTripId";
+let currentTripId = localStorage.getItem(CURRENT_TRIP_ID_KEY);
+if(!currentTripId){
+    currentTripId = generateId();
+    localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+}
+
 if(tripName){
     appTitle.textContent = "🌴 "+tripName;
 }
@@ -2141,6 +2154,17 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
         dayCountVal = diffDays;
     }
 
+    if(replacingExistingTrip){
+        archiveCurrentTrip();
+        currentTripId = generateId();
+        localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+        localStorage.removeItem(CHECKLIST_STORAGE_KEY);
+        localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
+        localStorage.removeItem(TRAVELER_INFO_KEY);
+        localStorage.removeItem("startDate");
+        localStorage.setItem("vacationPlanning",JSON.stringify({}));
+    }
+
     localStorage.setItem(TRIP_NAME_KEY,name);
     localStorage.setItem("appIconChoice",welcomeIconChoice);
     localStorage.setItem(TRIP_COUNTRY_KEY,country);
@@ -2393,6 +2417,23 @@ function formatDayDate(dayNumber){
 
     const d = dateForDay(dayNumber);
     if(!d) return "";
+
+    return d.toLocaleDateString("fr-FR",{
+        weekday:"long",
+        day:"numeric",
+        month:"long"
+    });
+}
+
+function formatDateForTripDay(startDateStr,dayNumber){
+
+    if(!startDateStr) return "";
+
+    const base = new Date(startDateStr+"T00:00:00");
+    if(isNaN(base.getTime())) return "";
+
+    const d = new Date(base);
+    d.setDate(d.getDate() + (dayNumber - 1));
 
     return d.toLocaleDateString("fr-FR",{
         weekday:"long",
@@ -4047,7 +4088,7 @@ async function addDayPhoto(day,activityId,blob){
     const db = await openPhotoDB();
     return new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
-        tx.objectStore(PHOTO_STORE_NAME).add({day,activityId:activityId||null,blob,timestamp:Date.now()});
+        tx.objectStore(PHOTO_STORE_NAME).add({day,activityId:activityId||null,tripId:currentTripId,blob,timestamp:Date.now()});
         tx.oncomplete = ()=>resolve();
         tx.onerror = ()=>reject(tx.error);
     });
@@ -4055,12 +4096,18 @@ async function addDayPhoto(day,activityId,blob){
 
 async function getDayPhotos(day){
     const db = await openPhotoDB();
-    return new Promise((resolve,reject)=>{
+    const dayPhotos = await new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
         const req = tx.objectStore(PHOTO_STORE_NAME).index("day").getAll(IDBKeyRange.only(day));
         req.onsuccess = ()=>resolve(req.result);
         req.onerror = ()=>reject(req.error);
     });
+    return dayPhotos.filter(photo=>photo.tripId===currentTripId);
+}
+
+async function getTripPhotos(tripId){
+    const all = await getAllPhotos();
+    return all.filter(photo=>photo.tripId===tripId);
 }
 
 async function getAllPhotos(){
@@ -4081,6 +4128,36 @@ async function deleteDayPhoto(id){
         tx.oncomplete = ()=>resolve();
         tx.onerror = ()=>reject(tx.error);
     });
+}
+
+/* Photos prises avant l'introduction de currentTripId (voyage multiple) :
+   elles n'ont pas de tripId, donc les requêtes filtrées par voyage les
+   ignoreraient silencieusement. Comme elles appartenaient forcément au
+   voyage actif au moment où elles ont été prises, on les rattache une
+   fois pour toutes au tripId courant au premier chargement après la mise
+   à jour. Sans effet (aucune ligne à mettre à jour) pour un compte déjà
+   migré ou qui n'a jamais eu de photo. */
+async function migrateLegacyPhotos(){
+    try{
+        const db = await openPhotoDB();
+        await new Promise((resolve,reject)=>{
+            const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+            const req = tx.objectStore(PHOTO_STORE_NAME).openCursor();
+            req.onsuccess = ()=>{
+                const cursor = req.result;
+                if(!cursor){ resolve(); return; }
+                if(!cursor.value.tripId){
+                    const record = cursor.value;
+                    record.tripId = currentTripId;
+                    cursor.update(record);
+                }
+                cursor.continue();
+            };
+            req.onerror = ()=>reject(req.error);
+        });
+    }catch(err){
+        console.error("Migration des photos existantes impossible :",err);
+    }
 }
 
 const dayPhotoGallery = document.getElementById("dayPhotoGallery");
@@ -4173,8 +4250,8 @@ async function renderDayPhotos(){
 const albumContent = document.getElementById("albumContent");
 let albumObjectUrls = [];
 
-function findActivityById(day,activityId){
-    const dayData = planning[day];
+function findActivityById(day,activityId,planningSource){
+    const dayData = (planningSource || planning)[day];
     if(!dayData) return null;
     const sections = ["matin","midi","apresMidi","soir"];
     for(const slot of sections){
@@ -4185,23 +4262,15 @@ function findActivityById(day,activityId){
     return null;
 }
 
-async function renderAlbumView(){
+/* Regroupe et affiche une liste de photos (jour -> activité) dans un
+   conteneur donné — partagé entre l'Album (voyage actif, planning en
+   mémoire) et le détail d'un voyage archivé (planning figé du moment
+   de l'archivage), pour ne pas dupliquer cette logique deux fois. */
+function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessage,dateLabelFn){
 
-    albumObjectUrls.forEach(url=>URL.revokeObjectURL(url));
-    albumObjectUrls = [];
-    albumContent.textContent = "";
-
-    let photos;
-    try{
-        photos = await getAllPhotos();
-    }catch(err){
-        console.error("Album indisponible :",err);
-        const msg = document.createElement("p");
-        msg.className = "album-empty-text";
-        msg.textContent = "Impossible de charger l'album sur cet appareil.";
-        albumContent.appendChild(msg);
-        return;
-    }
+    objectUrls.forEach(url=>URL.revokeObjectURL(url));
+    objectUrls.length = 0;
+    container.textContent = "";
 
     if(!photos.length){
         const empty = document.createElement("div");
@@ -4219,10 +4288,10 @@ async function renderAlbumView(){
 
         const text = document.createElement("p");
         text.className = "album-empty-text";
-        text.textContent = "Ajoute une photo depuis une activité dans le Planning avec l'icône 📷 — elle apparaîtra ici, rangée par activité.";
+        text.textContent = emptyMessage;
         empty.appendChild(text);
 
-        albumContent.appendChild(empty);
+        container.appendChild(empty);
         return;
     }
 
@@ -4248,8 +4317,9 @@ async function renderAlbumView(){
 
         const dayHeading = document.createElement("div");
         dayHeading.className = "album-day-heading";
-        const customTitle = planning[day] && planning[day].title;
-        const dateLabel = typeof formatDayDate==="function" ? formatDayDate(day) : "";
+        const dayData = planningSource[day];
+        const customTitle = dayData && dayData.title;
+        const dateLabel = dateLabelFn ? dateLabelFn(day) : "";
         let heading = `Jour ${day}`;
         if(dateLabel) heading += ` — ${dateLabel}`;
         else if(customTitle) heading += ` — ${customTitle}`;
@@ -4259,7 +4329,7 @@ async function renderAlbumView(){
         Object.keys(byActivity).forEach(key=>{
 
             const groupPhotos = byActivity[key];
-            const activity = key==="_none" ? null : findActivityById(day,key);
+            const activity = key==="_none" ? null : findActivityById(day,key,planningSource);
 
             const actWrap = document.createElement("div");
             actWrap.className = "album-activity-group";
@@ -4290,7 +4360,7 @@ async function renderAlbumView(){
             visible.forEach((photo,i)=>{
 
                 const url = URL.createObjectURL(photo.blob);
-                albumObjectUrls.push(url);
+                objectUrls.push(url);
 
                 const thumb = document.createElement("button");
                 thumb.type = "button";
@@ -4317,8 +4387,195 @@ async function renderAlbumView(){
             dayGroup.appendChild(actWrap);
         });
 
-        albumContent.appendChild(dayGroup);
+        container.appendChild(dayGroup);
     });
+}
+
+async function renderAlbumView(){
+
+    let photos;
+    try{
+        photos = await getTripPhotos(currentTripId);
+    }catch(err){
+        console.error("Album indisponible :",err);
+        albumObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+        albumObjectUrls.length = 0;
+        albumContent.textContent = "";
+        const msg = document.createElement("p");
+        msg.className = "album-empty-text";
+        msg.textContent = "Impossible de charger l'album sur cet appareil.";
+        albumContent.appendChild(msg);
+        return;
+    }
+
+    renderPhotoGroups(
+        albumContent,
+        photos,
+        planning,
+        albumObjectUrls,
+        "Ajoute une photo depuis une activité dans le Planning avec l'icône 📷 — elle apparaîtra ici, rangée par activité.",
+        formatDayDate
+    );
+}
+
+/* --- Historique des voyages --- */
+
+const tripHistoryList = document.getElementById("tripHistoryList");
+const tripHistoryView = document.getElementById("tripHistoryView");
+const tripHistoryDetailView = document.getElementById("tripHistoryDetailView");
+const tripHistoryDetailTitle = document.getElementById("tripHistoryDetailTitle");
+const tripHistoryDetailInfo = document.getElementById("tripHistoryDetailInfo");
+const tripHistoryDetailContent = document.getElementById("tripHistoryDetailContent");
+const tripHistoryRestoreBtn = document.getElementById("tripHistoryRestoreBtn");
+let tripHistoryDetailObjectUrls = [];
+let openTripHistoryEntry = null;
+
+function renderTripHistoryView(){
+
+    tripHistoryList.textContent = "";
+
+    const history = loadTripHistory();
+
+    if(!history.length){
+        const empty = document.createElement("div");
+        empty.className = "album-empty";
+
+        const icon = document.createElement("div");
+        icon.className = "album-empty-icon";
+        icon.textContent = "🗂️";
+        empty.appendChild(icon);
+
+        const title = document.createElement("div");
+        title.className = "album-empty-title";
+        title.textContent = "Aucun voyage archivé pour l'instant";
+        empty.appendChild(title);
+
+        const text = document.createElement("p");
+        text.className = "album-empty-text";
+        text.textContent = "Les anciens voyages apparaîtront ici quand tu en créeras un nouveau depuis Réglages & données → Nouveau voyage.";
+        empty.appendChild(text);
+
+        tripHistoryList.appendChild(empty);
+        return;
+    }
+
+    history.forEach(trip=>{
+
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "profile-row trip-history-card";
+
+        const info = document.createElement("div");
+        info.className = "trip-history-card-info";
+
+        const name = document.createElement("div");
+        name.className = "trip-history-card-name";
+        name.textContent = trip.name || "Voyage sans nom";
+        info.appendChild(name);
+
+        const meta = document.createElement("div");
+        meta.className = "trip-history-card-meta";
+        const countryLabel = COUNTRIES[trip.country] ? COUNTRIES[trip.country].fr : "";
+        const metaParts = [];
+        if(countryLabel) metaParts.push(countryLabel);
+        metaParts.push(`${trip.dayCount || 0} jour(s)`);
+        meta.textContent = metaParts.join(" · ");
+        info.appendChild(meta);
+
+        card.appendChild(info);
+
+        const chevron = document.createElement("span");
+        chevron.className = "profile-row-chevron";
+        chevron.textContent = "›";
+        card.appendChild(chevron);
+
+        card.addEventListener("click",()=>openTripHistoryDetail(trip));
+
+        tripHistoryList.appendChild(card);
+    });
+}
+
+async function openTripHistoryDetail(trip){
+
+    openTripHistoryEntry = trip;
+
+    tripHistoryDetailTitle.textContent = `🧳 ${trip.name || "Voyage sans nom"}`;
+
+    tripHistoryDetailInfo.textContent = "";
+    const countryLabel = COUNTRIES[trip.country] ? COUNTRIES[trip.country].fr : "";
+    [
+        countryLabel,
+        trip.startDate ? `Départ le ${new Date(trip.startDate+"T00:00:00").toLocaleDateString("fr-FR")}` : "",
+        `${trip.dayCount || 0} jour(s)`,
+        `Archivé le ${new Date(trip.archivedAt).toLocaleDateString("fr-FR")}`
+    ].filter(Boolean).forEach(line=>{
+        const p = document.createElement("p");
+        p.className = "trip-history-detail-line";
+        p.textContent = line;
+        tripHistoryDetailInfo.appendChild(p);
+    });
+
+    tripHistoryView.hidden = true;
+    tripHistoryDetailView.hidden = false;
+
+    const tripPlanning = trip.planning || {};
+
+    let photos;
+    try{
+        photos = await getTripPhotos(trip.id);
+    }catch(err){
+        console.error("Photos du voyage indisponibles :",err);
+        photos = [];
+    }
+
+    renderPhotoGroups(
+        tripHistoryDetailContent,
+        photos,
+        tripPlanning,
+        tripHistoryDetailObjectUrls,
+        "Ce voyage n'a aucune photo enregistrée.",
+        day=>formatDateForTripDay(trip.startDate,day)
+    );
+}
+
+document.getElementById("tripHistoryDetailBack").addEventListener("click",()=>{
+    tripHistoryDetailView.hidden = true;
+    tripHistoryView.hidden = false;
+});
+
+tripHistoryRestoreBtn.addEventListener("click",()=>{
+
+    if(!openTripHistoryEntry) return;
+    const trip = openTripHistoryEntry;
+
+    showConfirmModal(
+        `Restaurer « ${trip.name || "ce voyage"} » ? Le voyage actuellement actif sera archivé à sa place.`,
+        ()=>restoreTrip(trip)
+    );
+});
+
+function restoreTrip(trip){
+
+    archiveCurrentTrip();
+
+    const history = loadTripHistory().filter(t=>t.id!==trip.id);
+    saveTripHistory(history);
+
+    localStorage.setItem("vacationPlanning",JSON.stringify(trip.planning || {}));
+    localStorage.setItem("startDate",trip.startDate || "");
+    localStorage.setItem("dayCount",String(trip.dayCount || 7));
+    localStorage.setItem(TRIP_NAME_KEY,trip.name || "");
+    localStorage.setItem(TRIP_COUNTRY_KEY,trip.country || "");
+    localStorage.setItem("baseCurrency",trip.baseCurrency || "GBP");
+    localStorage.setItem("priceCurrencySymbol",trip.priceCurrencySymbol || "£");
+    localStorage.setItem("targetCurrency",trip.targetCurrency || "");
+    localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(trip.checklist || []));
+    localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(trip.checklistTemplates || []));
+    localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(trip.travelerInfo || {}));
+    localStorage.setItem(CURRENT_TRIP_ID_KEY,trip.id);
+    localStorage.setItem(TRIP_CREATED_KEY,"1");
+
+    location.reload();
 }
 
 function openPhotoLightbox(id,url){
@@ -4740,6 +4997,7 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         if(row.dataset.profileView==="tripStatsView") renderProfileStats();
         if(row.dataset.profileView==="mapView") renderMapView();
         if(row.dataset.profileView==="albumView") renderAlbumView();
+        if(row.dataset.profileView==="tripHistoryView") renderTripHistoryView();
     });
 });
 
@@ -5237,6 +5495,83 @@ function sanitizePlanningSlots(){
     });
 }
 
+/* --- Historique des voyages (100% local, comme les photos) --- */
+
+const TRIP_HISTORY_KEY = "tripHistory";
+
+function loadTripHistory(){
+    try{
+        return JSON.parse(localStorage.getItem(TRIP_HISTORY_KEY)) || [];
+    }catch(err){
+        return [];
+    }
+}
+
+function saveTripHistory(history){
+    localStorage.setItem(TRIP_HISTORY_KEY,JSON.stringify(history));
+}
+
+function buildCurrentTripSnapshot(){
+    return {
+        id: currentTripId,
+        name: tripName,
+        country: tripCountry,
+        startDate: localStorage.getItem("startDate") || "",
+        dayCount,
+        baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
+        priceCurrencySymbol: localStorage.getItem("priceCurrencySymbol") || "£",
+        targetCurrency: localStorage.getItem("targetCurrency") || "",
+        planning,
+        checklist,
+        checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
+        travelerInfo: JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
+        archivedAt: Date.now()
+    };
+}
+
+function archiveCurrentTrip(){
+    const history = loadTripHistory();
+    history.unshift(buildCurrentTripSnapshot());
+    saveTripHistory(history);
+}
+
+let replacingExistingTrip = false;
+
+function startNewTrip(){
+
+    replacingExistingTrip = true;
+
+    closeAllFullscreenViews();
+    optionsMenuPanel.hidden = true;
+    desktopProfilePanel.hidden = true;
+
+    document.getElementById("welcomeTripName").value = "";
+    document.getElementById("welcomeStartDate").value = "";
+    document.getElementById("welcomeEndDate").value = "";
+    welcomeCountrySelect.value = "";
+    welcomeCountrySelect.classList.add("welcome-select-placeholder");
+    welcomeIconChoice = "default";
+
+    document.getElementById("welcomeLaterBtn").hidden = true;
+    document.getElementById("welcomeCancelBtn").hidden = false;
+
+    document.getElementById("welcomeView").hidden = false;
+}
+
+document.getElementById("welcomeCancelBtn").addEventListener("click",()=>{
+    replacingExistingTrip = false;
+    document.getElementById("welcomeView").hidden = true;
+    document.getElementById("welcomeLaterBtn").hidden = false;
+    document.getElementById("welcomeCancelBtn").hidden = true;
+});
+
+document.getElementById("newTripBtn").addEventListener("click",()=>{
+    showConfirmModal(
+        `Créer un nouveau voyage ? « ${tripName || "Ce voyage"} » sera archivé dans l'historique des voyages, tu pourras le consulter (et le restaurer) plus tard.`,
+        startNewTrip
+    );
+});
+
 function applySyncData(data){
 
     if(!data) return;
@@ -5509,4 +5844,9 @@ updateCacheVersionBadge();
    renderDayWeather() échoue silencieusement (promesse rejetée, sans casser le
    reste du script). On la relance ici une fois tout initialisé. */
 renderDayWeather();
+
+/* Rattache les photos prises avant l'historique des voyages au voyage actif
+   (voir migrateLegacyPhotos) puis réaffiche la bande de photos du jour au
+   cas où elle se serait affichée vide avant la fin de la migration. */
+migrateLegacyPhotos().then(renderDayPhotos);
 
