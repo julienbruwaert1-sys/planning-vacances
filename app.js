@@ -250,6 +250,28 @@ const typeColors = {
 
 let activityTypeFilter = "";
 
+function dayHasActivityType(day,type){
+    if(!type) return true;
+    const dayData = planning[day];
+    if(!dayData) return false;
+    const sections = ["matin","midi","apresMidi","soir"];
+    return sections.some(slot=>(dayData[slot] || []).some(a=>a.type===type));
+}
+
+/* Appelé uniquement quand le filtre change (pas à chaque createTabs(), sinon
+   ajouter/modifier une activité pourrait faire sauter l'utilisateur vers un
+   autre jour sans qu'il l'ait demandé) : si le jour affiché n'a plus
+   l'activité filtrée, passe au premier jour qui l'a. */
+function jumpToFirstDayWithType(type){
+    if(dayHasActivityType(currentDay,type)) return;
+    for(let i=1;i<=dayCount;i++){
+        if(dayHasActivityType(i,type)){
+            currentDay = i;
+            return;
+        }
+    }
+}
+
 function renderCategoryTabs(){
 
     const container = document.getElementById("categoryTabs");
@@ -264,6 +286,7 @@ function renderCategoryTabs(){
     allTab.addEventListener("click",()=>{
         activityTypeFilter = "";
         renderCategoryTabs();
+        createTabs();
         renderActivities();
     });
     container.appendChild(allTab);
@@ -278,7 +301,9 @@ function renderCategoryTabs(){
             + `<span class="category-tab-label">${type}</span>`;
         tab.addEventListener("click",()=>{
             activityTypeFilter = activityTypeFilter===type ? "" : type;
+            jumpToFirstDayWithType(activityTypeFilter);
             renderCategoryTabs();
+            createTabs();
             renderActivities();
         });
         container.appendChild(tab);
@@ -342,6 +367,10 @@ function createTabs(){
         if(title) label += ` — ${title}`;
 
         opt.textContent = label;
+
+        if(!dayHasActivityType(i,activityTypeFilter)){
+            opt.disabled = true;
+        }
 
         daySelect.appendChild(opt);
     }
@@ -471,6 +500,7 @@ function addActivity(){
         }
 
         savePlanning();
+        createTabs();
         renderActivities();
         closeFormDrawer();
         geocodeAddressInBackground(address);
@@ -493,6 +523,7 @@ function addActivity(){
     });
 
     savePlanning();
+    createTabs();
     renderActivities();
     closeFormDrawer();
     geocodeAddressInBackground(address);
@@ -566,6 +597,8 @@ function deleteActivity(section,index){
             .splice(index,1);
 
             savePlanning();
+            jumpToFirstDayWithType(activityTypeFilter);
+            createTabs();
             renderActivities();
 
             showToast(
@@ -584,6 +617,7 @@ function deleteActivity(section,index){
                         .splice(index,0,activity);
 
                         savePlanning();
+                        createTabs();
 
                         if(currentDay===dayAtDeletion){
                             renderActivities();
