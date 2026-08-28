@@ -1715,6 +1715,32 @@ body.dark .category-tab.active{
     line-height:1;
 }
 
+.weather-icon-big.weather-spin{
+    width:26px;
+    height:26px;
+    margin:3px;
+    border-radius:50%;
+    border:3px solid #E3E9EF;
+    border-top-color:#D2503B;
+    animation:weatherSpin .8s linear infinite;
+}
+
+body.dark .weather-icon-big.weather-spin{
+    border-color:#33364A;
+    border-top-color:#D2503B;
+}
+
+@keyframes weatherSpin{
+    to{ transform:rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .weather-icon-big.weather-spin{
+        animation:none;
+        border-top-color:#E3E9EF;
+    }
+}
+
 .weather-details{
     flex:1;
 }

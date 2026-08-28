@@ -3883,6 +3883,7 @@ const weatherPlace = document.getElementById("weatherPlace");
 function showWeatherCard(dayData,dateObj,label){
     dayWeatherCard.hidden = false;
     dayWeatherCard.classList.remove("weather-offline","weather-location-unavailable");
+    weatherIcon.classList.remove("weather-spin");
     const info = weatherInfoFor(dayData.code);
     weatherIcon.textContent = info.icon;
     weatherCondition.textContent = info.label;
@@ -3901,6 +3902,7 @@ function showWeatherOffline(){
     dayWeatherCard.hidden = false;
     dayWeatherCard.classList.remove("weather-location-unavailable");
     dayWeatherCard.classList.add("weather-offline");
+    weatherIcon.classList.remove("weather-spin");
     weatherIcon.textContent = "📡";
     weatherCondition.textContent = "Météo indisponible pour le moment";
     weatherTemps.textContent = "";
@@ -3911,7 +3913,8 @@ function showWeatherOffline(){
 function showWeatherLoading(){
     dayWeatherCard.hidden = false;
     dayWeatherCard.classList.remove("weather-offline","weather-location-unavailable");
-    weatherIcon.textContent = "📍";
+    weatherIcon.classList.add("weather-spin");
+    weatherIcon.textContent = "";
     weatherCondition.textContent = "Localisation…";
     weatherTemps.textContent = "";
     weatherDayDate.textContent = "";
@@ -3922,6 +3925,7 @@ function showWeatherLocationUnavailable(){
     dayWeatherCard.hidden = false;
     dayWeatherCard.classList.remove("weather-offline");
     dayWeatherCard.classList.add("weather-location-unavailable");
+    weatherIcon.classList.remove("weather-spin");
     weatherIcon.textContent = "🧭";
     weatherCondition.textContent = "Localisation désactivée";
     weatherTemps.textContent = "";
