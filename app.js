@@ -4262,11 +4262,39 @@ function findActivityById(day,activityId,planningSource){
     return null;
 }
 
+/* Jours repliés dans l'Album / le détail d'un voyage archivé — mémorisé par
+   voyage (un "Jour 1" replié dans un voyage ne doit pas replier le "Jour 1"
+   d'un autre voyage). Tous les jours sont dépliés par défaut : un jour
+   n'apparaît dans cet ensemble qu'après avoir été explicitement replié. */
+const ALBUM_COLLAPSE_KEY = "albumCollapsedDays";
+
+function loadCollapsedDaysMap(){
+    try{
+        return JSON.parse(localStorage.getItem(ALBUM_COLLAPSE_KEY)) || {};
+    }catch(err){
+        return {};
+    }
+}
+
+function isDayCollapsed(tripId,day){
+    const map = loadCollapsedDaysMap();
+    return !!(map[tripId] && map[tripId].includes(day));
+}
+
+function toggleDayCollapsed(tripId,day){
+    const map = loadCollapsedDaysMap();
+    const days = map[tripId] || [];
+    const index = days.indexOf(day);
+    if(index===-1) days.push(day); else days.splice(index,1);
+    map[tripId] = days;
+    localStorage.setItem(ALBUM_COLLAPSE_KEY,JSON.stringify(map));
+}
+
 /* Regroupe et affiche une liste de photos (jour -> activité) dans un
    conteneur donné — partagé entre l'Album (voyage actif, planning en
    mémoire) et le détail d'un voyage archivé (planning figé du moment
    de l'archivage), pour ne pas dupliquer cette logique deux fois. */
-function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessage,dateLabelFn){
+function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessage,dateLabelFn,tripIdForCollapse){
 
     objectUrls.forEach(url=>URL.revokeObjectURL(url));
     objectUrls.length = 0;
@@ -4314,6 +4342,7 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
 
         const dayGroup = document.createElement("div");
         dayGroup.className = "album-day-group";
+        if(isDayCollapsed(tripIdForCollapse,day)) dayGroup.classList.add("collapsed");
 
         const dayHeading = document.createElement("div");
         dayHeading.className = "album-day-heading";
@@ -4323,8 +4352,43 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
         let heading = `Jour ${day}`;
         if(dateLabel) heading += ` — ${dateLabel}`;
         else if(customTitle) heading += ` — ${customTitle}`;
-        dayHeading.textContent = heading;
+
+        const headingText = document.createElement("span");
+        headingText.className = "album-day-heading-text";
+        headingText.textContent = heading;
+        const countSpan = document.createElement("span");
+        countSpan.className = "album-day-count";
+        countSpan.textContent = `· ${byDay[day].length} photo${byDay[day].length>1 ? "s" : ""}`;
+        headingText.appendChild(countSpan);
+        dayHeading.appendChild(headingText);
+
+        const toggleBtn = document.createElement("span");
+        toggleBtn.className = "album-day-toggle";
+        const svgNS = "http://www.w3.org/2000/svg";
+        const chevronSvg = document.createElementNS(svgNS,"svg");
+        chevronSvg.setAttribute("width","15");
+        chevronSvg.setAttribute("height","15");
+        chevronSvg.setAttribute("viewBox","0 0 20 20");
+        chevronSvg.setAttribute("fill","none");
+        chevronSvg.setAttribute("stroke","currentColor");
+        chevronSvg.setAttribute("stroke-width","2");
+        chevronSvg.setAttribute("stroke-linecap","round");
+        chevronSvg.setAttribute("stroke-linejoin","round");
+        const chevronPath = document.createElementNS(svgNS,"path");
+        chevronPath.setAttribute("d","M5 8l5 5 5-5");
+        chevronSvg.appendChild(chevronPath);
+        toggleBtn.appendChild(chevronSvg);
+        dayHeading.appendChild(toggleBtn);
+
+        dayHeading.addEventListener("click",()=>{
+            dayGroup.classList.toggle("collapsed");
+            toggleDayCollapsed(tripIdForCollapse,day);
+        });
+
         dayGroup.appendChild(dayHeading);
+
+        const dayBody = document.createElement("div");
+        dayBody.className = "album-day-body";
 
         Object.keys(byActivity).forEach(key=>{
 
@@ -4384,9 +4448,10 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
             });
 
             actWrap.appendChild(row);
-            dayGroup.appendChild(actWrap);
+            dayBody.appendChild(actWrap);
         });
 
+        dayGroup.appendChild(dayBody);
         container.appendChild(dayGroup);
     });
 }
@@ -4414,7 +4479,8 @@ async function renderAlbumView(){
         planning,
         albumObjectUrls,
         "Ajoute une photo depuis une activité dans le Planning avec l'icône 📷 — elle apparaîtra ici, rangée par activité.",
-        formatDayDate
+        formatDayDate,
+        currentTripId
     );
 }
 
@@ -4534,7 +4600,8 @@ async function openTripHistoryDetail(trip){
         tripPlanning,
         tripHistoryDetailObjectUrls,
         "Ce voyage n'a aucune photo enregistrée.",
-        day=>formatDateForTripDay(trip.startDate,day)
+        day=>formatDateForTripDay(trip.startDate,day),
+        trip.id
     );
 }
 

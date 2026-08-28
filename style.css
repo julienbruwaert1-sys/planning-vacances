@@ -2158,14 +2158,72 @@ body.dark .day-photo-thumb{
 }
 
 .album-day-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    cursor:pointer;
+}
+
+.album-day-heading-text{
     font-family:'Playfair Display',Georgia,serif;
     font-size:20px;
     font-weight:600;
     color:#33404A;
 }
 
-body.dark .album-day-heading{
+body.dark .album-day-heading-text{
     color:#EAF0FB;
+}
+
+.album-day-count{
+    font-family:'Inter',Arial,sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:#9AAAB4;
+    margin-left:6px;
+}
+
+body.dark .album-day-count{
+    color:#7C8BAE;
+}
+
+.album-day-toggle{
+    width:30px;
+    height:30px;
+    border:none;
+    border-radius:50%;
+    background:#F1F7FB;
+    color:#9AAAB4;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+    cursor:pointer;
+    padding:0;
+}
+
+body.dark .album-day-toggle{
+    background:#182238;
+    color:#7C8BAE;
+}
+
+.album-day-toggle svg{
+    transition:transform .2s ease;
+}
+
+.album-day-group.collapsed .album-day-toggle svg{
+    transform:rotate(-90deg);
+}
+
+.album-day-body{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.album-day-group.collapsed .album-day-body{
+    display:none;
 }
 
 .album-activity-group{
