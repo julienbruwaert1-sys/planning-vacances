@@ -968,13 +968,6 @@ dragged = null;
                 infoDiv.appendChild(noteP);
             }
 
-            const delBtn = document.createElement("button");
-            delBtn.className = "delete";
-            delBtn.textContent = "Supprimer";
-            delBtn.addEventListener("click",()=>{
-                deleteActivity(section.key,index);
-            });
-
             const upBtn = document.createElement("button");
             upBtn.className = "reorder-btn";
             upBtn.textContent = "▲";
@@ -1024,46 +1017,88 @@ dragged = null;
             btnGroup.appendChild(reorderGroup);
             btnGroup.appendChild(moveSelect);
 
+            const menuWrap = document.createElement("div");
+            menuWrap.className = "activity-menu-wrap";
+
+            const kebabBtn = document.createElement("button");
+            kebabBtn.type = "button";
+            kebabBtn.className = "activity-kebab-btn";
+            kebabBtn.textContent = "⋮";
+            kebabBtn.title = "Plus d'actions";
+            kebabBtn.setAttribute("aria-label","Plus d'actions pour cette activité");
+            kebabBtn.setAttribute("aria-haspopup","true");
+            kebabBtn.setAttribute("aria-expanded","false");
+
+            const popover = document.createElement("div");
+            popover.className = "activity-popover";
+            popover.hidden = true;
+            popover.setAttribute("role","menu");
+
             if(activity.address && activity.address.trim()){
-                const mapBtn = document.createElement("button");
-                mapBtn.className = "map-btn";
-                mapBtn.textContent = "📍";
-                mapBtn.title = "Ouvrir dans Google Maps";
-                mapBtn.addEventListener("click",()=>{
+                const mapItem = document.createElement("button");
+                mapItem.type = "button";
+                mapItem.className = "activity-popover-item";
+                mapItem.textContent = "📍 Ouvrir dans Maps";
+                mapItem.addEventListener("click",()=>{
+                    closeActivityMenus();
                     window.open(
                         "https://www.google.com/maps/search/?api=1&query="
                         + encodeURIComponent(activity.address.trim()),
                         "_blank"
                     );
                 });
-                btnGroup.appendChild(mapBtn);
+                popover.appendChild(mapItem);
             }
 
             if(activity.reservationLink){
-                const reservationBtn = document.createElement("button");
-                reservationBtn.className = "map-btn";
-                reservationBtn.textContent = "🔗";
-                reservationBtn.title = "Ouvrir la réservation";
-                reservationBtn.addEventListener("click",()=>{
+                const reservationItem = document.createElement("button");
+                reservationItem.type = "button";
+                reservationItem.className = "activity-popover-item";
+                reservationItem.textContent = "🔗 Réservation";
+                reservationItem.addEventListener("click",()=>{
+                    closeActivityMenus();
                     if(/^https?:\/\//i.test(activity.reservationLink)){
                         window.open(activity.reservationLink,"_blank","noopener,noreferrer");
                     }else{
                         showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
                     }
                 });
-                btnGroup.appendChild(reservationBtn);
+                popover.appendChild(reservationItem);
             }
 
-            const photoBtn = document.createElement("button");
-            photoBtn.className = "map-btn";
-            photoBtn.textContent = "📷";
-            photoBtn.title = "Ajouter une photo pour cette activité";
-            photoBtn.addEventListener("click",()=>{
+            const photoItem = document.createElement("button");
+            photoItem.type = "button";
+            photoItem.className = "activity-popover-item";
+            photoItem.textContent = "📷 Ajouter une photo";
+            photoItem.addEventListener("click",()=>{
+                closeActivityMenus();
                 openDayCamera(currentDay,activity.id);
             });
-            btnGroup.appendChild(photoBtn);
+            popover.appendChild(photoItem);
 
-            btnGroup.appendChild(delBtn);
+            const deleteItem = document.createElement("button");
+            deleteItem.type = "button";
+            deleteItem.className = "activity-popover-item danger";
+            deleteItem.textContent = "🗑️ Supprimer";
+            deleteItem.addEventListener("click",()=>{
+                closeActivityMenus();
+                deleteActivity(section.key,index);
+            });
+            popover.appendChild(deleteItem);
+
+            kebabBtn.addEventListener("click",(e)=>{
+                e.stopPropagation();
+                const isOpen = !popover.hidden;
+                closeActivityMenus();
+                if(!isOpen){
+                    popover.hidden = false;
+                    kebabBtn.setAttribute("aria-expanded","true");
+                }
+            });
+
+            menuWrap.appendChild(kebabBtn);
+            menuWrap.appendChild(popover);
+            btnGroup.appendChild(menuWrap);
 
             div.appendChild(infoDiv);
             div.appendChild(btnGroup);
@@ -1078,6 +1113,23 @@ dragged = null;
 
     renderTabs();
 }
+
+function closeActivityMenus(){
+    document.querySelectorAll(".activity-popover").forEach(p=>{
+        p.hidden = true;
+    });
+    document.querySelectorAll(".activity-kebab-btn").forEach(b=>{
+        b.setAttribute("aria-expanded","false");
+    });
+}
+
+document.addEventListener("click",(e)=>{
+    if(!e.target.closest(".activity-menu-wrap")) closeActivityMenus();
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape") closeActivityMenus();
+});
 
 const themeToggle =
 document.getElementById("themeToggle");
