@@ -2123,6 +2123,7 @@ body.dark .activity-edit-btn:hover{
 }
 
 .day-photo-thumb{
+    position:relative;
     flex:none;
     width:64px;
     height:64px;
@@ -2142,6 +2143,124 @@ body.dark .activity-edit-btn:hover{
 
 body.dark .day-photo-thumb{
     border-color:#33364A;
+}
+
+.album-content{
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+}
+
+.album-day-group{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.album-day-heading{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:20px;
+    font-weight:600;
+    color:#33404A;
+}
+
+body.dark .album-day-heading{
+    color:#EAF0FB;
+}
+
+.album-activity-group{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.album-activity-header{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.album-activity-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    flex:none;
+}
+
+.album-activity-label{
+    font-size:14px;
+    font-weight:600;
+    color:#33404A;
+}
+
+body.dark .album-activity-label{
+    color:#EAF0FB;
+}
+
+.album-thumb-row{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+}
+
+.album-thumb-more{
+    position:absolute;
+    inset:0;
+    background:rgba(10,16,32,.55);
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.album-empty{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:14px;
+    padding:60px 24px;
+}
+
+.album-empty-icon{
+    width:64px;
+    height:64px;
+    border-radius:50%;
+    background:#F1F7FB;
+    font-size:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+body.dark .album-empty-icon{
+    background:#182238;
+}
+
+.album-empty-title{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:17px;
+    font-weight:600;
+    color:#33404A;
+}
+
+body.dark .album-empty-title{
+    color:#EAF0FB;
+}
+
+.album-empty-text{
+    font-size:13px;
+    color:#9AAAB4;
+    line-height:1.55;
+    max-width:280px;
+    margin:0;
+}
+
+body.dark .album-empty-text{
+    color:#7C8BAE;
 }
 
 .photo-lightbox{

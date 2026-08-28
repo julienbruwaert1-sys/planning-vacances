@@ -162,6 +162,7 @@
 <button class="menu-item" type="button" role="menuitem" data-profile-view="tripStatsView"><span class="menu-item-icon">📊</span><span class="menu-item-label">Statistiques du voyage</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="reservationsView"><span class="menu-item-icon">🔗</span><span class="menu-item-label">Réservations</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="mapView"><span class="menu-item-icon">🗺️</span><span class="menu-item-label">Carte du voyage</span></button>
+<button class="menu-item" type="button" role="menuitem" data-profile-view="albumView"><span class="menu-item-icon">🖼️</span><span class="menu-item-label">Album photos</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="helpSupportView"><span class="menu-item-icon">🆘</span><span class="menu-item-label">Aide et support</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="aboutView"><span class="menu-item-icon">ℹ️</span><span class="menu-item-label">À propos</span></button>
 </div>
@@ -409,6 +410,7 @@ Masquer les éléments cochés
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="checklistView"><span class="profile-row-icon">🎒</span><span class="profile-row-label">Checklist de voyage</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="mapView"><span class="profile-row-icon">🗺️</span><span class="profile-row-label">Carte du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="helpSupportView"><span class="profile-row-icon">🆘</span><span class="profile-row-label">Aide et support</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
 </div>
@@ -502,6 +504,16 @@ Masquer les éléments cochés
 <div id="mapOfflineNotice" class="map-offline-notice" hidden>📡 Carte indisponible hors-ligne — connecte-toi à internet pour la voir.</div>
 </div>
 
+<div id="albumView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🖼️ Album photos</h2>
+</div>
+<div class="fullscreen-body">
+<div id="albumContent" class="album-content"></div>
+</div>
+</div>
+
 <div id="dateSettingsView" class="fullscreen-view profile-sub-view" hidden>
 <div class="fullscreen-header">
 <button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
@@ -582,7 +594,7 @@ Masquer les éléments cochés
 <button class="bottom-nav-tab active" type="button" data-main-tab="planning"><span class="bn-icon">📅</span><span>Planning</span></button>
 <button class="bottom-nav-tab" type="button" data-main-tab="reservations"><span class="bn-icon">🔗</span><span>Réservations</span></button>
 <button class="bottom-nav-tab" type="button" data-main-tab="budget"><span class="bn-icon">💱</span><span>Convertisseur</span></button>
-<button class="bottom-nav-tab" type="button" data-main-tab="map"><span class="bn-icon">🗺️</span><span>Carte</span></button>
+<button class="bottom-nav-tab" type="button" data-main-tab="album"><span class="bn-icon">🖼️</span><span>Album</span></button>
 <button class="bottom-nav-tab" type="button" data-main-tab="profile"><span class="bn-icon">👤</span><span>Profil</span></button>
 </div>
 </div>

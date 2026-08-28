@@ -467,6 +467,7 @@ function addActivity(){
     }
 
     planning[currentDay][slot].push({
+        id: generateId(),
         name,
         type,
         address,
@@ -1009,9 +1010,9 @@ dragged = null;
             const photoBtn = document.createElement("button");
             photoBtn.className = "map-btn";
             photoBtn.textContent = "📷";
-            photoBtn.title = "Ajouter une photo de ce jour";
+            photoBtn.title = "Ajouter une photo pour cette activité";
             photoBtn.addEventListener("click",()=>{
-                openDayCamera(currentDay);
+                openDayCamera(currentDay,activity.id);
             });
             btnGroup.appendChild(photoBtn);
 
@@ -1483,6 +1484,7 @@ function importRows(rows){
             localStorage.setItem("dayCount",dayCount);
         }
 
+        sanitizePlanningSlots();
         savePlanning();
 
         if(firstDay){
@@ -1660,6 +1662,7 @@ function importICSEvents(text){
             localStorage.setItem("dayCount",dayCount);
         }
 
+        sanitizePlanningSlots();
         savePlanning();
         createTabs();
         renderActivities();
@@ -3210,9 +3213,9 @@ bottomNavTabs.forEach(btn=>{
             return;
         }
 
-        if(tab==="map"){
-            document.getElementById("mapView").hidden = false;
-            renderMapView();
+        if(tab==="album"){
+            document.getElementById("albumView").hidden = false;
+            renderAlbumView();
             setActiveMainTab("planning");
             return;
         }
@@ -4040,11 +4043,11 @@ function openPhotoDB(){
     return photoDBPromise;
 }
 
-async function addDayPhoto(day,blob){
+async function addDayPhoto(day,activityId,blob){
     const db = await openPhotoDB();
     return new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
-        tx.objectStore(PHOTO_STORE_NAME).add({day,blob,timestamp:Date.now()});
+        tx.objectStore(PHOTO_STORE_NAME).add({day,activityId:activityId||null,blob,timestamp:Date.now()});
         tx.oncomplete = ()=>resolve();
         tx.onerror = ()=>reject(tx.error);
     });
@@ -4055,6 +4058,16 @@ async function getDayPhotos(day){
     return new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
         const req = tx.objectStore(PHOTO_STORE_NAME).index("day").getAll(IDBKeyRange.only(day));
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+    });
+}
+
+async function getAllPhotos(){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
+        const req = tx.objectStore(PHOTO_STORE_NAME).getAll();
         req.onsuccess = ()=>resolve(req.result);
         req.onerror = ()=>reject(req.error);
     });
@@ -4078,12 +4091,19 @@ const photoLightboxClose = document.getElementById("photoLightboxClose");
 const photoLightboxDelete = document.getElementById("photoLightboxDelete");
 
 let pendingPhotoDay = null;
+let pendingPhotoActivityId = null;
 let dayPhotoObjectUrls = [];
 let openLightboxPhotoId = null;
 
-function openDayCamera(day){
+function openDayCamera(day,activityId){
     pendingPhotoDay = day;
+    pendingPhotoActivityId = activityId || null;
     dayPhotoInput.click();
+}
+
+function refreshOpenPhotoViews(){
+    renderDayPhotos();
+    if(!document.getElementById("albumView").hidden) renderAlbumView();
 }
 
 dayPhotoInput.addEventListener("change",async ()=>{
@@ -4094,8 +4114,8 @@ dayPhotoInput.addEventListener("change",async ()=>{
     if(!file || pendingPhotoDay===null) return;
 
     try{
-        await addDayPhoto(pendingPhotoDay,file);
-        if(pendingPhotoDay===currentDay) renderDayPhotos();
+        await addDayPhoto(pendingPhotoDay,pendingPhotoActivityId,file);
+        refreshOpenPhotoViews();
         showToast("Photo ajoutée.",{type:"success",duration:2500});
     }catch(err){
         console.error("Impossible d'enregistrer la photo :",err);
@@ -4103,6 +4123,7 @@ dayPhotoInput.addEventListener("change",async ()=>{
     }
 
     pendingPhotoDay = null;
+    pendingPhotoActivityId = null;
 });
 
 async function renderDayPhotos(){
@@ -4147,6 +4168,159 @@ async function renderDayPhotos(){
     });
 }
 
+/* --- Album photos (toutes les journées, rangées par activité) --- */
+
+const albumContent = document.getElementById("albumContent");
+let albumObjectUrls = [];
+
+function findActivityById(day,activityId){
+    const dayData = planning[day];
+    if(!dayData) return null;
+    const sections = ["matin","midi","apresMidi","soir"];
+    for(const slot of sections){
+        for(const activity of (dayData[slot] || [])){
+            if(activity.id===activityId) return activity;
+        }
+    }
+    return null;
+}
+
+async function renderAlbumView(){
+
+    albumObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    albumObjectUrls = [];
+    albumContent.textContent = "";
+
+    let photos;
+    try{
+        photos = await getAllPhotos();
+    }catch(err){
+        console.error("Album indisponible :",err);
+        const msg = document.createElement("p");
+        msg.className = "album-empty-text";
+        msg.textContent = "Impossible de charger l'album sur cet appareil.";
+        albumContent.appendChild(msg);
+        return;
+    }
+
+    if(!photos.length){
+        const empty = document.createElement("div");
+        empty.className = "album-empty";
+
+        const icon = document.createElement("div");
+        icon.className = "album-empty-icon";
+        icon.textContent = "🖼️";
+        empty.appendChild(icon);
+
+        const title = document.createElement("div");
+        title.className = "album-empty-title";
+        title.textContent = "Aucune photo pour l'instant";
+        empty.appendChild(title);
+
+        const text = document.createElement("p");
+        text.className = "album-empty-text";
+        text.textContent = "Ajoute une photo depuis une activité dans le Planning avec l'icône 📷 — elle apparaîtra ici, rangée par activité.";
+        empty.appendChild(text);
+
+        albumContent.appendChild(empty);
+        return;
+    }
+
+    const byDay = {};
+    photos.forEach(photo=>{
+        if(!byDay[photo.day]) byDay[photo.day] = [];
+        byDay[photo.day].push(photo);
+    });
+
+    const days = Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+
+    days.forEach(day=>{
+
+        const byActivity = {};
+        byDay[day].forEach(photo=>{
+            const key = photo.activityId || "_none";
+            if(!byActivity[key]) byActivity[key] = [];
+            byActivity[key].push(photo);
+        });
+
+        const dayGroup = document.createElement("div");
+        dayGroup.className = "album-day-group";
+
+        const dayHeading = document.createElement("div");
+        dayHeading.className = "album-day-heading";
+        const customTitle = planning[day] && planning[day].title;
+        const dateLabel = typeof formatDayDate==="function" ? formatDayDate(day) : "";
+        let heading = `Jour ${day}`;
+        if(dateLabel) heading += ` — ${dateLabel}`;
+        else if(customTitle) heading += ` — ${customTitle}`;
+        dayHeading.textContent = heading;
+        dayGroup.appendChild(dayHeading);
+
+        Object.keys(byActivity).forEach(key=>{
+
+            const groupPhotos = byActivity[key];
+            const activity = key==="_none" ? null : findActivityById(day,key);
+
+            const actWrap = document.createElement("div");
+            actWrap.className = "album-activity-group";
+
+            const actHeader = document.createElement("div");
+            actHeader.className = "album-activity-header";
+
+            const dot = document.createElement("span");
+            dot.className = "album-activity-dot";
+            dot.style.background = activity ? (typeColors[activity.type] || "#9AAAB4") : "#9AAAB4";
+            actHeader.appendChild(dot);
+
+            const label = document.createElement("span");
+            label.className = "album-activity-label";
+            label.textContent = activity
+                ? `${icons[activity.type] || ""} ${activity.name}`.trim()
+                : "Sans activité";
+            actHeader.appendChild(label);
+
+            actWrap.appendChild(actHeader);
+
+            const row = document.createElement("div");
+            row.className = "album-thumb-row";
+
+            const visible = groupPhotos.slice(0,4);
+            const extra = groupPhotos.length - visible.length;
+
+            visible.forEach((photo,i)=>{
+
+                const url = URL.createObjectURL(photo.blob);
+                albumObjectUrls.push(url);
+
+                const thumb = document.createElement("button");
+                thumb.type = "button";
+                thumb.className = "day-photo-thumb";
+
+                const img = document.createElement("img");
+                img.src = url;
+                img.alt = "";
+                thumb.appendChild(img);
+
+                if(i===visible.length-1 && extra>0){
+                    const overlay = document.createElement("div");
+                    overlay.className = "album-thumb-more";
+                    overlay.textContent = `+${extra}`;
+                    thumb.appendChild(overlay);
+                }
+
+                thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url));
+
+                row.appendChild(thumb);
+            });
+
+            actWrap.appendChild(row);
+            dayGroup.appendChild(actWrap);
+        });
+
+        albumContent.appendChild(dayGroup);
+    });
+}
+
 function openPhotoLightbox(id,url){
     openLightboxPhotoId = id;
     photoLightboxImage.src = url;
@@ -4179,7 +4353,7 @@ photoLightboxDelete.addEventListener("click",()=>{
             try{
                 await deleteDayPhoto(idToDelete);
                 closePhotoLightbox();
-                renderDayPhotos();
+                refreshOpenPhotoViews();
                 showToast("Photo supprimée.",{type:"success"});
             }catch(err){
                 console.error("Impossible de supprimer la photo :",err);
@@ -4565,6 +4739,7 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         if(row.dataset.profileView==="reservationsView") renderReservations();
         if(row.dataset.profileView==="tripStatsView") renderProfileStats();
         if(row.dataset.profileView==="mapView") renderMapView();
+        if(row.dataset.profileView==="albumView") renderAlbumView();
     });
 });
 
@@ -5041,6 +5216,11 @@ function mergePlanningData(target,source){
     });
 }
 
+function generateId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
 function sanitizePlanningSlots(){
     Object.keys(planning).forEach(day=>{
         const d = planning[day];
@@ -5049,6 +5229,11 @@ function sanitizePlanningSlots(){
         if(!Array.isArray(d.apresMidi)) d.apresMidi = [];
         if(!Array.isArray(d.soir)) d.soir = [];
         if(d.title===undefined) d.title = "";
+        ["matin","midi","apresMidi","soir"].forEach(slot=>{
+            d[slot].forEach(activity=>{
+                if(!activity.id) activity.id = generateId();
+            });
+        });
     });
 }
 
