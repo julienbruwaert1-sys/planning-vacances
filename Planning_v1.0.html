@@ -144,6 +144,10 @@
 <input type="text" id="syncCodeInput" placeholder="Code existant" maxlength="10">
 <button id="syncJoinBtn" class="add" type="button">Lier</button>
 </div>
+<div class="sync-direction-choice" role="radiogroup" aria-label="Planning à conserver lors de la liaison">
+<button type="button" class="sync-direction-option active" data-direction="theirs" aria-pressed="true">📥 Récupérer le planning de l'autre appareil</button>
+<button type="button" class="sync-direction-option" data-direction="mine" aria-pressed="false">📤 Envoyer le planning de cet appareil</button>
+</div>
 </div>
 
 <div id="syncPaired" hidden>
