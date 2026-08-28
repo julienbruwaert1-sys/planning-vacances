@@ -1901,6 +1901,17 @@ body.dark .weather-card.weather-location-unavailable .weather-condition{
     opacity:1;
 }
 
+/* input[type=time] a sa propre icône native collée au bord droit, quel que
+   soit le padding — écarte le label "Heure conseillée" pour ne pas la
+   chevaucher (contrairement à Prix/Trajet, qui n'ont pas cette icône). */
+#activityTime{
+    padding-right:150px;
+}
+
+#activityTime + .field-suffix-label{
+    right:34px;
+}
+
 body.dark .field-suffix-label{
     color:#B7C4D6;
 }
