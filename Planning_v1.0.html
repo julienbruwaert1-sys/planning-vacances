@@ -120,11 +120,6 @@
 <button id="nearbyToiletsBtn" class="icon-btn" type="button" title="Toilettes publiques à proximité" aria-label="Trouver les toilettes publiques les plus proches">🚻</button>
 </div>
 
-<div class="corner-menu-item" id="dateMenuItem" hidden>
-<button id="dateToggleBtn" class="icon-btn" type="button" title="Réglages du voyage" aria-label="Ouvrir les réglages du voyage" aria-haspopup="true" aria-expanded="false">⚙️</button>
-<div id="datePanel" class="date-panel" hidden></div>
-</div>
-
 <div class="corner-menu-item" id="syncMenuItem">
 <button id="syncToggleBtn" class="icon-btn" type="button" title="Synchronisation" aria-label="Ouvrir la synchronisation entre appareils" aria-haspopup="true" aria-expanded="false">☁️</button>
 <div id="syncPanel" class="date-panel sync-panel" hidden>
@@ -240,7 +235,10 @@
 <div id="weatherPlace"></div>
 </div>
 </div>
+<div class="activity-title-row">
 <h2 id="dayTitle"></h2>
+<button id="dayTitleEditBtn" class="activity-edit-btn" type="button" title="Modifier le titre du jour" aria-label="Modifier le titre du jour">🖊️</button>
+</div>
 
 <button id="formToggle" class="form-toggle-btn" type="button">
 <span id="formToggleIcon">➕</span><span id="formToggleLabel">Ajouter une activité</span>
@@ -295,6 +293,20 @@ min="0"
 step="1">
 <span class="field-suffix-label">Trajet (min)</span>
 </div>
+<div class="field-suffix">
+<input
+type="time"
+id="activityTime">
+<span class="field-suffix-label">Heure conseillée</span>
+</div>
+<input
+type="text"
+id="activityDuration"
+placeholder="Durée (optionnelle, ex : 2h)">
+<input
+type="text"
+id="activityNote"
+placeholder="Note (optionnelle)">
 <input
 type="url"
 id="activityReservationLink"
@@ -571,6 +583,5 @@ Masquer les éléments cochés
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/leaflet.markercluster.js"></script>
 <script src="app.js"></script>
-
 </body>
 </html>

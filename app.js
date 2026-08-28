@@ -101,7 +101,6 @@ function toggleOptionsMenu(){
     const isOpen = !optionsMenuPanel.hidden;
     if(!isOpen){
         closeSearchPanel();
-        closeDatePanel();
     }
     optionsMenuPanel.hidden = isOpen;
     optionsMenuBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
@@ -369,6 +368,22 @@ function renderTabs(){
     renderDayWeather();
 }
 
+document.getElementById("dayTitleEditBtn").addEventListener("click",()=>{
+
+    const current = (planning[currentDay] && planning[currentDay].title) || "";
+    const newTitle = prompt("Titre du jour (optionnel) :",current);
+
+    if(newTitle===null) return;
+
+    if(!planning[currentDay]){
+        planning[currentDay] = { matin:[], midi:[], apresMidi:[], soir:[], title:"" };
+    }
+
+    planning[currentDay].title = newTitle.trim();
+    savePlanning();
+    renderTabs();
+});
+
 let editingActivity = null;
 
 function addActivity(){
@@ -401,6 +416,18 @@ function addActivity(){
     document.getElementById("activityReservationLink")
     .value.trim();
 
+    const time =
+    document.getElementById("activityTime")
+    .value;
+
+    const duration =
+    document.getElementById("activityDuration")
+    .value.trim();
+
+    const note =
+    document.getElementById("activityNote")
+    .value.trim();
+
     const price =
     priceRaw!=="" ? Math.max(0,parseFloat(priceRaw)) : null;
 
@@ -416,6 +443,9 @@ function addActivity(){
 
         const updated = Object.assign({},existing,{
             name, type, address, price, travelTime,
+            time: time || null,
+            duration: duration || null,
+            note: note || null,
             reservationLink: reservationLink || null
         });
 
@@ -441,6 +471,9 @@ function addActivity(){
         address,
         price,
         travelTime,
+        time: time || null,
+        duration: duration || null,
+        note: note || null,
         reservationLink: reservationLink || null
     });
 
@@ -472,6 +505,9 @@ function fillActivityForm(activity,section){
     document.getElementById("activityTravelTime").value =
         (activity.travelTime!==null && activity.travelTime!==undefined) ? activity.travelTime : "";
     document.getElementById("activityReservationLink").value = activity.reservationLink || "";
+    document.getElementById("activityTime").value = activity.time || "";
+    document.getElementById("activityDuration").value = activity.duration || "";
+    document.getElementById("activityNote").value = activity.note || "";
 }
 
 function clearActivityForm(){
@@ -482,6 +518,9 @@ function clearActivityForm(){
     document.getElementById("activityPrice").value="";
     document.getElementById("activityTravelTime").value="";
     document.getElementById("activityReservationLink").value="";
+    document.getElementById("activityTime").value="";
+    document.getElementById("activityDuration").value="";
+    document.getElementById("activityNote").value="";
 }
 
 function startEditActivity(section,index){
@@ -1249,6 +1288,7 @@ function handleImportBackupFile(file){
 
                 Object.keys(planning).forEach(k=>delete planning[k]);
                 mergePlanningData(planning,data.planning);
+                sanitizePlanningSlots();
 
                 if(data.dayCount){
                     dayCount = data.dayCount;
@@ -1563,7 +1603,7 @@ function importICSEvents(text){
         if(!startInfo){ skipped++; return; }
 
         const dayNumber = icsDateToDayNumber(startInfo);
-        if(dayNumber<1){ skipped++; return; }
+        if(dayNumber<1 || dayNumber>30){ skipped++; return; }
 
         if(!planning[dayNumber]){
             planning[dayNumber] = { matin:[], midi:[], apresMidi:[], soir:[], title:"" };
@@ -2274,9 +2314,6 @@ const jumpTodayBtn = document.getElementById("jumpTodayBtn");
 
 const dateWrap = document.getElementById("dateWrap");
 const dateInlineSlot = document.getElementById("dateInlineSlot");
-const dateMenuItem = document.getElementById("dateMenuItem");
-const dateToggleBtn = document.getElementById("dateToggleBtn");
-const datePanel = document.getElementById("datePanel");
 const dateProfileSlot = document.getElementById("dateProfileSlot");
 const dateTabs = document.getElementById("dateTabs");
 const dateTabButtons = dateTabs.querySelectorAll(".date-tab");
@@ -2317,45 +2354,9 @@ function updateDatePlacement(){
     dateProfileSlot.appendChild(dateTabs);
     dateProfileSlot.appendChild(dateWrap);
 
-    dateMenuItem.hidden = true;
-    closeDatePanel();
-
     updateDateTabs();
     updateBottomNavVisibility();
 }
-
-function closeDatePanel(){
-    datePanel.hidden = true;
-    dateToggleBtn.setAttribute("aria-expanded","false");
-}
-
-function toggleDatePanel(){
-    const isOpen = !datePanel.hidden;
-    if(!isOpen){
-        closeOptionsMenu();
-        closeSearchPanel();
-    }
-    datePanel.hidden = isOpen;
-    dateToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
-}
-
-dateToggleBtn.addEventListener("click",(e)=>{
-    e.stopPropagation();
-    toggleDatePanel();
-});
-
-document.addEventListener("click",(e)=>{
-    if(!datePanel.hidden && !e.target.closest(".corner-menu-item")){
-        closeDatePanel();
-    }
-});
-
-document.addEventListener("keydown",(e)=>{
-    if(e.key==="Escape" && !datePanel.hidden){
-        closeDatePanel();
-        dateToggleBtn.focus();
-    }
-});
 
 let dateResizeTimer = null;
 window.addEventListener("resize",()=>{
@@ -2595,7 +2596,6 @@ function toggleSearchPanel(){
     const isOpen = !searchPanel.hidden;
     if(!isOpen){
         closeOptionsMenu();
-        closeDatePanel();
     }
     searchPanel.hidden = isOpen;
     searchToggleBtn.hidden = !isOpen;
@@ -3074,7 +3074,6 @@ renderChecklistTemplateChips();
 function openChecklistView(){
     closeOptionsMenu();
     closeSearchPanel();
-    closeDatePanel();
     checklistView.hidden = false;
     checklistToggle.setAttribute("aria-expanded","true");
     checklistBackBtn.focus();
@@ -4959,7 +4958,6 @@ syncToggleBtn.addEventListener("click",(e)=>{
     if(!isOpen){
         closeOptionsMenu();
         closeSearchPanel();
-        closeDatePanel();
     }
     syncPanel.hidden = isOpen;
     syncToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
@@ -4990,7 +4988,6 @@ desktopProfileBtn.addEventListener("click",(e)=>{
     if(!isOpen){
         closeOptionsMenu();
         closeSearchPanel();
-        closeDatePanel();
         syncPanel.hidden = true;
         syncToggleBtn.setAttribute("aria-expanded","false");
     }
