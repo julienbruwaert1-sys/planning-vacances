@@ -366,6 +366,7 @@ function renderTabs(){
     document.getElementById("dayTitle").textContent = heading;
 
     renderDayWeather();
+    renderDayPhotos();
 }
 
 document.getElementById("dayTitleEditBtn").addEventListener("click",()=>{
@@ -1004,6 +1005,15 @@ dragged = null;
                 });
                 btnGroup.appendChild(reservationBtn);
             }
+
+            const photoBtn = document.createElement("button");
+            photoBtn.className = "map-btn";
+            photoBtn.textContent = "📷";
+            photoBtn.title = "Ajouter une photo de ce jour";
+            photoBtn.addEventListener("click",()=>{
+                openDayCamera(currentDay);
+            });
+            btnGroup.appendChild(photoBtn);
 
             btnGroup.appendChild(delBtn);
 
@@ -3997,6 +4007,183 @@ async function renderDayWeather(){
         requestUserLocationForWeather();
     }
 }
+
+/* --- Photos du jour (stockage 100% local, IndexedDB — pas de synchro
+   entre appareils, voir la mémoire du projet pour le pourquoi) --- */
+
+const PHOTO_DB_NAME = "planningPhotosDB";
+const PHOTO_STORE_NAME = "photos";
+let photoDBPromise = null;
+
+function openPhotoDB(){
+    if(photoDBPromise) return photoDBPromise;
+    photoDBPromise = new Promise((resolve,reject)=>{
+        if(!window.indexedDB){
+            reject(new Error("IndexedDB indisponible"));
+            return;
+        }
+        const req = indexedDB.open(PHOTO_DB_NAME,1);
+        req.onupgradeneeded = ()=>{
+            const db = req.result;
+            if(!db.objectStoreNames.contains(PHOTO_STORE_NAME)){
+                const store = db.createObjectStore(PHOTO_STORE_NAME,{keyPath:"id",autoIncrement:true});
+                store.createIndex("day","day",{unique:false});
+            }
+        };
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+    });
+    return photoDBPromise;
+}
+
+async function addDayPhoto(day,blob){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+        tx.objectStore(PHOTO_STORE_NAME).add({day,blob,timestamp:Date.now()});
+        tx.oncomplete = ()=>resolve();
+        tx.onerror = ()=>reject(tx.error);
+    });
+}
+
+async function getDayPhotos(day){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
+        const req = tx.objectStore(PHOTO_STORE_NAME).index("day").getAll(IDBKeyRange.only(day));
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+    });
+}
+
+async function deleteDayPhoto(id){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+        tx.objectStore(PHOTO_STORE_NAME).delete(id);
+        tx.oncomplete = ()=>resolve();
+        tx.onerror = ()=>reject(tx.error);
+    });
+}
+
+const dayPhotoGallery = document.getElementById("dayPhotoGallery");
+const dayPhotoInput = document.getElementById("dayPhotoInput");
+const photoLightbox = document.getElementById("photoLightbox");
+const photoLightboxImage = document.getElementById("photoLightboxImage");
+const photoLightboxClose = document.getElementById("photoLightboxClose");
+const photoLightboxDelete = document.getElementById("photoLightboxDelete");
+
+let pendingPhotoDay = null;
+let dayPhotoObjectUrls = [];
+let openLightboxPhotoId = null;
+
+function openDayCamera(day){
+    pendingPhotoDay = day;
+    dayPhotoInput.click();
+}
+
+dayPhotoInput.addEventListener("change",async ()=>{
+
+    const file = dayPhotoInput.files[0];
+    dayPhotoInput.value = "";
+
+    if(!file || pendingPhotoDay===null) return;
+
+    try{
+        await addDayPhoto(pendingPhotoDay,file);
+        if(pendingPhotoDay===currentDay) renderDayPhotos();
+        showToast("Photo ajoutée.",{type:"success",duration:2500});
+    }catch(err){
+        console.error("Impossible d'enregistrer la photo :",err);
+        showToast("Impossible d'enregistrer la photo sur cet appareil.",{type:"error"});
+    }
+
+    pendingPhotoDay = null;
+});
+
+async function renderDayPhotos(){
+
+    dayPhotoObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    dayPhotoObjectUrls = [];
+
+    let photos;
+    try{
+        photos = await getDayPhotos(currentDay);
+    }catch(err){
+        dayPhotoGallery.hidden = true;
+        return;
+    }
+
+    dayPhotoGallery.textContent = "";
+
+    if(!photos.length){
+        dayPhotoGallery.hidden = true;
+        return;
+    }
+
+    dayPhotoGallery.hidden = false;
+
+    photos.forEach(photo=>{
+
+        const url = URL.createObjectURL(photo.blob);
+        dayPhotoObjectUrls.push(url);
+
+        const thumb = document.createElement("button");
+        thumb.type = "button";
+        thumb.className = "day-photo-thumb";
+
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "";
+        thumb.appendChild(img);
+
+        thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url));
+
+        dayPhotoGallery.appendChild(thumb);
+    });
+}
+
+function openPhotoLightbox(id,url){
+    openLightboxPhotoId = id;
+    photoLightboxImage.src = url;
+    photoLightbox.hidden = false;
+}
+
+function closePhotoLightbox(){
+    photoLightbox.hidden = true;
+    openLightboxPhotoId = null;
+}
+
+photoLightboxClose.addEventListener("click",closePhotoLightbox);
+
+photoLightbox.addEventListener("click",(e)=>{
+    if(e.target===photoLightbox) closePhotoLightbox();
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape" && !photoLightbox.hidden) closePhotoLightbox();
+});
+
+photoLightboxDelete.addEventListener("click",()=>{
+
+    if(openLightboxPhotoId===null) return;
+    const idToDelete = openLightboxPhotoId;
+
+    showConfirmModal(
+        "Supprimer cette photo ? Cette action est irréversible.",
+        async ()=>{
+            try{
+                await deleteDayPhoto(idToDelete);
+                closePhotoLightbox();
+                renderDayPhotos();
+                showToast("Photo supprimée.",{type:"success"});
+            }catch(err){
+                console.error("Impossible de supprimer la photo :",err);
+                showToast("Impossible de supprimer la photo.",{type:"error"});
+            }
+        }
+    );
+});
 
 mapCountryToggle.addEventListener("click",()=>{
     mapCountryFilterActive = !mapCountryFilterActive;
