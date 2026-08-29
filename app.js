@@ -2602,9 +2602,13 @@ function formatDateForTripDay(startDateStr,dayNumber){
     });
 }
 
+function isAnyFullscreenViewOpen(){
+    return !!document.querySelector(".fullscreen-view:not([hidden])");
+}
+
 function updateCountdownBanner(){
 
-    if(!isDesktopContext() && activeMainTab!=="planning"){
+    if(!isDesktopContext() && (activeMainTab!=="planning" || isAnyFullscreenViewOpen())){
         countdownBanner.hidden = true;
         jumpTodayBtn.hidden = true;
         return;
@@ -3291,12 +3295,14 @@ function openChecklistView(){
     checklistView.hidden = false;
     checklistToggle.setAttribute("aria-expanded","true");
     checklistBackBtn.focus();
+    updateCountdownBanner();
 }
 
 function closeChecklistView(){
     checklistView.hidden = true;
     checklistToggle.setAttribute("aria-expanded","false");
     checklistToggle.focus();
+    updateCountdownBanner();
 }
 
 checklistToggle.addEventListener("click",openChecklistView);
@@ -5227,12 +5233,14 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         if(row.dataset.profileView==="mapView") renderMapView();
         if(row.dataset.profileView==="albumView") renderAlbumView();
         if(row.dataset.profileView==="tripHistoryView") renderTripHistoryView();
+        updateCountdownBanner();
     });
 });
 
 document.querySelectorAll(".profile-back").forEach(btn=>{
     btn.addEventListener("click",()=>{
         btn.closest(".profile-sub-view").hidden = true;
+        updateCountdownBanner();
     });
 });
 
@@ -5241,6 +5249,7 @@ document.addEventListener("keydown",(e)=>{
     document.querySelectorAll(".profile-sub-view").forEach(view=>{
         if(!view.hidden) view.hidden = true;
     });
+    updateCountdownBanner();
 });
 
 /* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
