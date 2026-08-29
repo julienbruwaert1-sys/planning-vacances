@@ -1037,7 +1037,14 @@ body.dark .bottom-nav-tab.active{
 }
 
 body.has-bottom-nav .fullscreen-view{
-    bottom:var(--bottom-nav-h,64px);
+    /* -1px volontaire : sur certains écrans de téléphone, l'arrondi de
+       sous-pixel entre cet élément et .bottom-nav (tous deux position:fixed,
+       hauteurs calculées indépendamment) laisse un liseré d'un pixel de large
+       où le Planning en dessous reste visible, même quand les deux valeurs
+       sont censées être identiques au pixel près. Le chevauchement d'1px est
+       invisible (.fullscreen-view a un z-index plus élevé que .bottom-nav,
+       qui garde son propre fond) et supprime le liseré. */
+    bottom:calc(var(--bottom-nav-h,64px) - 1px);
 }
 
 #mapView{
