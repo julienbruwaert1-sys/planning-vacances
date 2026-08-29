@@ -1029,6 +1029,7 @@ body.dark .bottom-nav-tab.active{
     z-index:2000;
     background:#FCFDFE;
     overflow-y:auto;
+    overscroll-behavior-y:contain;
 }
 
 .fullscreen-view[hidden]{
