@@ -2178,6 +2178,58 @@ welcomeCountrySelect.classList.add("welcome-select-placeholder");
 
 let welcomeIconChoice = "default";
 
+let welcomeParticipants = [];
+
+const welcomeParticipantsList = document.getElementById("welcomeParticipantsList");
+const welcomeParticipantInput = document.getElementById("welcomeParticipantInput");
+const welcomeAddParticipantBtn = document.getElementById("welcomeAddParticipantBtn");
+
+function renderWelcomeParticipants(){
+
+    welcomeParticipantsList.textContent = "";
+
+    welcomeParticipants.forEach((name,index)=>{
+
+        const row = document.createElement("div");
+        row.className = "tricount-participant-row";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = name;
+        row.appendChild(nameSpan);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "tricount-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.setAttribute("aria-label",`Supprimer ${name}`);
+        removeBtn.addEventListener("click",()=>{
+            welcomeParticipants.splice(index,1);
+            renderWelcomeParticipants();
+        });
+        row.appendChild(removeBtn);
+
+        welcomeParticipantsList.appendChild(row);
+    });
+}
+
+function addWelcomeParticipant(){
+    const name = welcomeParticipantInput.value.trim();
+    if(!name) return;
+    welcomeParticipants.push(name);
+    renderWelcomeParticipants();
+    welcomeParticipantInput.value = "";
+    welcomeParticipantInput.focus();
+}
+
+welcomeAddParticipantBtn.addEventListener("click",addWelcomeParticipant);
+
+welcomeParticipantInput.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+        e.preventDefault();
+        addWelcomeParticipant();
+    }
+});
+
 welcomeCountrySelect.addEventListener("change",()=>{
 
     welcomeCountrySelect.classList.remove("welcome-select-placeholder");
@@ -2266,6 +2318,14 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
     localStorage.setItem("targetCurrency",localCurrency);
     localStorage.setItem(TRIP_CREATED_KEY,"1");
 
+    if(welcomeParticipants.length){
+        const existingTricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
+        const combinedParticipants = existingTricountParticipants.concat(
+            welcomeParticipants.map(participantName=>({id:generateId(),name:participantName}))
+        );
+        localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(combinedParticipants));
+    }
+
     location.reload();
 });
 
@@ -2282,6 +2342,16 @@ document.getElementById("welcomeLaterBtn").addEventListener("click",()=>{
         localStorage.setItem(TRIP_NAME_KEY,tripName);
         appTitle.textContent = "🌴 "+tripName;
     }
+
+    if(welcomeParticipants.length){
+        tricountParticipants = tricountParticipants.concat(
+            welcomeParticipants.map(participantName=>({id:generateId(),name:participantName}))
+        );
+        saveTricountParticipants();
+        renderTricount();
+    }
+    welcomeParticipants = [];
+    renderWelcomeParticipants();
 
     document.getElementById("createTripMenuItem").hidden = false;
     document.getElementById("welcomeView").hidden = true;
@@ -6071,6 +6141,8 @@ function startNewTrip(){
     welcomeCountrySelect.value = "";
     welcomeCountrySelect.classList.add("welcome-select-placeholder");
     welcomeIconChoice = "default";
+    welcomeParticipants = [];
+    renderWelcomeParticipants();
 
     document.getElementById("welcomeLaterBtn").hidden = true;
     document.getElementById("welcomeCancelBtn").hidden = false;
