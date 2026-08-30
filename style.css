@@ -2146,6 +2146,25 @@ body.dark .reorder-btn{
     position:relative;
 }
 
+.activity-photo-btn{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:none;
+    background:none;
+    color:#D2503B;
+    font-size:15px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.activity-photo-btn:hover{
+    background:#FCEEE8;
+}
+
 .activity-kebab-btn{
     width:30px;
     height:30px;
@@ -2159,6 +2178,14 @@ body.dark .reorder-btn{
     align-items:center;
     justify-content:center;
     cursor:pointer;
+}
+
+body.dark .activity-photo-btn{
+    color:#E06A54;
+}
+
+body.dark .activity-photo-btn:hover{
+    background:#182238;
 }
 
 body.dark .activity-kebab-btn{

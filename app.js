@@ -1138,6 +1138,17 @@ dragged = null;
             btnGroup.appendChild(reorderGroup);
             btnGroup.appendChild(moveSelect);
 
+            const photoBtn = document.createElement("button");
+            photoBtn.type = "button";
+            photoBtn.className = "activity-photo-btn";
+            photoBtn.textContent = "📷";
+            photoBtn.title = "Ajouter une photo";
+            photoBtn.setAttribute("aria-label","Ajouter une photo à cette activité");
+            photoBtn.addEventListener("click",()=>{
+                openDayCamera(currentDay,activity.id);
+            });
+            btnGroup.appendChild(photoBtn);
+
             const menuWrap = document.createElement("div");
             menuWrap.className = "activity-menu-wrap";
 
