@@ -4618,8 +4618,29 @@ body.dark.theme-noel #activities .day-slot-head{
     color:#EAF3EC;
 }
 
+/* Remplace le point plein par un vrai caractère flocon (❆) — d'où la
+   remise à zéro de background/border/width/height du point d'origine, pas
+   juste un changement de couleur comme pour les autres accents du thème. */
 body.theme-noel #activities .day-slot-head::before{
-    background:#C9A227;
+    content:"❆";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#C9A227;
+}
+
+body.dark.theme-noel #activities .day-slot-head::before{
+    content:"❆";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#E3C05B;
 }
 
 body.theme-noel .date-tab.active,
@@ -4661,6 +4682,47 @@ body.theme-noel .noel-garland{
 .noel-garland span:nth-child(3n+3){ color:#2F6B47; }
 
 body.dark.theme-noel .noel-garland span:nth-child(3n+3){ color:#7FBE96; }
+
+/* Bandeau mascotte "Bonhomme de neige" — masqué par défaut via display:none
+   (même raisonnement que .noel-garland : dépend uniquement de la classe
+   body, jamais togglée en JS, donc pas de piège [hidden] vs display ici). */
+.noel-mascot-banner{
+    display:none;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(135deg,#EDF5EE,#FFFFFF);
+    border-radius:14px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#1B4332;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+body.theme-noel .noel-mascot-banner{
+    display:flex;
+}
+
+body.dark.theme-noel .noel-mascot-banner{
+    background:linear-gradient(135deg,#132A22,#0B1A15);
+    color:#EAF3EC;
+}
+
+.noel-mascot-emoji{
+    font-size:26px;
+    flex-shrink:0;
+    animation:noelMascotBob 2.2s ease-in-out infinite;
+}
+
+@keyframes noelMascotBob{
+    0%,100%{ transform:translateY(0) rotate(-3deg); }
+    50%{ transform:translateY(-3px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .noel-mascot-emoji{ animation:none; }
+}
 
 /* Même esprit festif, mais pour TOUTES les autres vues (Réservations,
    Album, Carte, Historique, Checklist, sous-pages Profil, écran de

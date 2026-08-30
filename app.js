@@ -122,7 +122,7 @@ if(!currentTripId){
 }
 
 if(tripName){
-    appTitle.textContent = "🌴 "+tripName;
+    appTitle.textContent = appTitleEmoji()+" "+tripName;
 }
 
 document.getElementById("createTripMenuItem").hidden =
@@ -506,7 +506,7 @@ document.getElementById("tripNameEditBtn").addEventListener("click",()=>{
 
     tripName = trimmed;
     localStorage.setItem(TRIP_NAME_KEY,tripName);
-    appTitle.textContent = "🌴 "+tripName;
+    appTitle.textContent = appTitleEmoji()+" "+tripName;
     pushToSync();
 });
 
@@ -2533,7 +2533,7 @@ document.getElementById("welcomeLaterBtn").addEventListener("click",()=>{
     if(!tripName){
         tripName = "Mon voyage";
         localStorage.setItem(TRIP_NAME_KEY,tripName);
-        appTitle.textContent = "🌴 "+tripName;
+        appTitle.textContent = appTitleEmoji()+" "+tripName;
     }
 
     if(welcomeParticipants.length){
@@ -2673,6 +2673,21 @@ function stopNoelSnow(){
     noelSnow.textContent = "";
 }
 
+/* Emoji du titre et de l'icône "Ajouter une activité" : lus dans les
+   fonctions qui les affectent (appTitleEmoji() est appelée à chaque endroit
+   qui construit déjà le titre) plutôt que codés en dur "🌴"/"➕" à 4+
+   endroits différents — un seul endroit à vérifier si le thème change. */
+function appTitleEmoji(){
+    return document.body.classList.contains("theme-noel") ? "⛄" : "🌴";
+}
+
+function refreshNoelIcons(){
+    if(tripName) appTitle.textContent = appTitleEmoji()+" "+tripName;
+    if(!formDrawer.classList.contains("open") && !editingActivity){
+        formToggleIcon.textContent = document.body.classList.contains("theme-noel") ? "⛄" : "➕";
+    }
+}
+
 appThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
 
 if(appThemeSelect.value==="noel"){
@@ -2686,6 +2701,7 @@ appThemeSelect.addEventListener("change",()=>{
     document.body.classList.toggle("theme-noel",choice==="noel");
     if(choice==="noel") startNoelSnow();
     else stopNoelSnow();
+    refreshNoelIcons();
 });
 
 themeToggle.addEventListener("click",()=>{
@@ -2732,6 +2748,7 @@ welcomeThemeSelect.addEventListener("change",()=>{
     appThemeSelect.value = choice;
     if(choice==="noel") startNoelSnow();
     else stopNoelSnow();
+    refreshNoelIcons();
 });
 
 const dayCountInput = document.getElementById("dayCount");
@@ -3154,6 +3171,12 @@ const formToggleIcon = document.getElementById("formToggleIcon");
 const formToggleLabel = document.getElementById("formToggleLabel");
 const formDrawer = document.getElementById("formDrawer");
 
+/* Applique l'icône ⛄ dès le chargement si le thème Noël était déjà actif
+   lors d'une session précédente — sans ça, elle ne se mettait à jour qu'à
+   la prochaine ouverture/fermeture du volet. Doit venir après les const
+   ci-dessus (formDrawer/formToggleIcon), pas avant, sinon TDZ. */
+refreshNoelIcons();
+
 function openFormDrawer(){
     formDrawer.classList.add("open");
     formToggle.classList.add("open");
@@ -3166,7 +3189,7 @@ function closeFormDrawer(){
     formToggleLabel.textContent = "Ajouter une activité";
     editingActivity = null;
     document.getElementById("activitySubmitBtn").textContent = "Ajouter";
-    formToggleIcon.textContent = "➕";
+    formToggleIcon.textContent = document.body.classList.contains("theme-noel") ? "⛄" : "➕";
     clearActivityForm();
 }
 
@@ -7635,7 +7658,7 @@ function applySyncData(data){
     if(data.tripName!==undefined && data.tripName!==tripName){
         tripName = data.tripName;
         localStorage.setItem(TRIP_NAME_KEY,tripName);
-        if(tripName) appTitle.textContent = "🌴 "+tripName;
+        if(tripName) appTitle.textContent = appTitleEmoji()+" "+tripName;
     }
 
     if(data.tripCountry!==undefined && data.tripCountry!==tripCountry){
