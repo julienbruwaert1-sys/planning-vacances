@@ -97,12 +97,21 @@
 <canvas id="cameraCanvas" hidden></canvas>
 <div id="cameraRecordingIndicator" class="camera-recording-indicator" hidden><span class="camera-recording-dot"></span><span id="cameraRecordingTimer">0:00</span></div>
 <button id="cameraCloseBtn" class="camera-close-btn" type="button" aria-label="Fermer l'appareil photo">✕</button>
+<button id="cameraTorchBtn" class="camera-torch-btn" type="button" aria-label="Activer/désactiver le flash" hidden>🔦</button>
 <button id="cameraSwitchBtn" class="camera-switch-btn" type="button" aria-label="Changer de caméra">🔄</button>
 <p id="cameraHint" class="camera-hint">Appuie pour une photo, maintiens pour filmer</p>
 <div class="camera-controls">
 <button id="cameraGalleryBtn" class="camera-gallery-btn" type="button" aria-label="Choisir une photo ou vidéo existante">🖼️</button>
 <button id="cameraShutterBtn" class="camera-shutter-btn" type="button" aria-label="Maintenir pour filmer, appuyer pour photographier"></button>
 <span class="camera-controls-spacer" aria-hidden="true"></span>
+</div>
+<div id="cameraReview" class="camera-review" hidden>
+<img id="cameraReviewImage" class="camera-review-media" alt="Photo prise" hidden>
+<video id="cameraReviewVideo" class="camera-review-media" controls playsinline hidden></video>
+<div class="camera-review-actions">
+<button id="cameraRetakeBtn" class="camera-retake-btn" type="button">🔄 Reprendre</button>
+<button id="cameraKeepBtn" class="camera-keep-btn" type="button">✓ Garder</button>
+</div>
 </div>
 </div>
 
@@ -127,6 +136,7 @@
 
 <div class="menu-divider"></div>
 <div class="menu-section-label">Données</div>
+<button id="checkUpdateBtn" class="menu-item" type="button" role="menuitem" title="Vérifier les mises à jour" aria-label="Vérifier les mises à jour de l'application"><span class="menu-item-icon">⬇️</span><span class="menu-item-label">Vérifier les mises à jour</span></button>
 <button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json,.ics" hidden>
 <button id="importIcsBtn" class="menu-item" type="button" role="menuitem" title="Importer un calendrier .ics (Airbnb, etc.)" aria-label="Importer un calendrier .ics"><span class="menu-item-icon">📅</span><span class="menu-item-label">Importer un calendrier (.ics)</span></button>
@@ -432,6 +442,14 @@ Ajouter
 <select id="tricountPayerSelect"></select>
 </div>
 <div class="tricount-split-checkboxes" id="tricountSplitCheckboxes"></div>
+<div class="tricount-receipt-row" id="tricountReceiptRow">
+<button type="button" id="tricountReceiptBtn" class="tricount-receipt-btn">📎 Ajouter un reçu</button>
+<div class="tricount-receipt-preview" id="tricountReceiptPreview" hidden>
+<img id="tricountReceiptThumb" class="tricount-receipt-thumb" alt="Reçu">
+<button type="button" id="tricountReceiptRemoveBtn" class="tricount-receipt-remove" aria-label="Retirer le reçu">✕</button>
+</div>
+<input type="file" id="tricountReceiptInput" accept="image/*" hidden>
+</div>
 <div class="tricount-form-actions">
 <button id="tricountAddExpenseBtn" class="add" type="button">Ajouter la dépense</button>
 <button id="tricountCancelEditBtn" class="tricount-cancel-edit" type="button" hidden>Annuler</button>

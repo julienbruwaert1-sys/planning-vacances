@@ -4529,6 +4529,29 @@ async function getPhotoById(id){
     });
 }
 
+/* Reçus Tricount : même store IndexedDB que les photos de journée (pas de
+   day/activityId, un expenseId à la place). Pas de nouvel index — un scan
+   complet via getAllPhotos() suffit, le nombre de reçus reste minime. */
+async function addExpensePhoto(expenseId,blob){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+        tx.objectStore(PHOTO_STORE_NAME).add({day:null,activityId:null,expenseId,tripId:currentTripId,blob,timestamp:Date.now()});
+        tx.oncomplete = ()=>resolve();
+        tx.onerror = ()=>reject(tx.error);
+    });
+}
+
+async function getExpensePhoto(expenseId){
+    const all = await getAllPhotos();
+    return all.find(photo=>photo.expenseId===expenseId && photo.tripId===currentTripId) || null;
+}
+
+async function getAllExpensePhotos(){
+    const all = await getAllPhotos();
+    return all.filter(photo=>photo.expenseId && photo.tripId===currentTripId);
+}
+
 async function deleteTripPhotos(tripId){
     const photos = await getTripPhotos(tripId);
     for(const photo of photos){
@@ -4612,6 +4635,7 @@ function openDayPhotoPicker(day,activityId){
 function refreshOpenPhotoViews(){
     renderDayPhotos();
     if(!document.getElementById("albumView").hidden) renderAlbumView();
+    renderTricountExpenses();
 }
 
 /* Sans fenêtre de partage : téléchargement direct (dossier Téléchargements),
@@ -4697,11 +4721,17 @@ const cameraView = document.getElementById("cameraView");
 const cameraPreview = document.getElementById("cameraPreview");
 const cameraCanvas = document.getElementById("cameraCanvas");
 const cameraCloseBtn = document.getElementById("cameraCloseBtn");
+const cameraTorchBtn = document.getElementById("cameraTorchBtn");
 const cameraSwitchBtn = document.getElementById("cameraSwitchBtn");
 const cameraGalleryBtn = document.getElementById("cameraGalleryBtn");
 const cameraShutterBtn = document.getElementById("cameraShutterBtn");
 const cameraRecordingIndicator = document.getElementById("cameraRecordingIndicator");
 const cameraRecordingTimer = document.getElementById("cameraRecordingTimer");
+const cameraReview = document.getElementById("cameraReview");
+const cameraReviewImage = document.getElementById("cameraReviewImage");
+const cameraReviewVideo = document.getElementById("cameraReviewVideo");
+const cameraRetakeBtn = document.getElementById("cameraRetakeBtn");
+const cameraKeepBtn = document.getElementById("cameraKeepBtn");
 
 const CAMERA_HOLD_THRESHOLD_MS = 350;
 
@@ -4714,6 +4744,27 @@ let cameraIsRecording = false;
 let cameraRecordingCancelled = false;
 let cameraRecordingStartTime = 0;
 let cameraRecordingTimerInterval = null;
+
+/* Flash/torche : capacité expérimentale de MediaStreamTrack, surtout Chrome
+   Android — absente sur la plupart des navigateurs iOS. Le bouton reste
+   caché (voir startCameraStream) tant que getCapabilities().torch n'existe
+   pas, plutôt que d'afficher un bouton qui ne ferait rien. */
+let cameraTorchTrack = null;
+let cameraTorchOn = false;
+
+/* Zoom pincé : même capacité expérimentale (getCapabilities().zoom), pas de
+   repli CSS "faux zoom" volontairement — un zoom visuel sur l'aperçu qui ne
+   changerait rien à la vraie capture serait trompeur (photo/vidéo cadrée
+   différemment de ce qui était affiché). Zoom réel ou pas de zoom du tout. */
+let cameraZoomTrack = null;
+let cameraZoomCapabilities = null;
+let cameraActivePointers = new Map();
+let cameraZoomStartDistance = 0;
+let cameraZoomStartValue = 1;
+
+let pendingCapturedBlob = null;
+let pendingCapturedType = null;
+let cameraReviewObjectUrl = null;
 
 async function openDayCameraView(day,activityId){
     pendingPhotoDay = day;
@@ -4740,6 +4791,8 @@ async function startCameraStream(){
             audio:true
         });
         cameraPreview.srcObject = cameraStream;
+        setupCameraTorch();
+        setupCameraZoom();
     }catch(err){
         console.error("Caméra inaccessible :",err);
         showToast("Impossible d'accéder à la caméra sur cet appareil.",{type:"error"});
@@ -4747,16 +4800,90 @@ async function startCameraStream(){
     }
 }
 
+function setupCameraTorch(){
+    cameraTorchTrack = null;
+    cameraTorchOn = false;
+    cameraTorchBtn.hidden = true;
+    cameraTorchBtn.classList.remove("active");
+    const track = cameraStream && cameraStream.getVideoTracks()[0];
+    if(!track || !track.getCapabilities) return;
+    const caps = track.getCapabilities();
+    if(!caps.torch) return;
+    cameraTorchTrack = track;
+    cameraTorchBtn.hidden = false;
+}
+
+cameraTorchBtn.addEventListener("click",()=>{
+    if(!cameraTorchTrack) return;
+    cameraTorchOn = !cameraTorchOn;
+    cameraTorchTrack.applyConstraints({advanced:[{torch:cameraTorchOn}]}).catch(err=>{
+        console.error("Torche indisponible :",err);
+        showToast("Impossible d'activer le flash sur cet appareil.",{type:"error"});
+        cameraTorchOn = !cameraTorchOn;
+    });
+    cameraTorchBtn.classList.toggle("active",cameraTorchOn);
+});
+
+function setupCameraZoom(){
+    cameraZoomTrack = null;
+    cameraZoomCapabilities = null;
+    const track = cameraStream && cameraStream.getVideoTracks()[0];
+    if(!track || !track.getCapabilities) return;
+    const caps = track.getCapabilities();
+    if(!caps.zoom) return;
+    cameraZoomTrack = track;
+    cameraZoomCapabilities = caps;
+}
+
+function getCameraPointerDistance(){
+    const pts = Array.from(cameraActivePointers.values());
+    if(pts.length<2) return 0;
+    const dx = pts[0].x-pts[1].x, dy = pts[0].y-pts[1].y;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+
+cameraPreview.addEventListener("pointerdown",e=>{
+    if(!cameraZoomTrack) return;
+    cameraActivePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(cameraActivePointers.size===2){
+        cameraZoomStartDistance = getCameraPointerDistance();
+        cameraZoomStartValue = cameraZoomTrack.getSettings().zoom || cameraZoomCapabilities.min;
+    }
+});
+
+cameraPreview.addEventListener("pointermove",e=>{
+    if(!cameraZoomTrack || !cameraActivePointers.has(e.pointerId)) return;
+    cameraActivePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(cameraActivePointers.size!==2 || cameraZoomStartDistance<=0) return;
+    const distance = getCameraPointerDistance();
+    const scale = distance / cameraZoomStartDistance;
+    const zoom = Math.min(cameraZoomCapabilities.max, Math.max(cameraZoomCapabilities.min, cameraZoomStartValue*scale));
+    cameraZoomTrack.applyConstraints({advanced:[{zoom}]}).catch(()=>{});
+});
+
+["pointerup","pointercancel","pointerleave"].forEach(evt=>{
+    cameraPreview.addEventListener(evt,e=>{
+        cameraActivePointers.delete(e.pointerId);
+        cameraZoomStartDistance = 0;
+    });
+});
+
 function stopCameraStream(){
     if(cameraStream){
         cameraStream.getTracks().forEach(track=>track.stop());
         cameraStream = null;
     }
     cameraPreview.srcObject = null;
+    cameraTorchTrack = null;
+    cameraTorchOn = false;
+    cameraZoomTrack = null;
+    cameraZoomCapabilities = null;
+    cameraActivePointers.clear();
 }
 
 function closeCameraView(){
     if(cameraIsRecording) cancelCameraRecording();
+    hideCameraReview();
     stopCameraStream();
     cameraView.hidden = true;
     pendingPhotoDay = null;
@@ -4818,7 +4945,7 @@ function startCameraRecording(){
            suffit pas à empêcher l'enregistrement d'une vidéo qu'on a annulée. */
         if(cameraRecordedChunks.length && !cameraRecordingCancelled){
             const blob = new Blob(cameraRecordedChunks,{type:cameraMediaRecorder.mimeType || "video/webm"});
-            handleCapturedCameraMedia(blob);
+            showCameraReview(blob,"video");
         }
         cameraRecordedChunks = [];
     });
@@ -4849,9 +4976,47 @@ function capturePhotoFromCamera(){
     cameraCanvas.height = cameraPreview.videoHeight;
     cameraCanvas.getContext("2d").drawImage(cameraPreview,0,0);
     cameraCanvas.toBlob(blob=>{
-        if(blob) handleCapturedCameraMedia(blob);
+        if(blob) showCameraReview(blob,"image");
     },"image/jpeg",0.92);
 }
+
+function showCameraReview(blob,type){
+    pendingCapturedBlob = blob;
+    pendingCapturedType = type;
+    if(cameraReviewObjectUrl) URL.revokeObjectURL(cameraReviewObjectUrl);
+    cameraReviewObjectUrl = URL.createObjectURL(blob);
+    if(type==="video"){
+        cameraReviewVideo.src = cameraReviewObjectUrl;
+        cameraReviewVideo.hidden = false;
+        cameraReviewImage.hidden = true;
+    }else{
+        cameraReviewImage.src = cameraReviewObjectUrl;
+        cameraReviewImage.hidden = false;
+        cameraReviewVideo.hidden = true;
+    }
+    cameraReview.hidden = false;
+}
+
+function hideCameraReview(){
+    cameraReview.hidden = true;
+    cameraReviewVideo.pause();
+    cameraReviewVideo.removeAttribute("src");
+    cameraReviewImage.removeAttribute("src");
+    if(cameraReviewObjectUrl){
+        URL.revokeObjectURL(cameraReviewObjectUrl);
+        cameraReviewObjectUrl = null;
+    }
+    pendingCapturedBlob = null;
+    pendingCapturedType = null;
+}
+
+cameraRetakeBtn.addEventListener("click",hideCameraReview);
+
+cameraKeepBtn.addEventListener("click",()=>{
+    const blob = pendingCapturedBlob;
+    hideCameraReview();
+    if(blob) handleCapturedCameraMedia(blob);
+});
 
 async function handleCapturedCameraMedia(blob){
 
@@ -6279,6 +6444,60 @@ const tricountCancelEditBtn = document.getElementById("tricountCancelEditBtn");
 let editingTricountExpenseId = null;
 let pendingTricountActivityLink = null;
 
+/* --- Reçu attaché à une dépense --- */
+const tricountReceiptBtn = document.getElementById("tricountReceiptBtn");
+const tricountReceiptInput = document.getElementById("tricountReceiptInput");
+const tricountReceiptPreview = document.getElementById("tricountReceiptPreview");
+const tricountReceiptThumb = document.getElementById("tricountReceiptThumb");
+const tricountReceiptRemoveBtn = document.getElementById("tricountReceiptRemoveBtn");
+
+let pendingReceiptFile = null;
+let pendingReceiptRemoved = false;
+let editingExpenseExistingReceiptId = null;
+let tricountReceiptPreviewUrl = null;
+
+function showTricountReceiptPreview(blob){
+    if(tricountReceiptPreviewUrl) URL.revokeObjectURL(tricountReceiptPreviewUrl);
+    tricountReceiptPreviewUrl = URL.createObjectURL(blob);
+    tricountReceiptThumb.src = tricountReceiptPreviewUrl;
+    tricountReceiptPreview.hidden = false;
+    tricountReceiptBtn.hidden = true;
+}
+
+function hideTricountReceiptPreview(){
+    if(tricountReceiptPreviewUrl){
+        URL.revokeObjectURL(tricountReceiptPreviewUrl);
+        tricountReceiptPreviewUrl = null;
+    }
+    tricountReceiptThumb.removeAttribute("src");
+    tricountReceiptPreview.hidden = true;
+    tricountReceiptBtn.hidden = false;
+}
+
+function resetTricountReceiptState(){
+    pendingReceiptFile = null;
+    pendingReceiptRemoved = false;
+    editingExpenseExistingReceiptId = null;
+    hideTricountReceiptPreview();
+}
+
+tricountReceiptBtn.addEventListener("click",()=>tricountReceiptInput.click());
+
+tricountReceiptInput.addEventListener("change",()=>{
+    const file = tricountReceiptInput.files[0];
+    tricountReceiptInput.value = "";
+    if(!file) return;
+    pendingReceiptFile = file;
+    pendingReceiptRemoved = false;
+    showTricountReceiptPreview(file);
+});
+
+tricountReceiptRemoveBtn.addEventListener("click",()=>{
+    pendingReceiptFile = null;
+    pendingReceiptRemoved = true;
+    hideTricountReceiptPreview();
+});
+
 function startTricountExpenseFromActivity(activity){
 
     if(tricountParticipants.length<2){
@@ -6533,12 +6752,13 @@ function renderTricountExpenseForm(){
     });
 }
 
-function startEditTricountExpense(id){
+async function startEditTricountExpense(id){
 
     const exp = tricountExpenses.find(e=>e.id===id);
     if(!exp) return;
 
     editingTricountExpenseId = id;
+    resetTricountReceiptState();
 
     switchTricountTab("new");
 
@@ -6553,12 +6773,23 @@ function startEditTricountExpense(id){
     tricountCancelEditBtn.hidden = false;
 
     tricountExpenseDesc.focus();
+
+    try{
+        const receipt = await getExpensePhoto(id);
+        if(receipt){
+            editingExpenseExistingReceiptId = receipt.id;
+            showTricountReceiptPreview(receipt.blob);
+        }
+    }catch(err){
+        console.error("Reçu introuvable :",err);
+    }
 }
 
 function cancelTricountExpenseEdit(){
 
     editingTricountExpenseId = null;
     pendingTricountActivityLink = null;
+    resetTricountReceiptState();
 
     tricountExpenseDesc.value = "";
     tricountExpenseAmount.value = "";
@@ -6570,9 +6801,21 @@ function cancelTricountExpenseEdit(){
     renderTricountExpenseForm();
 }
 
-function renderTricountExpenses(){
+let tricountReceiptObjectUrls = [];
+
+async function renderTricountExpenses(){
 
     tricountExpensesList.textContent = "";
+
+    tricountReceiptObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    tricountReceiptObjectUrls = [];
+
+    let receiptsByExpenseId = {};
+    try{
+        (await getAllExpensePhotos()).forEach(photo=>{ receiptsByExpenseId[photo.expenseId] = photo; });
+    }catch(err){
+        console.error("Impossible de charger les reçus :",err);
+    }
 
     const sorted = [...tricountExpenses].sort((a,b)=>b.timestamp-a.timestamp);
 
@@ -6620,6 +6863,22 @@ function renderTricountExpenses(){
 
         const actions = document.createElement("span");
         actions.className = "tricount-row-actions";
+
+        const receipt = receiptsByExpenseId[exp.id];
+        if(receipt){
+            const receiptUrl = URL.createObjectURL(receipt.blob);
+            tricountReceiptObjectUrls.push(receiptUrl);
+            const receiptBtn = document.createElement("button");
+            receiptBtn.type = "button";
+            receiptBtn.className = "tricount-receipt-view-btn";
+            receiptBtn.textContent = "📎";
+            receiptBtn.title = "Voir le reçu";
+            receiptBtn.setAttribute("aria-label",`Voir le reçu de ${exp.description}`);
+            receiptBtn.addEventListener("click",()=>{
+                openPhotoLightbox(receipt.id,receiptUrl,[{id:receipt.id,url:receiptUrl,type:mediaTypeFromBlob(receipt.blob)}]);
+            });
+            actions.appendChild(receiptBtn);
+        }
 
         const editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -6775,10 +7034,12 @@ function addTricountExpense(){
     }
 
     const isEditing = !!editingTricountExpenseId;
+    let expenseId;
 
     if(isEditing){
 
-        const exp = tricountExpenses.find(e=>e.id===editingTricountExpenseId);
+        expenseId = editingTricountExpenseId;
+        const exp = tricountExpenses.find(e=>e.id===expenseId);
         if(exp){
             exp.description = description;
             exp.amount = amount;
@@ -6793,8 +7054,9 @@ function addTricountExpense(){
 
     }else{
 
+        expenseId = generateId();
         tricountExpenses.push({
-            id: generateId(),
+            id: expenseId,
             description,
             amount,
             currency,
@@ -6807,6 +7069,25 @@ function addTricountExpense(){
 
     const cameFromActivity = !!pendingTricountActivityLink;
     pendingTricountActivityLink = null;
+
+    /* Reçu : supprime l'ancien d'abord si on en remplace un ou qu'on le
+       retire, puis ajoute le nouveau s'il y en a un — jamais les deux en
+       même temps pour éviter deux reçus sur la même dépense. */
+    const receiptToDelete = editingExpenseExistingReceiptId;
+    const receiptToAdd = pendingReceiptFile;
+    const receiptWasRemoved = pendingReceiptRemoved;
+    resetTricountReceiptState();
+
+    (async ()=>{
+        try{
+            if(receiptToDelete && (receiptWasRemoved || receiptToAdd)) await deleteDayPhoto(receiptToDelete);
+            if(receiptToAdd) await addExpensePhoto(expenseId,receiptToAdd);
+            refreshOpenPhotoViews();
+        }catch(err){
+            console.error("Impossible d'enregistrer le reçu :",err);
+            showToast("Dépense enregistrée, mais le reçu n'a pas pu être sauvegardé.",{type:"error"});
+        }
+    })();
 
     saveTricountExpenses();
     renderTricount();
@@ -6830,11 +7111,20 @@ function deleteTricountExpense(id){
     const expense = tricountExpenses.find(e=>e.id===id);
     showConfirmModal(
         `Supprimer la dépense « ${expense ? expense.description : ""} » ?`,
-        ()=>{
+        async ()=>{
             tricountExpenses = tricountExpenses.filter(e=>e.id!==id);
             saveTricountExpenses();
             if(editingTricountExpenseId===id) cancelTricountExpenseEdit();
             renderTricount();
+            try{
+                const receipt = await getExpensePhoto(id);
+                if(receipt){
+                    await deleteDayPhoto(receipt.id);
+                    refreshOpenPhotoViews();
+                }
+            }catch(err){
+                console.error("Impossible de supprimer le reçu :",err);
+            }
         }
     );
 }
@@ -7459,6 +7749,40 @@ function updateCacheVersionBadge(){
 }
 
 updateCacheVersionBadge();
+
+/* Vérification manuelle : registration.update() + un peu de feedback textuel.
+   Ne gère pas elle-même l'installation/le rechargement — self.skipWaiting()
+   côté service worker + le listener "controllerchange" plus haut s'en
+   chargent déjà automatiquement dès qu'une nouvelle version est trouvée. */
+const checkUpdateBtn = document.getElementById("checkUpdateBtn");
+
+async function checkForAppUpdate(){
+    if(!("serviceWorker" in navigator)){
+        showToast("Service worker non disponible sur ce navigateur.",{type:"error"});
+        return;
+    }
+    const registration = await navigator.serviceWorker.getRegistration();
+    if(!registration){
+        showToast("Aucun service worker actif à vérifier.",{type:"error"});
+        return;
+    }
+    showToast("Recherche de mise à jour…",{duration:1500});
+    try{
+        await registration.update();
+    }catch(err){
+        console.error("Vérification de mise à jour impossible :",err);
+        showToast("Impossible de vérifier les mises à jour.",{type:"error"});
+        return;
+    }
+    if(registration.installing || registration.waiting){
+        showToast("Mise à jour trouvée — l'app va se recharger dans un instant.",{type:"success",duration:3000});
+    }else{
+        updateCacheVersionBadge();
+        showToast("Tu es déjà à jour.",{type:"success"});
+    }
+}
+
+checkUpdateBtn.addEventListener("click",checkForAppUpdate);
 
 /* Rendu initial : createTabs()/renderTabs() s'exécutent bien plus tôt dans le
    script (avant COUNTRY_BBOXES etc.), donc le tout premier appel à

@@ -2699,9 +2699,11 @@ body.dark .trip-history-delete-btn:hover{
     width:100%;
     height:100%;
     object-fit:cover;
+    touch-action:none;
 }
 
 .camera-close-btn,
+.camera-torch-btn,
 .camera-switch-btn{
     position:absolute;
     top:16px;
@@ -2717,6 +2719,19 @@ body.dark .trip-history-delete-btn:hover{
 
 .camera-close-btn{
     left:16px;
+}
+
+.camera-torch-btn{
+    right:64px;
+}
+
+.camera-torch-btn.active{
+    background:#F2B705;
+    color:#000;
+}
+
+.camera-torch-btn[hidden]{
+    display:none;
 }
 
 .camera-switch-btn{
@@ -2810,6 +2825,57 @@ body.dark .trip-history-delete-btn:hover{
     border-color:#E23B3B;
     border-radius:18px;
     transform:scale(.82);
+}
+
+.camera-review{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.camera-review[hidden]{
+    display:none;
+}
+
+.camera-review-media{
+    max-width:100%;
+    max-height:100%;
+}
+
+.camera-review-actions{
+    position:absolute;
+    bottom:32px;
+    left:0;
+    right:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+}
+
+.camera-retake-btn,
+.camera-keep-btn{
+    border:none;
+    border-radius:999px;
+    padding:12px 22px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    white-space:nowrap;
+}
+
+.camera-retake-btn{
+    background:rgba(255,255,255,.16);
+    color:#fff;
+}
+
+.camera-keep-btn{
+    background:#2F8F5B;
+    color:#fff;
 }
 
 .slot{
@@ -3561,6 +3627,59 @@ small.tricount-warning{
     accent-color:#D2503B;
 }
 
+.tricount-receipt-row{
+    display:flex;
+    align-items:center;
+    padding:2px 0;
+}
+
+.tricount-receipt-btn{
+    padding:8px 14px;
+    border-radius:10px;
+    border:1.5px dashed rgba(51,64,74,.25);
+    background:none;
+    color:#D2503B;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:12.5px;
+    cursor:pointer;
+}
+
+.tricount-receipt-preview{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.tricount-receipt-preview[hidden]{
+    display:none;
+}
+
+.tricount-receipt-thumb{
+    width:44px;
+    height:44px;
+    border-radius:8px;
+    object-fit:cover;
+}
+
+.tricount-receipt-remove{
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    border:none;
+    background:rgba(51,64,74,.1);
+    color:#33404A;
+    font-size:12px;
+    cursor:pointer;
+}
+
+.tricount-receipt-view-btn{
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:14px;
+    flex-shrink:0;
+}
+
 .tricount-remove,
 .tricount-edit{
     background:none;
@@ -3955,6 +4074,16 @@ body.dark .tricount-remove,
 body.dark .tricount-edit{ color:#7C8BAE; }
 
 body.dark .tricount-warning{ color:#ff8a80; }
+
+body.dark .tricount-receipt-btn{
+    border-color:rgba(234,240,251,.25);
+    color:#6fa8ff;
+}
+
+body.dark .tricount-receipt-remove{
+    background:rgba(234,240,251,.12);
+    color:#EAF0FB;
+}
 body.dark .tricount-balance-row.positive{ color:#6fd68c; }
 body.dark .tricount-balance-row.negative{ color:#ff8a80; }
 
