@@ -1338,14 +1338,21 @@ const exportDataBtn = document.getElementById("exportDataBtn");
 exportDataBtn.addEventListener("click",()=>{
 
     const backup = {
-        version:1,
+        version:2,
         exportedAt:new Date().toISOString(),
+        tripName,
+        tripCountry,
         planning,
         dayCount,
         startDate:localStorage.getItem("startDate") || "",
-        checklist:JSON.parse(
-            localStorage.getItem("travelChecklist") || "[]"
-        )
+        baseCurrency:localStorage.getItem("baseCurrency") || "GBP",
+        priceCurrencySymbol:localStorage.getItem("priceCurrencySymbol") || "£",
+        targetCurrency:localStorage.getItem("targetCurrency") || "",
+        checklist,
+        checklistTemplates:JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
+        travelerInfo:JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
+        tricountParticipants,
+        tricountExpenses
     };
 
     const blob = new Blob(
@@ -1393,42 +1400,30 @@ function handleImportBackupFile(file){
         }
 
         showConfirmModal(
-            "Importer cette sauvegarde remplacera tout le planning "
-            + "actuel. Continuer ?",
+            "Importer cette sauvegarde remplacera tout le planning actuel "
+            + "— le planning actuel sera d'abord archivé dans l'historique "
+            + "des voyages, tu pourras le consulter (et le restaurer) plus "
+            + "tard. Continuer ?",
             ()=>{
 
-                Object.keys(planning).forEach(k=>delete planning[k]);
-                mergePlanningData(planning,data.planning);
-                sanitizePlanningSlots();
+                archiveCurrentTrip();
 
-                if(data.dayCount){
-                    dayCount = data.dayCount;
-                    document.getElementById("dayCount").value = dayCount;
-                    localStorage.setItem("dayCount",dayCount);
-                }
+                localStorage.setItem("vacationPlanning",JSON.stringify(data.planning || {}));
 
-                if(data.startDate!==undefined){
-                    startDate = data.startDate;
-                    document.getElementById("startDate").value = startDate;
-                    localStorage.setItem("startDate",startDate);
-                }
+                if(data.dayCount) localStorage.setItem("dayCount",String(data.dayCount));
+                if(data.startDate!==undefined) localStorage.setItem("startDate",data.startDate);
+                if(data.tripName!==undefined) localStorage.setItem(TRIP_NAME_KEY,data.tripName);
+                if(data.tripCountry!==undefined) localStorage.setItem(TRIP_COUNTRY_KEY,data.tripCountry);
+                if(data.baseCurrency!==undefined) localStorage.setItem("baseCurrency",data.baseCurrency);
+                if(data.priceCurrencySymbol!==undefined) localStorage.setItem("priceCurrencySymbol",data.priceCurrencySymbol);
+                if(data.targetCurrency!==undefined) localStorage.setItem("targetCurrency",data.targetCurrency);
+                if(Array.isArray(data.checklist)) localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(data.checklist));
+                if(Array.isArray(data.checklistTemplates)) localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(data.checklistTemplates));
+                if(data.travelerInfo && typeof data.travelerInfo==="object") localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(data.travelerInfo));
+                if(Array.isArray(data.tricountParticipants)) localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(data.tricountParticipants));
+                if(Array.isArray(data.tricountExpenses)) localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(data.tricountExpenses));
 
-                if(Array.isArray(data.checklist)){
-                    checklist = data.checklist;
-                    saveChecklist();
-                    renderChecklist();
-                }
-
-                ensureDaysExist();
-                savePlanning();
-
-                if(currentDay > dayCount) currentDay = dayCount;
-
-                createTabs();
-                renderActivities();
-                updateCountdownBanner();
-
-                showToast("Sauvegarde importée avec succès.",{type:"success"});
+                location.reload();
             }
         );
 
@@ -2509,7 +2504,6 @@ const countdownBanner = document.getElementById("countdownBanner");
 const jumpTodayBtn = document.getElementById("jumpTodayBtn");
 
 const dateWrap = document.getElementById("dateWrap");
-const dateInlineSlot = document.getElementById("dateInlineSlot");
 const dateProfileSlot = document.getElementById("dateProfileSlot");
 const dateTabs = document.getElementById("dateTabs");
 const dateTabButtons = dateTabs.querySelectorAll(".date-tab");
@@ -4285,6 +4279,13 @@ async function getAllPhotos(){
     });
 }
 
+async function deleteTripPhotos(tripId){
+    const photos = await getTripPhotos(tripId);
+    for(const photo of photos){
+        await deleteDayPhoto(photo.id);
+    }
+}
+
 async function deleteDayPhoto(id){
     const db = await openPhotoDB();
     return new Promise((resolve,reject)=>{
@@ -4783,6 +4784,36 @@ tripHistoryRestoreBtn.addEventListener("click",()=>{
     showConfirmModal(
         `Restaurer « ${trip.name || "ce voyage"} » ? Le voyage actuellement actif sera archivé à sa place.`,
         ()=>restoreTrip(trip)
+    );
+});
+
+const tripHistoryDeleteBtn = document.getElementById("tripHistoryDeleteBtn");
+
+tripHistoryDeleteBtn.addEventListener("click",()=>{
+
+    if(!openTripHistoryEntry) return;
+    const trip = openTripHistoryEntry;
+
+    showConfirmModal(
+        `Supprimer définitivement « ${trip.name || "ce voyage"} » ? Cette action est irréversible et supprimera aussi ses photos.`,
+        async ()=>{
+
+            const history = loadTripHistory().filter(t=>t.id!==trip.id);
+            saveTripHistory(history);
+
+            try{
+                await deleteTripPhotos(trip.id);
+            }catch(err){
+                console.error("Suppression des photos du voyage impossible :",err);
+            }
+
+            openTripHistoryEntry = null;
+            tripHistoryDetailView.hidden = true;
+            tripHistoryView.hidden = false;
+            renderTripHistoryView();
+
+            showToast("Voyage supprimé.",{type:"success"});
+        }
     );
 });
 

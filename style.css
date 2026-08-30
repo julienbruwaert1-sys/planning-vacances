@@ -2498,7 +2498,34 @@ body.dark .trip-history-detail-line{
 
 .trip-history-restore-btn{
     width:100%;
+    margin-bottom:8px;
+}
+
+.trip-history-delete-btn{
+    width:100%;
     margin-bottom:22px;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid rgba(168,50,58,.35);
+    background:none;
+    color:#A8323A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.trip-history-delete-btn:hover{
+    background:#FCEEE8;
+}
+
+body.dark .trip-history-delete-btn{
+    border-color:rgba(255,155,155,.35);
+    color:#FF9B9B;
+}
+
+body.dark .trip-history-delete-btn:hover{
+    background:#2A1420;
 }
 
 .photo-lightbox{
