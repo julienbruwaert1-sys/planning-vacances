@@ -4528,6 +4528,25 @@ body.dark.theme-noel #welcomeView{
     background:#05100C;
 }
 
+/* .fullscreen-view est la base commune de TOUTES les vues plein écran
+   (Réservations, Album, Carte, Historique, Checklist, sous-pages Profil…)
+   — la reskinner ici couvre en un coup toutes ces vues sans avoir à toucher
+   chacune individuellement, même logique que #welcomeView ci-dessus (fond
+   propre non hérité de body). Pareil pour .fullscreen-header (bandeau du
+   haut sticky) et .mobile-tab-header (équivalent pour les onglets mobiles
+   Planning/Convertisseur/Profil). */
+body.theme-noel .fullscreen-view,
+body.theme-noel .fullscreen-header,
+body.theme-noel .mobile-tab-header{
+    background:#FFFBF6;
+}
+
+body.dark.theme-noel .fullscreen-view,
+body.dark.theme-noel .fullscreen-header,
+body.dark.theme-noel .mobile-tab-header{
+    background:#05100C;
+}
+
 body.theme-noel .weather-card{
     background:linear-gradient(135deg,#EDF5EE,#FFFFFF);
 }
