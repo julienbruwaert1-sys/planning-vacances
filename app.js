@@ -667,40 +667,66 @@ function deleteActivity(section,index){
         `Supprimer « ${activity.name} » ?`,
         ()=>{
 
-            planning[currentDay][section]
-            .splice(index,1);
+            function finishDeleteActivity(){
 
-            savePlanning();
-            jumpToFirstDayWithType(activityTypeFilter);
-            createTabs();
-            renderActivities();
+                planning[dayAtDeletion][section]
+                .splice(index,1);
 
-            showToast(
-                `« ${activity.name} » supprimée.`,
-                {
-                    actionLabel:"Annuler",
-                    onAction:()=>{
+                savePlanning();
+                jumpToFirstDayWithType(activityTypeFilter);
+                createTabs();
+                renderActivities();
 
-                        if(!planning[dayAtDeletion]){
-                            planning[dayAtDeletion] = {
-                                matin:[],midi:[],apresMidi:[],soir:[],title:""
-                            };
+                showToast(
+                    `« ${activity.name} » supprimée.`,
+                    {
+                        actionLabel:"Annuler",
+                        onAction:()=>{
+
+                            if(!planning[dayAtDeletion]){
+                                planning[dayAtDeletion] = {
+                                    matin:[],midi:[],apresMidi:[],soir:[],title:""
+                                };
+                            }
+
+                            planning[dayAtDeletion][section]
+                            .splice(index,0,activity);
+
+                            savePlanning();
+                            createTabs();
+
+                            if(currentDay===dayAtDeletion){
+                                renderActivities();
+                            }
+
+                            showToast("Suppression annulée.",{type:"success"});
                         }
-
-                        planning[dayAtDeletion][section]
-                        .splice(index,0,activity);
-
-                        savePlanning();
-                        createTabs();
-
-                        if(currentDay===dayAtDeletion){
-                            renderActivities();
-                        }
-
-                        showToast("Suppression annulée.",{type:"success"});
                     }
-                }
-            );
+                );
+            }
+
+            const linkedExpenses = tricountExpenses.filter(exp=>exp.activityId===activity.id);
+
+            if(linkedExpenses.length){
+                showConfirmModal(
+                    linkedExpenses.length===1
+                        ? "Cette activité a une dépense Tricount liée. La supprimer aussi ?"
+                        : `Cette activité a ${linkedExpenses.length} dépenses Tricount liées. Les supprimer aussi ?`,
+                    ()=>{
+                        tricountExpenses = tricountExpenses.filter(exp=>exp.activityId!==activity.id);
+                        saveTricountExpenses();
+                        renderTricount();
+                        finishDeleteActivity();
+                    },
+                    {
+                        confirmLabel:"Supprimer aussi",
+                        cancelLabel:"Garder la dépense",
+                        onCancel: finishDeleteActivity
+                    }
+                );
+            }else{
+                finishDeleteActivity();
+            }
         }
     );
 }
@@ -1192,8 +1218,13 @@ dragged = null;
                 const isOpen = !popover.hidden;
                 closeActivityMenus();
                 if(!isOpen){
+                    popover.classList.remove("flip-up");
                     popover.hidden = false;
                     kebabBtn.setAttribute("aria-expanded","true");
+
+                    if(popover.getBoundingClientRect().bottom > window.innerHeight){
+                        popover.classList.add("flip-up");
+                    }
                 }
             });
 
@@ -6373,6 +6404,7 @@ function addTricountExpense(){
 
     if(cameFromActivity){
         showToast(`Dépense « ${description} » ajoutée.`,{type:"success",duration:2500});
+        renderActivities();
         setActiveMainTab("planning");
     }else{
         showToast(

@@ -2180,6 +2180,11 @@ body.dark .activity-kebab-btn{
     display:none;
 }
 
+.activity-popover.flip-up{
+    top:auto;
+    bottom:calc(100% + 6px);
+}
+
 body.dark .activity-popover{
     background:#121A2E;
     border-color:#33364A;
