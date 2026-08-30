@@ -4784,14 +4784,12 @@ async function handleCapturedCameraMedia(blob){
     closeCameraView();
     if(day===null) return;
 
-    /* Déclenché avant l'écriture IndexedDB, même raison que pour le
-       sélecteur de fichiers : navigator.share() a besoin d'un geste
-       utilisateur encore frais. */
-    const galleryFileName = `photo_jour${day}_${Date.now()}${extensionForBlob(blob)}`;
-    saveBlobToGallery(blob,galleryFileName).catch(err=>{
-        console.error("Enregistrement dans la galerie impossible :",err);
-    });
-
+    /* Pas d'enregistrement auto dans la galerie ici (contrairement au
+       sélecteur de fichiers) : navigator.share() ouvrirait la fenêtre de
+       partage du téléphone après CHAQUE prise, ce qui casse le flux rapide
+       "appui, appui, appui" attendu d'une caméra maison. La photo/vidéo
+       reste dans l'Album de l'app ; le bouton 💾 du visualiseur permet de
+       l'envoyer manuellement dans la galerie si besoin. */
     try{
         await addDayPhoto(day,activityId,blob);
         refreshOpenPhotoViews();
