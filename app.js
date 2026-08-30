@@ -5725,10 +5725,22 @@ const tricountAddExpenseBtn = document.getElementById("tricountAddExpenseBtn");
 const tricountCancelEditBtn = document.getElementById("tricountCancelEditBtn");
 let editingTricountExpenseId = null;
 const tricountExpensesList = document.getElementById("tricountExpensesList");
-const tricountHistoryToggle = document.getElementById("tricountHistoryToggle");
-const tricountHistoryCount = document.getElementById("tricountHistoryCount");
 const tricountBalancesList = document.getElementById("tricountBalancesList");
 const tricountSettleList = document.getElementById("tricountSettleList");
+
+const tricountTabButtons = document.querySelectorAll("#tricountTabs .date-tab");
+const tricountTabPanels = document.querySelectorAll(".tricount-tab-panel");
+
+function switchTricountTab(tabName){
+    tricountTabButtons.forEach(b=>b.classList.toggle("active",b.dataset.tricountTab===tabName));
+    tricountTabPanels.forEach(p=>{
+        p.hidden = p.dataset.tricountPanel!==tabName;
+    });
+}
+
+tricountTabButtons.forEach(btn=>{
+    btn.addEventListener("click",()=>switchTricountTab(btn.dataset.tricountTab));
+});
 
 function saveTricountParticipants(){
     localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(tricountParticipants));
@@ -5912,6 +5924,8 @@ function startEditTricountExpense(id){
 
     editingTricountExpenseId = id;
 
+    switchTricountTab("new");
+
     tricountExpenseDesc.value = exp.description;
     tricountExpenseAmount.value = exp.amount;
     tricountExpenseCurrencyRole =
@@ -5942,7 +5956,6 @@ function cancelTricountExpenseEdit(){
 function renderTricountExpenses(){
 
     tricountExpensesList.textContent = "";
-    tricountHistoryCount.textContent = `(${tricountExpenses.length})`;
 
     const sorted = [...tricountExpenses].sort((a,b)=>b.timestamp-a.timestamp);
 
@@ -6189,12 +6202,6 @@ tricountParticipantInput.addEventListener("keydown",(e)=>{
 
 tricountAddExpenseBtn.addEventListener("click",addTricountExpense);
 tricountCancelEditBtn.addEventListener("click",cancelTricountExpenseEdit);
-
-tricountHistoryToggle.addEventListener("click",()=>{
-    const isHidden = tricountExpensesList.hidden;
-    tricountExpensesList.hidden = !isHidden;
-    tricountHistoryToggle.setAttribute("aria-expanded",String(isHidden));
-});
 
 renderTricount();
 

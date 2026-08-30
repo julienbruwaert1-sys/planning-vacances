@@ -3221,10 +3221,6 @@ body.dark .rate-info{
     gap:8px;
 }
 
-.tricount-expenses[hidden]{
-    display:none;
-}
-
 .tricount-payer-row{
     display:flex;
     align-items:center;
@@ -3238,33 +3234,13 @@ body.dark .rate-info{
     white-space:nowrap;
 }
 
-.tricount-history-toggle{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    width:100%;
-    background:none;
-    border:none;
-    padding:0;
-    margin:14px 0 6px;
-    cursor:pointer;
-    font-family:'Inter',Arial,sans-serif;
+#tricountTabs .date-tabs-group{
+    max-width:100%;
+    overflow-x:auto;
 }
 
-.tricount-history-label{
-    font-size:12px;
-    font-weight:700;
-    color:#9AAAB4;
-}
-
-.tricount-history-chevron{
-    color:#9AAAB4;
-    font-size:11px;
-    transition:transform .2s ease;
-}
-
-.tricount-history-toggle[aria-expanded="true"] .tricount-history-chevron{
-    transform:rotate(180deg);
+.tricount-tab-panel > .tricount-subheading:first-child{
+    margin-top:0;
 }
 
 .tricount-participant-row,
@@ -3643,9 +3619,7 @@ body.dark .tricount-card{
 
 body.dark .tricount-heading{ background:none; color:#EAF0FB; }
 body.dark .tricount-subheading{ color:#7C8BAE; }
-body.dark .tricount-payer-row label,
-body.dark .tricount-history-label,
-body.dark .tricount-history-chevron{ color:#7C8BAE; }
+body.dark .tricount-payer-row label{ color:#7C8BAE; }
 
 body.dark .tricount-participant-row,
 body.dark .tricount-expense-row,

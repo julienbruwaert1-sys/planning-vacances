@@ -381,12 +381,24 @@ Ajouter
 <div class="tricount-card" id="tricountSection">
 <h3 class="tricount-heading">🧾 Tricount</h3>
 
+<div class="date-tabs" id="tricountTabs">
+<div class="date-tabs-group">
+<button class="date-tab active" type="button" data-tricount-tab="participants">👥 Participants</button>
+<button class="date-tab" type="button" data-tricount-tab="new">➕ Nouvelle dépense</button>
+<button class="date-tab" type="button" data-tricount-tab="history">🧾 Historique</button>
+<button class="date-tab" type="button" data-tricount-tab="balances">⚖️ Soldes</button>
+</div>
+</div>
+
+<div class="tricount-tab-panel" data-tricount-panel="participants">
 <div class="tricount-participants-list" id="tricountParticipantsList"></div>
 <div class="tricount-add-row" id="tricountAddRow" hidden>
 <input type="text" id="tricountParticipantInput" placeholder="Nom du participant…">
 <button id="tricountAddParticipantBtn" class="add" type="button">Ajouter</button>
 </div>
+</div>
 
+<div class="tricount-tab-panel" data-tricount-panel="new" hidden>
 <p class="tricount-hint" id="tricountHint" hidden>Ajoute au moins 2 participants pour enregistrer des dépenses.</p>
 
 <div class="tricount-expense-form" id="tricountExpenseForm" hidden>
@@ -406,18 +418,19 @@ Ajouter
 <button id="tricountCancelEditBtn" class="tricount-cancel-edit" type="button" hidden>Annuler</button>
 </div>
 </div>
+</div>
 
-<button class="tricount-history-toggle" id="tricountHistoryToggle" type="button" aria-expanded="false">
-<span class="tricount-history-label">🧾 Historique des transactions <span id="tricountHistoryCount">(0)</span></span>
-<span class="tricount-history-chevron">▾</span>
-</button>
-<div class="tricount-expenses" id="tricountExpensesList" hidden></div>
+<div class="tricount-tab-panel" data-tricount-panel="history" hidden>
+<div class="tricount-expenses" id="tricountExpensesList"></div>
+</div>
 
+<div class="tricount-tab-panel" data-tricount-panel="balances" hidden>
 <h4 class="tricount-subheading">Soldes</h4>
 <div class="tricount-balances" id="tricountBalancesList"></div>
 
 <h4 class="tricount-subheading">Pour équilibrer</h4>
 <div class="tricount-settle" id="tricountSettleList"></div>
+</div>
 </div>
 </div>
 
