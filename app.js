@@ -6457,12 +6457,13 @@ syncJoinBtn.addEventListener("click",()=>{
         }
 
         showConfirmModal(
-            "Lier cet appareil remplacera son planning actuel par celui reçu de l'autre appareil. Continuer ?",
+            "Lier cet appareil remplacera son planning actuel par celui reçu de l'autre appareil — le planning actuel sera d'abord archivé dans l'historique des voyages, tu pourras le consulter (et le restaurer) plus tard. Continuer ?",
             ()=>{
+                archiveCurrentTrip();
                 pairWithCode(code,{isNew:false});
                 applySyncData(data);
                 syncCodeInput.value = "";
-                showToast("Appareil lié avec succès.",{type:"success"});
+                showToast("Appareil lié avec succès — ton ancien planning a été archivé.",{type:"success"});
             }
         );
 
