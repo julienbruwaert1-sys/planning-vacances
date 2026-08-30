@@ -2256,6 +2256,10 @@ body.dark .activity-edit-btn:hover{
     margin-bottom:10px;
 }
 
+.day-photo-gallery[hidden]{
+    display:none;
+}
+
 .day-photo-thumb{
     position:relative;
     flex:none;
@@ -3700,6 +3704,10 @@ body.dark .tricount-currency-option.active{
     background:#3D7CFF;
     color:#FFFFFF;
     border-color:#3D7CFF;
+}
+
+body.dark .tricount-add-participant-btn{
+    background:#3D7CFF;
 }
 
 body.dark .tricount-expense-row small{ color:#7C8BAE; }

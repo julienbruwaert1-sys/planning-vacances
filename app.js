@@ -10,6 +10,11 @@ var applyingRemoteUpdate = false;
    symbole de devise des prix. */
 let priceCurrencySymbol = localStorage.getItem("priceCurrencySymbol") || "£";
 
+const PRICE_CURRENCY_ICONS = { "£":"💷", "€":"💶", "$":"💵", "¥":"💴" };
+function priceCurrencyIcon(){
+    return PRICE_CURRENCY_ICONS[priceCurrencySymbol] || "💰";
+}
+
 /* Déclarées tôt pour la même raison : updateDatePlacement() (plus bas)
    appelle updateBottomNavVisibility() dès le chargement initial. */
 const bottomNav = document.getElementById("bottomNav");
@@ -777,7 +782,7 @@ function renderActivities(){
     if(hasPrice){
         const priceSpan = document.createElement("span");
         priceSpan.textContent =
-        `💷 Total du jour : ${dayTotalPrice.toFixed(2)} ${priceCurrencySymbol}`;
+        `${priceCurrencyIcon()} Total du jour : ${dayTotalPrice.toFixed(2)} ${priceCurrencySymbol}`;
         summary.appendChild(priceSpan);
     }
 
@@ -963,7 +968,7 @@ dragged = null;
                     const priceBadge = document.createElement("span");
                     priceBadge.className = "price-badge";
                     priceBadge.textContent =
-                    `💷 ${activity.price.toFixed(2)} ${priceCurrencySymbol}`;
+                    `${priceCurrencyIcon()} ${activity.price.toFixed(2)} ${priceCurrencySymbol}`;
                     badgeRow.appendChild(priceBadge);
                 }
 
@@ -2257,7 +2262,7 @@ welcomeCountrySelect.addEventListener("change",()=>{
     const meta = APP_ICONS[newChoice];
 
     showConfirmModal(
-        `Utiliser « ${meta.label} » comme logo de l'application ?`,
+        `Utiliser « ${meta.label} » comme logo de l'application ? Ta destination sera enregistrée dans les deux cas.`,
         ()=>{
             welcomeIconChoice = newChoice;
         },
@@ -2790,6 +2795,10 @@ function runGlobalSearch(query){
 
             item.addEventListener("click",()=>{
                 currentDay = m.day;
+                if(activityTypeFilter){
+                    activityTypeFilter = "";
+                    renderCategoryTabs();
+                }
                 renderTabs();
                 renderActivities();
                 searchResults.classList.remove("open");
@@ -4957,7 +4966,7 @@ photoLightboxSave.addEventListener("click",async ()=>{
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
-    showToast("Photo téléchargée.",{type:"success"});
+    showToast("Photo enregistrée.",{type:"success"});
 });
 
 mapCountryToggle.addEventListener("click",()=>{
@@ -6295,6 +6304,13 @@ function collectSyncData(){
         tricountExpenses,
         dayCount,
         startDate,
+        tripName,
+        tripCountry,
+        baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
+        priceCurrencySymbol: localStorage.getItem("priceCurrencySymbol") || "£",
+        targetCurrency: localStorage.getItem("targetCurrency") || "",
+        checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
+        travelerInfo: JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
         helpNotes: helpNotesInput.value,
         helpReports: helpReportsHistory,
         updatedAt: Date.now(),
@@ -6469,6 +6485,55 @@ function applySyncData(data){
         localStorage.setItem("startDate",startDate);
     }
 
+    if(data.tripName!==undefined && data.tripName!==tripName){
+        tripName = data.tripName;
+        localStorage.setItem(TRIP_NAME_KEY,tripName);
+        if(tripName) appTitle.textContent = "🌴 "+tripName;
+    }
+
+    if(data.tripCountry!==undefined && data.tripCountry!==tripCountry){
+        tripCountry = data.tripCountry;
+        localStorage.setItem(TRIP_COUNTRY_KEY,tripCountry);
+    }
+
+    let currencyChanged = false;
+
+    if(data.baseCurrency && CURRENCIES[data.baseCurrency] && data.baseCurrency!==baseCurrency){
+        baseCurrency = data.baseCurrency;
+        localStorage.setItem("baseCurrency",baseCurrency);
+        converterBaseCurrencySelect.value = baseCurrency;
+        currencyChanged = true;
+    }
+
+    if(data.targetCurrency && CURRENCIES[data.targetCurrency] && data.targetCurrency!==targetCurrency){
+        targetCurrency = data.targetCurrency;
+        localStorage.setItem("targetCurrency",targetCurrency);
+        targetCurrencySelect.value = targetCurrency;
+        currencyChanged = true;
+    }
+
+    if(currencyChanged){
+        applyCurrencyMeta();
+        currentRate = null;
+        fetchExchangeRate();
+    }
+
+    if(data.priceCurrencySymbol!==undefined && data.priceCurrencySymbol!==priceCurrencySymbol){
+        priceCurrencySymbol = data.priceCurrencySymbol;
+        localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
+        priceCurrencySelect.value = priceCurrencySymbol;
+        activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
+        activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
+    }
+
+    if(Array.isArray(data.checklistTemplates)){
+        localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(data.checklistTemplates));
+    }
+
+    if(data.travelerInfo && typeof data.travelerInfo==="object"){
+        localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(data.travelerInfo));
+    }
+
     if(data.helpNotes!==undefined){
         helpNotesInput.value = data.helpNotes;
         localStorage.setItem(HELP_NOTES_KEY,data.helpNotes);
@@ -6513,7 +6578,7 @@ function startSyncListener(){
 
     },(err)=>{
         console.error("Erreur de connexion à la synchronisation :",err);
-        syncStatus.textContent = "⚠️ Connexion à la synchro impossible";
+        syncStatus.textContent = "⚠️ Connexion à la synchronisation impossible";
     });
 }
 
@@ -6598,7 +6663,7 @@ document.addEventListener("keydown",(e)=>{
 syncGenerateBtn.addEventListener("click",()=>{
     const code = generateSyncCode();
     pairWithCode(code,{isNew:true});
-    showToast("Code de synchro généré.",{type:"success"});
+    showToast("Code de synchronisation généré.",{type:"success"});
 });
 
 /* Choix du sens de la liaison — par défaut "theirs" (comportement historique :
