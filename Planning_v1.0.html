@@ -238,11 +238,14 @@
 <span class="planning-search-placeholder">Rechercher une activité, une adresse…</span>
 </button>
 <div id="searchPanel" class="search-panel" hidden>
+<div class="search-input-row">
 <input type="text" id="globalSearch" placeholder="Rechercher une activité, une adresse…" autocomplete="off">
+<button id="categoryFilterBtn" class="search-filter-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Filtrer par type d'activité" title="Filtrer par type d'activité">🏷️</button>
+</div>
+<div id="categoryFilterDropdown" class="category-tabs category-filter-dropdown" hidden></div>
 <div id="searchResults" class="search-results"></div>
 </div>
 </div>
-<div id="categoryTabs" class="category-tabs"></div>
 <div class="day-select-wrap">
 <label for="daySelect">📅 Jour :</label>
 <select id="daySelect"></select>
