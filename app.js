@@ -2771,6 +2771,18 @@ function updateCountdownBanner(){
 
     appTitleRow.hidden = activeMainTab!=="planning" || isAnyFullscreenViewOpen();
 
+    if(isAnyFullscreenViewOpen()){
+        const openView = document.querySelector(".fullscreen-view:not([hidden])");
+        if(openView){
+            const fsRect = openView.getBoundingClientRect();
+            const navRect = bottomNav.getBoundingClientRect();
+            showToast(
+                `DEBUG liseré — vue:${openView.id} fsBottom:${Math.round(fsRect.bottom)} navTop:${Math.round(navRect.top)} gap:${Math.round(navRect.top-fsRect.bottom)} cdHidden:${countdownBanner.hidden} titleHidden:${appTitleRow.hidden} navH:${getComputedStyle(document.documentElement).getPropertyValue("--bottom-nav-h")}`,
+                {duration:15000}
+            );
+        }
+    }
+
     if(!isDesktopContext() && (activeMainTab!=="planning" || isAnyFullscreenViewOpen())){
         countdownBanner.hidden = true;
         jumpTodayBtn.hidden = true;
