@@ -2717,6 +2717,23 @@ welcomeThemeToggle.addEventListener("change",()=>{
     updateThemeButton();
 });
 
+/* Même logique que appThemeSelect (menu Options) — reflète juste la valeur
+   déjà enregistrée à l'ouverture de cet écran, pas de synchronisation live
+   entre les deux car ils ne sont jamais visibles en même temps. Applique le
+   thème immédiatement (comme welcomeThemeToggle ci-dessus) pour un aperçu
+   pendant la création du voyage. */
+const welcomeThemeSelect = document.getElementById("welcomeThemeSelect");
+welcomeThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
+
+welcomeThemeSelect.addEventListener("change",()=>{
+    const choice = welcomeThemeSelect.value;
+    localStorage.setItem(APP_THEME_KEY,choice);
+    document.body.classList.toggle("theme-noel",choice==="noel");
+    appThemeSelect.value = choice;
+    if(choice==="noel") startNoelSnow();
+    else stopNoelSnow();
+});
+
 const dayCountInput = document.getElementById("dayCount");
 dayCountInput.value = dayCount;
 

@@ -4520,6 +4520,14 @@ body.dark.theme-noel{
     background:#05100C;
 }
 
+body.theme-noel #welcomeView{
+    background:#FFFBF6;
+}
+
+body.dark.theme-noel #welcomeView{
+    background:#05100C;
+}
+
 body.theme-noel .weather-card{
     background:linear-gradient(135deg,#EDF5EE,#FFFFFF);
 }
