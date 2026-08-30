@@ -983,11 +983,16 @@ dragged = null;
 
             const infoDiv = document.createElement("div");
 
+            let addressReservationSuffix = "";
+            if(activity.address && activity.address.trim()) addressReservationSuffix += " 📍";
+            if(activity.reservationLink) addressReservationSuffix += " 🔗";
+
             const strong = document.createElement("strong");
             strong.textContent =
             `${icons[activity.type] || "📌"} `
             + (activity.time ? `${activity.time} – ` : "")
-            + activity.name;
+            + activity.name
+            + addressReservationSuffix;
 
             const editBtn = document.createElement("button");
             editBtn.className = "activity-edit-btn";
