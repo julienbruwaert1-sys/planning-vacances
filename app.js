@@ -5615,6 +5615,8 @@ let tricountExpenseCurrencyRole = "base";
 const tricountPayerSelect = document.getElementById("tricountPayerSelect");
 const tricountSplitCheckboxes = document.getElementById("tricountSplitCheckboxes");
 const tricountAddExpenseBtn = document.getElementById("tricountAddExpenseBtn");
+const tricountCancelEditBtn = document.getElementById("tricountCancelEditBtn");
+let editingTricountExpenseId = null;
 const tricountExpensesList = document.getElementById("tricountExpensesList");
 const tricountBalancesList = document.getElementById("tricountBalancesList");
 const tricountSettleList = document.getElementById("tricountSettleList");
@@ -5743,7 +5745,11 @@ function renderTricountExpenseForm(){
 
     updateTricountCurrencyToggle();
 
-    const previousPayer = tricountPayerSelect.value;
+    const editingExpense = editingTricountExpenseId
+        ? tricountExpenses.find(e=>e.id===editingTricountExpenseId)
+        : null;
+
+    const previousPayer = editingExpense ? editingExpense.paidBy : tricountPayerSelect.value;
 
     tricountPayerSelect.textContent = "";
     tricountParticipants.forEach(p=>{
@@ -5768,13 +5774,47 @@ function renderTricountExpenseForm(){
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = p.id;
-        checkbox.checked = true;
+        checkbox.checked = editingExpense ? editingExpense.splitBetween.includes(p.id) : true;
         label.appendChild(checkbox);
 
         label.appendChild(document.createTextNode(p.name));
 
         tricountSplitCheckboxes.appendChild(label);
     });
+}
+
+function startEditTricountExpense(id){
+
+    const exp = tricountExpenses.find(e=>e.id===id);
+    if(!exp) return;
+
+    editingTricountExpenseId = id;
+
+    tricountExpenseDesc.value = exp.description;
+    tricountExpenseAmount.value = exp.amount;
+    tricountExpenseCurrencyRole =
+    (exp.currency===targetCurrency && targetCurrency!==baseCurrency) ? "target" : "base";
+
+    renderTricountExpenseForm();
+
+    tricountAddExpenseBtn.textContent = "Enregistrer les modifications";
+    tricountCancelEditBtn.hidden = false;
+
+    tricountExpenseDesc.focus();
+}
+
+function cancelTricountExpenseEdit(){
+
+    editingTricountExpenseId = null;
+
+    tricountExpenseDesc.value = "";
+    tricountExpenseAmount.value = "";
+    tricountExpenseCurrencyRole = "base";
+
+    tricountAddExpenseBtn.textContent = "Ajouter la dépense";
+    tricountCancelEditBtn.hidden = true;
+
+    renderTricountExpenseForm();
 }
 
 function renderTricountExpenses(){
@@ -5813,6 +5853,19 @@ function renderTricountExpenses(){
 
         row.appendChild(info);
 
+        const actions = document.createElement("span");
+        actions.className = "tricount-row-actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "tricount-edit";
+        editBtn.textContent = "✏️";
+        editBtn.setAttribute("aria-label",`Modifier la dépense ${exp.description}`);
+        editBtn.addEventListener("click",()=>{
+            startEditTricountExpense(exp.id);
+        });
+        actions.appendChild(editBtn);
+
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "tricount-remove";
@@ -5821,7 +5874,9 @@ function renderTricountExpenses(){
         removeBtn.addEventListener("click",()=>{
             deleteTricountExpense(exp.id);
         });
-        row.appendChild(removeBtn);
+        actions.appendChild(removeBtn);
+
+        row.appendChild(actions);
 
         tricountExpensesList.appendChild(row);
     });
@@ -5952,15 +6007,33 @@ function addTricountExpense(){
         return;
     }
 
-    tricountExpenses.push({
-        id: generateId(),
-        description,
-        amount,
-        currency,
-        paidBy: payerId,
-        splitBetween,
-        timestamp: Date.now()
-    });
+    if(editingTricountExpenseId){
+
+        const exp = tricountExpenses.find(e=>e.id===editingTricountExpenseId);
+        if(exp){
+            exp.description = description;
+            exp.amount = amount;
+            exp.currency = currency;
+            exp.paidBy = payerId;
+            exp.splitBetween = splitBetween;
+        }
+
+        editingTricountExpenseId = null;
+        tricountAddExpenseBtn.textContent = "Ajouter la dépense";
+        tricountCancelEditBtn.hidden = true;
+
+    }else{
+
+        tricountExpenses.push({
+            id: generateId(),
+            description,
+            amount,
+            currency,
+            paidBy: payerId,
+            splitBetween,
+            timestamp: Date.now()
+        });
+    }
 
     saveTricountExpenses();
     renderTricount();
@@ -5976,6 +6049,7 @@ function deleteTricountExpense(id){
         ()=>{
             tricountExpenses = tricountExpenses.filter(e=>e.id!==id);
             saveTricountExpenses();
+            if(editingTricountExpenseId===id) cancelTricountExpenseEdit();
             renderTricount();
         }
     );
@@ -5991,6 +6065,7 @@ tricountParticipantInput.addEventListener("keydown",(e)=>{
 });
 
 tricountAddExpenseBtn.addEventListener("click",addTricountExpense);
+tricountCancelEditBtn.addEventListener("click",cancelTricountExpenseEdit);
 
 renderTricount();
 

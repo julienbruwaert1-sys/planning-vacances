@@ -1992,6 +1992,20 @@ body.dark .field-suffix-label{
     -moz-appearance:textfield;
 }
 
+/* Retire les flèches +/- de TOUS les champs numériques de l'app, pas
+   seulement ceux dans .field-suffix — règle globale volontaire pour ne
+   plus avoir à y penser à chaque nouveau champ number ajouté. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+}
+
+input[type="number"]{
+    appearance:textfield;
+    -moz-appearance:textfield;
+}
+
 input,
 select{
     padding:8px 10px;
@@ -3167,12 +3181,20 @@ body.dark .rate-info{
     accent-color:#D2503B;
 }
 
-.tricount-remove{
+.tricount-remove,
+.tricount-edit{
     background:none;
     border:none;
     color:#9AAAB4;
     cursor:pointer;
     font-size:13px;
+    flex-shrink:0;
+}
+
+.tricount-row-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
     flex-shrink:0;
 }
 
@@ -3476,6 +3498,32 @@ body.dark .tricount-participant-chip .tricount-remove{
     gap:8px;
 }
 
+.tricount-form-actions{
+    display:flex;
+    gap:8px;
+}
+
+.tricount-form-actions .add{
+    flex:1;
+}
+
+.tricount-cancel-edit{
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid rgba(51,64,74,.15);
+    background:none;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+body.dark .tricount-cancel-edit{
+    border-color:rgba(234,240,251,.15);
+    color:#EAF0FB;
+}
+
 .tricount-currency-option{
     flex:1;
     padding:7px 10px;
@@ -3511,7 +3559,8 @@ body.dark .tricount-currency-option.active{
 body.dark .tricount-expense-row small{ color:#7C8BAE; }
 body.dark .tricount-hint{ color:#7C8BAE; }
 body.dark .tricount-split-check{ color:#EAF0FB; }
-body.dark .tricount-remove{ color:#7C8BAE; }
+body.dark .tricount-remove,
+body.dark .tricount-edit{ color:#7C8BAE; }
 
 body.dark .tricount-balance-row.positive{ color:#6fd68c; }
 body.dark .tricount-balance-row.negative{ color:#ff8a80; }
