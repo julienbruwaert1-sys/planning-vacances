@@ -4670,8 +4670,18 @@ async function openDayCameraView(day,activityId){
 async function startCameraStream(){
     stopCameraStream();
     try{
+        /* width/height "ideal" (pas "exact") : le navigateur vise cette
+           résolution mais retombe sur ce que la caméra sait faire si elle
+           ne suit pas — sans ça, getUserMedia() choisit par défaut une
+           résolution pensée pour de la visio (souvent ~720p), bien en
+           dessous de ce que le capteur photo du téléphone peut vraiment
+           donner. */
         cameraStream = await navigator.mediaDevices.getUserMedia({
-            video:{ facingMode: cameraFacingMode },
+            video:{
+                facingMode: cameraFacingMode,
+                width: { ideal: 3840 },
+                height: { ideal: 2160 }
+            },
             audio:true
         });
         cameraPreview.srcObject = cameraStream;
