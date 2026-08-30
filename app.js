@@ -507,12 +507,30 @@ function addActivity(){
     const travelTime =
     travelRaw!=="" ? Math.max(0,parseInt(travelRaw,10)) : null;
 
-    if(!name || !type) return;
+    if(!name){
+        showToast("Donne un nom à l'activité.",{type:"error"});
+        return;
+    }
+
+    if(!type){
+        showToast("Choisis un type d'activité.",{type:"error"});
+        return;
+    }
 
     if(editingActivity){
 
-        const { section, index } = editingActivity;
-        const existing = planning[currentDay][section][index];
+        const { section, id } = editingActivity;
+        const list = planning[currentDay][section];
+        const index = list.findIndex(a=>a.id===id);
+
+        if(index===-1){
+            showToast("Cette activité n'existe plus — elle a peut-être été supprimée entre-temps.",{type:"error"});
+            editingActivity = null;
+            closeFormDrawer();
+            return;
+        }
+
+        const existing = list[index];
 
         const updated = Object.assign({},existing,{
             name, type, address, price, travelTime,
@@ -604,7 +622,7 @@ function startEditActivity(section,index){
     const activity = planning[currentDay][section][index];
     if(!activity) return;
 
-    editingActivity = { section, index };
+    editingActivity = { section, id: activity.id };
     fillActivityForm(activity,section);
 
     document.getElementById("activitySubmitBtn").textContent = "Enregistrer les modifications";
@@ -5735,6 +5753,7 @@ const tricountCancelEditBtn = document.getElementById("tricountCancelEditBtn");
 let editingTricountExpenseId = null;
 const tricountExpensesList = document.getElementById("tricountExpensesList");
 const tricountBalancesList = document.getElementById("tricountBalancesList");
+const tricountConversionWarning = document.getElementById("tricountConversionWarning");
 const tricountSettleList = document.getElementById("tricountSettleList");
 
 const tricountTabButtons = document.querySelectorAll("#tricountTabs .date-tab");
@@ -5766,6 +5785,17 @@ function tricountAmountInBase(exp){
     if(currency===baseCurrency) return exp.amount;
     if(currency===targetCurrency && currentRate) return exp.amount / currentRate;
     return exp.amount;
+}
+
+/* Vrai quand tricountAmountInBase() ne peut pas réellement convertir ce
+   montant (devise différente de la devise de base, mais pas de taux
+   disponible pour la convertir) — il est alors traité tel quel dans les
+   soldes, ce qui les fausse silencieusement si on ne le signale pas. */
+function tricountExpenseNeedsConversionWarning(exp){
+    const currency = exp.currency || baseCurrency;
+    if(currency===baseCurrency) return false;
+    if(currency===targetCurrency && currentRate) return false;
+    return true;
 }
 
 function computeTricountBalances(){
@@ -5985,8 +6015,9 @@ function renderTricountExpenses(){
         const info = document.createElement("div");
         const title = document.createElement("div");
         const expCurrency = exp.currency || baseCurrency;
+        const needsWarning = tricountExpenseNeedsConversionWarning(exp);
         let amountText = `${exp.amount.toFixed(2)} ${expCurrency}`;
-        if(expCurrency!==baseCurrency){
+        if(expCurrency!==baseCurrency && !needsWarning){
             amountText += ` (≈ ${tricountAmountInBase(exp).toFixed(2)} ${baseCurrency})`;
         }
         title.textContent = `${exp.description} — ${amountText}`;
@@ -5995,6 +6026,13 @@ function renderTricountExpenses(){
         const meta = document.createElement("small");
         meta.textContent = `Payé par ${payer ? payer.name : "?"} · Pour ${splitNames || "personne"}`;
         info.appendChild(meta);
+
+        if(needsWarning){
+            const warning = document.createElement("small");
+            warning.className = "tricount-warning";
+            warning.textContent = `⚠️ Non convertible en ${baseCurrency} pour l'instant — compté tel quel dans les soldes.`;
+            info.appendChild(warning);
+        }
 
         row.appendChild(info);
 
@@ -6030,6 +6068,8 @@ function renderTricountExpenses(){
 function renderTricountBalances(){
 
     tricountBalancesList.textContent = "";
+
+    tricountConversionWarning.hidden = !tricountExpenses.some(tricountExpenseNeedsConversionWarning);
 
     const balances = computeTricountBalances();
 

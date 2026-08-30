@@ -189,6 +189,8 @@ body.dark .modal-box{
     border:none;
     font-family:'Inter',Arial,sans-serif;
     transition:background .15s,color .15s;
+    flex-shrink:0;
+    white-space:nowrap;
 }
 
 .date-tab.active{
@@ -3241,6 +3243,11 @@ body.dark .rate-info{
 #tricountTabs .date-tabs-group{
     max-width:100%;
     overflow-x:auto;
+    scrollbar-width:none;
+}
+
+#tricountTabs .date-tabs-group::-webkit-scrollbar{
+    display:none;
 }
 
 .tricount-tab-panel > .tricount-subheading:first-child{
@@ -3291,6 +3298,17 @@ body.dark .rate-info{
     color:#9AAAB4;
     text-align:center;
     margin:10px 0;
+}
+
+.tricount-warning{
+    font-size:11.5px;
+    color:#A8323A;
+    margin:0 0 10px;
+}
+
+small.tricount-warning{
+    display:block;
+    margin:2px 0 0;
 }
 
 .tricount-split-checkboxes{
@@ -3716,6 +3734,7 @@ body.dark .tricount-split-check{ color:#EAF0FB; }
 body.dark .tricount-remove,
 body.dark .tricount-edit{ color:#7C8BAE; }
 
+body.dark .tricount-warning{ color:#ff8a80; }
 body.dark .tricount-balance-row.positive{ color:#6fd68c; }
 body.dark .tricount-balance-row.negative{ color:#ff8a80; }
 
