@@ -6320,6 +6320,7 @@ function addTricountExpense(){
         });
     }
 
+    const cameFromActivity = !!pendingTricountActivityLink;
     pendingTricountActivityLink = null;
 
     saveTricountExpenses();
@@ -6327,6 +6328,11 @@ function addTricountExpense(){
 
     tricountExpenseDesc.value = "";
     tricountExpenseAmount.value = "";
+
+    if(cameFromActivity){
+        showToast(`Dépense « ${description} » ajoutée.`,{type:"success",duration:2500});
+        setActiveMainTab("planning");
+    }
 }
 
 function deleteTricountExpense(id){
