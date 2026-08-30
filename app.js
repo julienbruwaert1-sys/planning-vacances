@@ -4582,6 +4582,20 @@ function refreshOpenPhotoViews(){
     if(!document.getElementById("albumView").hidden) renderAlbumView();
 }
 
+/* Sans fenêtre de partage : téléchargement direct (dossier Téléchargements),
+   que la plupart des galeries Android (Google Photos y compris) indexent
+   aussi bien que l'appareil photo/DCIM. Utilisée pour la caméra maison, où
+   ouvrir la fenêtre de partage après CHAQUE prise casse le flux tap/hold. */
+function downloadBlobToGallery(blob,fileName){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    return "downloaded";
+}
+
 async function saveBlobToGallery(blob,fileName){
 
     const file = new File([blob],fileName,{type:blob.type || "image/jpeg"});
@@ -4596,13 +4610,7 @@ async function saveBlobToGallery(blob,fileName){
         }
     }
 
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    return "downloaded";
+    return downloadBlobToGallery(file,fileName);
 }
 
 dayPhotoInput.addEventListener("change",async ()=>{
@@ -4794,12 +4802,13 @@ async function handleCapturedCameraMedia(blob){
     closeCameraView();
     if(day===null) return;
 
-    /* Pas d'enregistrement auto dans la galerie ici (contrairement au
-       sélecteur de fichiers) : navigator.share() ouvrirait la fenêtre de
-       partage du téléphone après CHAQUE prise, ce qui casse le flux rapide
-       "appui, appui, appui" attendu d'une caméra maison. La photo/vidéo
-       reste dans l'Album de l'app ; le bouton 💾 du visualiseur permet de
-       l'envoyer manuellement dans la galerie si besoin. */
+    /* Téléchargement direct (pas saveBlobToGallery) : on évite
+       navigator.share(), qui ouvrirait la fenêtre de partage du téléphone
+       après CHAQUE prise et casserait le flux rapide "appui, appui, appui"
+       attendu d'une caméra maison. */
+    const galleryFileName = `photo_jour${day}_${Date.now()}${extensionForBlob(blob)}`;
+    downloadBlobToGallery(blob,galleryFileName);
+
     try{
         await addDayPhoto(day,activityId,blob);
         refreshOpenPhotoViews();
