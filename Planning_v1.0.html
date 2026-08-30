@@ -92,6 +92,20 @@
 </div>
 </div>
 
+<div id="cameraView" class="camera-view" hidden>
+<video id="cameraPreview" class="camera-preview" autoplay playsinline muted></video>
+<canvas id="cameraCanvas" hidden></canvas>
+<div id="cameraRecordingIndicator" class="camera-recording-indicator" hidden><span class="camera-recording-dot"></span><span id="cameraRecordingTimer">0:00</span></div>
+<button id="cameraCloseBtn" class="camera-close-btn" type="button" aria-label="Fermer l'appareil photo">✕</button>
+<button id="cameraSwitchBtn" class="camera-switch-btn" type="button" aria-label="Changer de caméra">🔄</button>
+<p id="cameraHint" class="camera-hint">Appuie pour une photo, maintiens pour filmer</p>
+<div class="camera-controls">
+<button id="cameraGalleryBtn" class="camera-gallery-btn" type="button" aria-label="Choisir une photo ou vidéo existante">🖼️</button>
+<button id="cameraShutterBtn" class="camera-shutter-btn" type="button" aria-label="Maintenir pour filmer, appuyer pour photographier"></button>
+<span class="camera-controls-spacer" aria-hidden="true"></span>
+</div>
+</div>
+
 <div id="printView"></div>
 
 <div class="corner-menu">

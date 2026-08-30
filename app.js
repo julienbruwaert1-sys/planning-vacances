@@ -1145,7 +1145,7 @@ dragged = null;
             photoBtn.title = "Ajouter une photo ou vidéo";
             photoBtn.setAttribute("aria-label","Ajouter une photo ou vidéo à cette activité");
             photoBtn.addEventListener("click",()=>{
-                openDayPhotoPicker(currentDay,activity.id);
+                openDayCameraView(currentDay,activity.id);
             });
             btnGroup.appendChild(photoBtn);
 
@@ -1204,7 +1204,7 @@ dragged = null;
             photoItem.textContent = "📷 Ajouter une photo ou vidéo";
             photoItem.addEventListener("click",()=>{
                 closeActivityMenus();
-                openDayPhotoPicker(currentDay,activity.id);
+                openDayCameraView(currentDay,activity.id);
             });
             popover.appendChild(photoItem);
 
@@ -3569,6 +3569,7 @@ function closeAllFullscreenViews(){
     document.querySelectorAll(".profile-sub-view").forEach(view=>{
         if(!view.hidden) view.hidden = true;
     });
+    if(!cameraView.hidden) closeCameraView();
 }
 
 bottomNavTabs.forEach(btn=>{
@@ -4621,6 +4622,203 @@ dayPhotoInput.addEventListener("change",async ()=>{
 
     pendingPhotoDay = null;
     pendingPhotoActivityId = null;
+});
+
+/* --- Vue caméra maison : appui court = photo, rester appuyé = vidéo ---
+   `<input type=file capture>` ne permet pas ce geste (c'est l'appli caméra
+   native de l'OS qui décide de son interface, pas la page web) : il faut
+   son propre aperçu live (getUserMedia) + son propre bouton obturateur. */
+
+const cameraView = document.getElementById("cameraView");
+const cameraPreview = document.getElementById("cameraPreview");
+const cameraCanvas = document.getElementById("cameraCanvas");
+const cameraCloseBtn = document.getElementById("cameraCloseBtn");
+const cameraSwitchBtn = document.getElementById("cameraSwitchBtn");
+const cameraGalleryBtn = document.getElementById("cameraGalleryBtn");
+const cameraShutterBtn = document.getElementById("cameraShutterBtn");
+const cameraRecordingIndicator = document.getElementById("cameraRecordingIndicator");
+const cameraRecordingTimer = document.getElementById("cameraRecordingTimer");
+
+const CAMERA_HOLD_THRESHOLD_MS = 350;
+
+let cameraStream = null;
+let cameraFacingMode = "environment";
+let cameraMediaRecorder = null;
+let cameraRecordedChunks = [];
+let cameraHoldTimer = null;
+let cameraIsRecording = false;
+let cameraRecordingStartTime = 0;
+let cameraRecordingTimerInterval = null;
+
+async function openDayCameraView(day,activityId){
+    pendingPhotoDay = day;
+    pendingPhotoActivityId = activityId || null;
+    cameraView.hidden = false;
+    await startCameraStream();
+}
+
+async function startCameraStream(){
+    stopCameraStream();
+    try{
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video:{ facingMode: cameraFacingMode },
+            audio:true
+        });
+        cameraPreview.srcObject = cameraStream;
+    }catch(err){
+        console.error("Caméra inaccessible :",err);
+        showToast("Impossible d'accéder à la caméra sur cet appareil.",{type:"error"});
+        closeCameraView();
+    }
+}
+
+function stopCameraStream(){
+    if(cameraStream){
+        cameraStream.getTracks().forEach(track=>track.stop());
+        cameraStream = null;
+    }
+    cameraPreview.srcObject = null;
+}
+
+function closeCameraView(){
+    if(cameraIsRecording) cancelCameraRecording();
+    stopCameraStream();
+    cameraView.hidden = true;
+    pendingPhotoDay = null;
+    pendingPhotoActivityId = null;
+}
+
+cameraCloseBtn.addEventListener("click",closeCameraView);
+
+cameraSwitchBtn.addEventListener("click",()=>{
+    cameraFacingMode = cameraFacingMode==="environment" ? "user" : "environment";
+    startCameraStream();
+});
+
+cameraGalleryBtn.addEventListener("click",()=>{
+    const day = pendingPhotoDay, activityId = pendingPhotoActivityId;
+    closeCameraView();
+    openDayPhotoPicker(day,activityId);
+});
+
+function updateCameraRecordingTimer(){
+    const elapsed = Math.floor((Date.now()-cameraRecordingStartTime)/1000);
+    const m = Math.floor(elapsed/60), s = elapsed%60;
+    cameraRecordingTimer.textContent = `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function startCameraRecording(){
+    if(!cameraStream) return;
+    cameraRecordedChunks = [];
+    const mimeType = ["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"]
+        .find(type=>window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+    try{
+        cameraMediaRecorder = mimeType ? new MediaRecorder(cameraStream,{mimeType}) : new MediaRecorder(cameraStream);
+    }catch(err){
+        console.error("Enregistrement vidéo impossible :",err);
+        showToast("L'enregistrement vidéo n'est pas pris en charge sur cet appareil.",{type:"error"});
+        return;
+    }
+
+    cameraIsRecording = true;
+    cameraShutterBtn.classList.add("recording");
+    cameraRecordingIndicator.hidden = false;
+    cameraRecordingStartTime = Date.now();
+    updateCameraRecordingTimer();
+    cameraRecordingTimerInterval = setInterval(updateCameraRecordingTimer,500);
+
+    cameraMediaRecorder.addEventListener("dataavailable",e=>{
+        if(e.data && e.data.size) cameraRecordedChunks.push(e.data);
+    });
+    cameraMediaRecorder.addEventListener("stop",()=>{
+        clearInterval(cameraRecordingTimerInterval);
+        cameraRecordingIndicator.hidden = true;
+        cameraShutterBtn.classList.remove("recording");
+        cameraIsRecording = false;
+        if(cameraRecordedChunks.length){
+            const blob = new Blob(cameraRecordedChunks,{type:cameraMediaRecorder.mimeType || "video/webm"});
+            handleCapturedCameraMedia(blob);
+        }
+        cameraRecordedChunks = [];
+    });
+
+    cameraMediaRecorder.start();
+}
+
+function stopCameraRecording(){
+    if(cameraMediaRecorder && cameraMediaRecorder.state!=="inactive") cameraMediaRecorder.stop();
+}
+
+function cancelCameraRecording(){
+    cameraRecordedChunks = [];
+    if(cameraMediaRecorder && cameraMediaRecorder.state!=="inactive") cameraMediaRecorder.stop();
+    clearInterval(cameraRecordingTimerInterval);
+    cameraRecordingIndicator.hidden = true;
+    cameraShutterBtn.classList.remove("recording");
+    cameraIsRecording = false;
+}
+
+function capturePhotoFromCamera(){
+    if(!cameraPreview.videoWidth) return;
+    cameraCanvas.width = cameraPreview.videoWidth;
+    cameraCanvas.height = cameraPreview.videoHeight;
+    cameraCanvas.getContext("2d").drawImage(cameraPreview,0,0);
+    cameraCanvas.toBlob(blob=>{
+        if(blob) handleCapturedCameraMedia(blob);
+    },"image/jpeg",0.92);
+}
+
+async function handleCapturedCameraMedia(blob){
+
+    const day = pendingPhotoDay, activityId = pendingPhotoActivityId;
+    closeCameraView();
+    if(day===null) return;
+
+    /* Déclenché avant l'écriture IndexedDB, même raison que pour le
+       sélecteur de fichiers : navigator.share() a besoin d'un geste
+       utilisateur encore frais. */
+    const galleryFileName = `photo_jour${day}_${Date.now()}${extensionForBlob(blob)}`;
+    saveBlobToGallery(blob,galleryFileName).catch(err=>{
+        console.error("Enregistrement dans la galerie impossible :",err);
+    });
+
+    try{
+        await addDayPhoto(day,activityId,blob);
+        refreshOpenPhotoViews();
+        showToast("Photo ajoutée.",{type:"success",duration:2500});
+    }catch(err){
+        console.error("Impossible d'enregistrer la photo :",err);
+        showToast("Impossible d'enregistrer la photo sur cet appareil.",{type:"error"});
+    }
+}
+
+cameraShutterBtn.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    cameraShutterBtn.setPointerCapture(e.pointerId);
+    cameraHoldTimer = setTimeout(()=>{
+        cameraHoldTimer = null;
+        startCameraRecording();
+    },CAMERA_HOLD_THRESHOLD_MS);
+});
+
+function releaseCameraShutter(){
+    if(cameraHoldTimer){
+        clearTimeout(cameraHoldTimer);
+        cameraHoldTimer = null;
+        capturePhotoFromCamera();
+    }else if(cameraIsRecording){
+        stopCameraRecording();
+    }
+}
+
+cameraShutterBtn.addEventListener("pointerup",releaseCameraShutter);
+cameraShutterBtn.addEventListener("pointercancel",()=>{
+    if(cameraHoldTimer){
+        clearTimeout(cameraHoldTimer);
+        cameraHoldTimer = null;
+    }else if(cameraIsRecording){
+        cancelCameraRecording();
+    }
 });
 
 async function renderDayPhotos(){

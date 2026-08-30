@@ -2680,6 +2680,138 @@ body.dark .trip-history-delete-btn:hover{
     background:#A8323A;
 }
 
+.camera-view{
+    position:fixed;
+    inset:0;
+    z-index:3300;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+}
+
+.camera-view[hidden]{
+    display:none;
+}
+
+.camera-preview{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.camera-close-btn,
+.camera-switch-btn{
+    position:absolute;
+    top:16px;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:none;
+    background:rgba(255,255,255,.16);
+    color:#fff;
+    font-size:16px;
+    cursor:pointer;
+}
+
+.camera-close-btn{
+    left:16px;
+}
+
+.camera-switch-btn{
+    right:16px;
+}
+
+.camera-recording-indicator{
+    position:absolute;
+    top:16px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(0,0,0,.5);
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    padding:5px 12px;
+    border-radius:999px;
+    font-variant-numeric:tabular-nums;
+}
+
+.camera-recording-indicator[hidden]{
+    display:none;
+}
+
+.camera-recording-dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:#E23B3B;
+    animation:cameraRecordingPulse 1s infinite;
+}
+
+@keyframes cameraRecordingPulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:.25; }
+}
+
+.camera-hint{
+    position:absolute;
+    bottom:114px;
+    left:0;
+    right:0;
+    margin:0;
+    text-align:center;
+    color:rgba(255,255,255,.75);
+    font-size:12px;
+}
+
+.camera-controls{
+    position:absolute;
+    bottom:32px;
+    left:0;
+    right:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 32px;
+}
+
+.camera-gallery-btn,
+.camera-controls-spacer{
+    width:44px;
+    height:44px;
+}
+
+.camera-gallery-btn{
+    border-radius:10px;
+    border:2px solid rgba(255,255,255,.6);
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.camera-shutter-btn{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    border:4px solid #fff;
+    background:rgba(255,255,255,.25);
+    cursor:pointer;
+    touch-action:none;
+    transition:transform .15s ease, background .15s ease, border-radius .15s ease;
+}
+
+.camera-shutter-btn.recording{
+    background:#E23B3B;
+    border-color:#E23B3B;
+    border-radius:18px;
+    transform:scale(.82);
+}
+
 .slot{
     min-height:60px;
 }
