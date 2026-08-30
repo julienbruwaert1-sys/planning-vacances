@@ -905,7 +905,7 @@ function renderActivities(){
         document.createElement("div");
 
         sectionDiv.innerHTML=
-        `<h3>${section.label}</h3>`;
+        `<h3 class="day-slot-head">${section.label}</h3>`;
 
         const slot =
         document.createElement("div");
@@ -945,8 +945,7 @@ dragged = null;
                 `${activity.name}, ${activity.type}. `
                 + "Ctrl + flèche haut ou bas pour réordonner."
             );
-            div.style.borderLeft =
-            `5px solid ${typeColors[activity.type] || "#999"}`;
+            div.style.setProperty("--type-color",typeColors[activity.type] || "#999");
 
             div.addEventListener("keydown",(e)=>{
 

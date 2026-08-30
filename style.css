@@ -2076,6 +2076,7 @@ body.dark .activity small{
 }
 
 .activity{
+    position:relative;
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -2086,6 +2087,18 @@ body.dark .activity small{
     cursor:grab;
     flex-wrap:wrap;
     gap:8px;
+}
+
+.activity::before{
+    content:"";
+    position:absolute;
+    left:-17px;
+    top:50%;
+    transform:translateY(-50%);
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--type-color,#999);
 }
 
 .activity:hover{
@@ -2897,6 +2910,69 @@ h3{
     color:white;
     padding:10px;
     border-radius:14px;
+}
+
+/* Vue "Chronologie" du planning : ligne verticale reliant les moments de la
+   journée, chacun marqué par un point sur la ligne — remplace les anciens
+   bandeaux pleins (h3 générique ci-dessus, toujours utilisé tel quel par la
+   vue impression/PDF, voir app.js). .day-slot-head est une classe pour ne
+   PAS toucher au h3 générique (fuite déjà rencontrée par le passé sur les
+   h3/h4 bruts, voir le classeur de mémoire CSS du projet). */
+#activities{
+    position:relative;
+    padding-left:22px;
+}
+
+#activities::before{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:10px;
+    bottom:10px;
+    width:2px;
+    background:#E3E9EF;
+}
+
+body.dark #activities::before{
+    background:#33364A;
+}
+
+/* #activities .day-slot-head (pas juste .day-slot-head) : doit battre
+   "body.dark h3" en spécificité (0,1,1) — une classe seule (0,1,0) perdrait
+   le match en mode sombre et laisserait le bandeau plein d'origine
+   réapparaître, peu importe l'ordre des règles dans ce fichier. Repéré à
+   l'écran (screenshot sombre) avant d'être poussé, pas en relecture. */
+#activities .day-slot-head{
+    position:relative;
+    background:none;
+    color:#33404A;
+    padding:0;
+    border-radius:0;
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:15px;
+    font-weight:700;
+    margin:18px 0 10px;
+}
+
+#activities .day-slot-head::before{
+    content:"";
+    position:absolute;
+    left:-20px;
+    top:3px;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:#D2503B;
+    border:3px solid #FCFDFE;
+}
+
+body.dark #activities .day-slot-head{
+    color:#EAF0FB;
+}
+
+body.dark #activities .day-slot-head::before{
+    background:#3D7CFF;
+    border-color:#0A1020;
 }
 
 #daySummary{
