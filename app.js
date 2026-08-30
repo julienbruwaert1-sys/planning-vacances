@@ -4521,7 +4521,16 @@ async function deleteDayPhoto(id){
    fois pour toutes au tripId courant au premier chargement après la mise
    à jour. Sans effet (aucune ligne à mettre à jour) pour un compte déjà
    migré ou qui n'a jamais eu de photo. */
+const PHOTO_MIGRATION_DONE_KEY = "photoMigrationDone";
+
+/* Ne doit tourner qu'une seule fois, jamais. Sans ce garde-fou, chaque
+   rechargement retenterait la migration et pourrait rattacher au voyage
+   *actif à ce moment-là* une photo qui se retrouverait un jour sans tripId
+   pour une tout autre raison (bug futur, écriture interrompue) — exactement
+   le genre de fuite "les données du brouillon suivent le nouveau voyage"
+   déjà rencontré avec le planning/Tricount (voir welcomeCreateBtn). */
 async function migrateLegacyPhotos(){
+    if(localStorage.getItem(PHOTO_MIGRATION_DONE_KEY)) return;
     try{
         const db = await openPhotoDB();
         await new Promise((resolve,reject)=>{
@@ -4539,6 +4548,7 @@ async function migrateLegacyPhotos(){
             };
             req.onerror = ()=>reject(req.error);
         });
+        localStorage.setItem(PHOTO_MIGRATION_DONE_KEY,"1");
     }catch(err){
         console.error("Migration des photos existantes impossible :",err);
     }
