@@ -996,7 +996,7 @@ dragged = null;
 
             const editBtn = document.createElement("button");
             editBtn.className = "activity-edit-btn";
-            editBtn.textContent = "🖊️";
+            editBtn.textContent = "✏️";
             editBtn.title = "Modifier l'activité";
             editBtn.setAttribute("aria-label","Modifier l'activité");
             editBtn.addEventListener("click",()=>{
