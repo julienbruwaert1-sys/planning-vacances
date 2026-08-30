@@ -84,7 +84,10 @@
 <div id="photoLightbox" class="photo-lightbox" hidden>
 <button id="photoLightboxClose" class="photo-lightbox-close" type="button" aria-label="Fermer la photo">✕</button>
 <img id="photoLightboxImage" class="photo-lightbox-image" alt="Photo du jour">
+<div class="photo-lightbox-actions">
+<button id="photoLightboxSave" class="photo-lightbox-save" type="button">💾 Enregistrer</button>
 <button id="photoLightboxDelete" class="photo-lightbox-delete" type="button">🗑️ Supprimer</button>
+</div>
 </div>
 
 <div id="printView"></div>
@@ -379,7 +382,7 @@ Ajouter
 <h3 class="tricount-heading">🧾 Tricount</h3>
 
 <div class="tricount-participants-list" id="tricountParticipantsList"></div>
-<div class="tricount-add-row">
+<div class="tricount-add-row" id="tricountAddRow" hidden>
 <input type="text" id="tricountParticipantInput" placeholder="Nom du participant…">
 <button id="tricountAddParticipantBtn" class="add" type="button">Ajouter</button>
 </div>
@@ -393,7 +396,10 @@ Ajouter
 <button type="button" class="tricount-currency-option active" id="tricountCurrencyBaseBtn"></button>
 <button type="button" class="tricount-currency-option" id="tricountCurrencyTargetBtn"></button>
 </div>
-<select id="tricountPayerSelect" aria-label="Payé par"></select>
+<div class="tricount-payer-row">
+<label for="tricountPayerSelect">Payé par</label>
+<select id="tricountPayerSelect"></select>
+</div>
 <div class="tricount-split-checkboxes" id="tricountSplitCheckboxes"></div>
 <div class="tricount-form-actions">
 <button id="tricountAddExpenseBtn" class="add" type="button">Ajouter la dépense</button>
@@ -401,7 +407,11 @@ Ajouter
 </div>
 </div>
 
-<div class="tricount-expenses" id="tricountExpensesList"></div>
+<button class="tricount-history-toggle" id="tricountHistoryToggle" type="button" aria-expanded="false">
+<span class="tricount-history-label">🧾 Historique des transactions <span id="tricountHistoryCount">(0)</span></span>
+<span class="tricount-history-chevron">▾</span>
+</button>
+<div class="tricount-expenses" id="tricountExpensesList" hidden></div>
 
 <h4 class="tricount-subheading">Soldes</h4>
 <div class="tricount-balances" id="tricountBalancesList"></div>

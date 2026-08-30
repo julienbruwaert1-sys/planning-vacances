@@ -2564,19 +2564,33 @@ body.dark .trip-history-delete-btn:hover{
     cursor:pointer;
 }
 
-.photo-lightbox-delete{
+.photo-lightbox-actions{
     position:absolute;
     bottom:24px;
     left:50%;
     transform:translateX(-50%);
+    display:flex;
+    gap:10px;
+}
+
+.photo-lightbox-save,
+.photo-lightbox-delete{
     border:none;
     border-radius:999px;
     padding:10px 20px;
-    background:#A8323A;
     color:#fff;
     font-weight:700;
     font-size:13px;
     cursor:pointer;
+    white-space:nowrap;
+}
+
+.photo-lightbox-save{
+    background:rgba(255,255,255,.16);
+}
+
+.photo-lightbox-delete{
+    background:#A8323A;
 }
 
 .slot{
@@ -3207,6 +3221,52 @@ body.dark .rate-info{
     gap:8px;
 }
 
+.tricount-expenses[hidden]{
+    display:none;
+}
+
+.tricount-payer-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.tricount-payer-row label{
+    font-size:12.5px;
+    font-weight:600;
+    color:#9AAAB4;
+    white-space:nowrap;
+}
+
+.tricount-history-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    background:none;
+    border:none;
+    padding:0;
+    margin:14px 0 6px;
+    cursor:pointer;
+    font-family:'Inter',Arial,sans-serif;
+}
+
+.tricount-history-label{
+    font-size:12px;
+    font-weight:700;
+    color:#9AAAB4;
+}
+
+.tricount-history-chevron{
+    color:#9AAAB4;
+    font-size:11px;
+    transition:transform .2s ease;
+}
+
+.tricount-history-toggle[aria-expanded="true"] .tricount-history-chevron{
+    transform:rotate(180deg);
+}
+
 .tricount-participant-row,
 .tricount-expense-row,
 .tricount-balance-row,
@@ -3226,6 +3286,10 @@ body.dark .rate-info{
     display:flex;
     gap:8px;
     margin-top:8px;
+}
+
+.tricount-add-row[hidden]{
+    display:none;
 }
 
 .tricount-add-row input,
@@ -3289,6 +3353,23 @@ body.dark .rate-info{
 #tricountParticipantsList{
     flex-direction:row;
     flex-wrap:wrap;
+    align-items:center;
+}
+
+.tricount-add-participant-btn{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:none;
+    background:#D2503B;
+    color:#FFFFFF;
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
 }
 
 .tricount-participant-chip{
@@ -3562,6 +3643,9 @@ body.dark .tricount-card{
 
 body.dark .tricount-heading{ background:none; color:#EAF0FB; }
 body.dark .tricount-subheading{ color:#7C8BAE; }
+body.dark .tricount-payer-row label,
+body.dark .tricount-history-label,
+body.dark .tricount-history-chevron{ color:#7C8BAE; }
 
 body.dark .tricount-participant-row,
 body.dark .tricount-expense-row,

@@ -4305,6 +4305,16 @@ async function getAllPhotos(){
     });
 }
 
+async function getPhotoById(id){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
+        const req = tx.objectStore(PHOTO_STORE_NAME).get(id);
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+    });
+}
+
 async function deleteTripPhotos(tripId){
     const photos = await getTripPhotos(tripId);
     for(const photo of photos){
@@ -4358,6 +4368,7 @@ const photoLightbox = document.getElementById("photoLightbox");
 const photoLightboxImage = document.getElementById("photoLightboxImage");
 const photoLightboxClose = document.getElementById("photoLightboxClose");
 const photoLightboxDelete = document.getElementById("photoLightboxDelete");
+const photoLightboxSave = document.getElementById("photoLightboxSave");
 
 let pendingPhotoDay = null;
 let pendingPhotoActivityId = null;
@@ -4909,6 +4920,44 @@ photoLightboxDelete.addEventListener("click",()=>{
             }
         }
     );
+});
+
+photoLightboxSave.addEventListener("click",async ()=>{
+
+    if(openLightboxPhotoId===null) return;
+
+    let photo;
+    try{
+        photo = await getPhotoById(openLightboxPhotoId);
+    }catch(err){
+        console.error("Photo introuvable :",err);
+    }
+
+    if(!photo || !photo.blob){
+        showToast("Impossible de récupérer la photo.",{type:"error"});
+        return;
+    }
+
+    const fileName = `photo_jour${photo.day || ""}_${photo.timestamp || Date.now()}.jpg`;
+    const file = new File([photo.blob],fileName,{type:photo.blob.type || "image/jpeg"});
+
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{
+            await navigator.share({files:[file]});
+            return;
+        }catch(err){
+            if(err && err.name==="AbortError") return;
+            console.error("Partage impossible :",err);
+        }
+    }
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Photo téléchargée.",{type:"success"});
 });
 
 mapCountryToggle.addEventListener("click",()=>{
@@ -5660,6 +5709,7 @@ let tricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS
 let tricountExpenses = JSON.parse(localStorage.getItem(TRICOUNT_EXPENSES_KEY)) || [];
 
 const tricountParticipantsList = document.getElementById("tricountParticipantsList");
+const tricountAddRow = document.getElementById("tricountAddRow");
 const tricountParticipantInput = document.getElementById("tricountParticipantInput");
 const tricountAddParticipantBtn = document.getElementById("tricountAddParticipantBtn");
 const tricountHint = document.getElementById("tricountHint");
@@ -5675,6 +5725,8 @@ const tricountAddExpenseBtn = document.getElementById("tricountAddExpenseBtn");
 const tricountCancelEditBtn = document.getElementById("tricountCancelEditBtn");
 let editingTricountExpenseId = null;
 const tricountExpensesList = document.getElementById("tricountExpensesList");
+const tricountHistoryToggle = document.getElementById("tricountHistoryToggle");
+const tricountHistoryCount = document.getElementById("tricountHistoryCount");
 const tricountBalancesList = document.getElementById("tricountBalancesList");
 const tricountSettleList = document.getElementById("tricountSettleList");
 
@@ -5773,6 +5825,19 @@ function renderTricountParticipants(){
 
         tricountParticipantsList.appendChild(row);
     });
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "tricount-add-participant-btn";
+    addBtn.textContent = "+";
+    addBtn.setAttribute("aria-label","Ajouter un participant");
+    addBtn.setAttribute("aria-expanded",String(!tricountAddRow.hidden));
+    addBtn.addEventListener("click",()=>{
+        tricountAddRow.hidden = !tricountAddRow.hidden;
+        addBtn.setAttribute("aria-expanded",String(!tricountAddRow.hidden));
+        if(!tricountAddRow.hidden) tricountParticipantInput.focus();
+    });
+    tricountParticipantsList.appendChild(addBtn);
 
     const enough = tricountParticipants.length>=2;
     tricountHint.hidden = enough;
@@ -5877,6 +5942,7 @@ function cancelTricountExpenseEdit(){
 function renderTricountExpenses(){
 
     tricountExpensesList.textContent = "";
+    tricountHistoryCount.textContent = `(${tricountExpenses.length})`;
 
     const sorted = [...tricountExpenses].sort((a,b)=>b.timestamp-a.timestamp);
 
@@ -6123,6 +6189,12 @@ tricountParticipantInput.addEventListener("keydown",(e)=>{
 
 tricountAddExpenseBtn.addEventListener("click",addTricountExpense);
 tricountCancelEditBtn.addEventListener("click",cancelTricountExpenseEdit);
+
+tricountHistoryToggle.addEventListener("click",()=>{
+    const isHidden = tricountExpensesList.hidden;
+    tricountExpensesList.hidden = !isHidden;
+    tricountHistoryToggle.setAttribute("aria-expanded",String(isHidden));
+});
 
 renderTricount();
 
