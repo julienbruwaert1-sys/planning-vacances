@@ -4662,6 +4662,24 @@ body.theme-noel .noel-garland{
 
 body.dark.theme-noel .noel-garland span:nth-child(3n+3){ color:#7FBE96; }
 
+/* Même esprit festif, mais pour TOUTES les autres vues (Réservations,
+   Album, Carte, Historique, Checklist, sous-pages Profil, écran de
+   création) sans dupliquer le HTML dans chacune. Volontairement plus
+   discret qu'une vraie guirlande sur toute la largeur : .fullscreen-header
+   est un flex-row (bouton retour + titre) sans flex-wrap, donc un ::after
+   en display:block/width:100% s'y écraserait au lieu de passer à la ligne
+   — de simples flocons encadrant le titre restent inline et ne cassent
+   jamais cette mise en page. */
+body.theme-noel .fullscreen-header h2::before,
+body.theme-noel .welcome-title::before{
+    content:"❋ ";
+}
+
+body.theme-noel .fullscreen-header h2::after,
+body.theme-noel .welcome-title::after{
+    content:" ❋";
+}
+
 /* Neige animée — le conteneur #noelSnow existe toujours dans le DOM mais ne
    contient des <span> (ajoutés/retirés en JS) que lorsque le thème Noël est
    actif ; un conteneur vide n'affiche rien, donc pas besoin de le
@@ -4670,7 +4688,13 @@ body.dark.theme-noel .noel-garland span:nth-child(3n+3){ color:#7FBE96; }
 .noel-snow{
     position:fixed;
     inset:0;
-    z-index:5;
+    /* Doit passer AU-DESSUS de .fullscreen-view (2000) et #welcomeView
+       (3000) pour rester visible sur Réservations/Album/l'écran de
+       création — sinon ces vues, plus opaques et à z-index plus élevé,
+       masquent complètement la neige en dessous. Reste sous les
+       superpositions fonctionnelles (photo-lightbox 3200, camera-view
+       3300, modal-overlay 3500) pour ne jamais gêner un vrai geste. */
+    z-index:3100;
     overflow:hidden;
     pointer-events:none;
 }
