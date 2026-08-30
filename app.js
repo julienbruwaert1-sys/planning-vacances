@@ -4766,9 +4766,22 @@ let pendingCapturedBlob = null;
 let pendingCapturedType = null;
 let cameraReviewObjectUrl = null;
 
+/* "day" (par défaut) : la prise part vers addDayPhoto()/l'Album, comme
+   avant. "expense" : la prise part vers le reçu Tricount en cours de saisie
+   à la place — même vue caméra, juste une destination différente une fois
+   la photo gardée (voir handleCapturedCameraMedia). */
+let cameraCaptureMode = "day";
+
 async function openDayCameraView(day,activityId){
+    cameraCaptureMode = "day";
     pendingPhotoDay = day;
     pendingPhotoActivityId = activityId || null;
+    cameraView.hidden = false;
+    await startCameraStream();
+}
+
+async function openExpenseCameraView(){
+    cameraCaptureMode = "expense";
     cameraView.hidden = false;
     await startCameraStream();
 }
@@ -4888,6 +4901,7 @@ function closeCameraView(){
     cameraView.hidden = true;
     pendingPhotoDay = null;
     pendingPhotoActivityId = null;
+    cameraCaptureMode = "day";
 }
 
 cameraCloseBtn.addEventListener("click",closeCameraView);
@@ -4899,8 +4913,10 @@ cameraSwitchBtn.addEventListener("click",()=>{
 
 cameraGalleryBtn.addEventListener("click",()=>{
     const day = pendingPhotoDay, activityId = pendingPhotoActivityId;
+    const mode = cameraCaptureMode;
     closeCameraView();
-    openDayPhotoPicker(day,activityId);
+    if(mode==="expense") tricountReceiptInput.click();
+    else openDayPhotoPicker(day,activityId);
 });
 
 function updateCameraRecordingTimer(){
@@ -5020,8 +5036,17 @@ cameraKeepBtn.addEventListener("click",()=>{
 
 async function handleCapturedCameraMedia(blob){
 
+    const mode = cameraCaptureMode;
     const day = pendingPhotoDay, activityId = pendingPhotoActivityId;
     closeCameraView();
+
+    if(mode==="expense"){
+        pendingReceiptFile = blob;
+        pendingReceiptRemoved = false;
+        showTricountReceiptPreview(blob);
+        return;
+    }
+
     if(day===null) return;
 
     /* Téléchargement direct (pas saveBlobToGallery) : on évite
@@ -6489,7 +6514,7 @@ function resetTricountReceiptState(){
     hideTricountReceiptPreview();
 }
 
-tricountReceiptBtn.addEventListener("click",()=>tricountReceiptInput.click());
+tricountReceiptBtn.addEventListener("click",()=>openExpenseCameraView());
 
 tricountReceiptInput.addEventListener("change",()=>{
     const file = tricountReceiptInput.files[0];
