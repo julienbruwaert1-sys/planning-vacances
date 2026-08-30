@@ -4711,6 +4711,7 @@ let cameraMediaRecorder = null;
 let cameraRecordedChunks = [];
 let cameraHoldTimer = null;
 let cameraIsRecording = false;
+let cameraRecordingCancelled = false;
 let cameraRecordingStartTime = 0;
 let cameraRecordingTimerInterval = null;
 
@@ -4784,6 +4785,7 @@ function updateCameraRecordingTimer(){
 function startCameraRecording(){
     if(!cameraStream) return;
     cameraRecordedChunks = [];
+    cameraRecordingCancelled = false;
     const mimeType = ["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"]
         .find(type=>window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
     try{
@@ -4809,7 +4811,12 @@ function startCameraRecording(){
         cameraRecordingIndicator.hidden = true;
         cameraShutterBtn.classList.remove("recording");
         cameraIsRecording = false;
-        if(cameraRecordedChunks.length){
+        /* Vérifié sur cameraRecordingCancelled, pas seulement sur la longueur
+           de cameraRecordedChunks : stop() déclenche un dernier
+           "dataavailable" (donc un dernier chunk poussé dans le tableau)
+           APRÈS que cancelCameraRecording() l'a vidé, donc le vider seul ne
+           suffit pas à empêcher l'enregistrement d'une vidéo qu'on a annulée. */
+        if(cameraRecordedChunks.length && !cameraRecordingCancelled){
             const blob = new Blob(cameraRecordedChunks,{type:cameraMediaRecorder.mimeType || "video/webm"});
             handleCapturedCameraMedia(blob);
         }
@@ -4824,6 +4831,7 @@ function stopCameraRecording(){
 }
 
 function cancelCameraRecording(){
+    cameraRecordingCancelled = true;
     cameraRecordedChunks = [];
     if(cameraMediaRecorder && cameraMediaRecorder.state!=="inactive") cameraMediaRecorder.stop();
     clearInterval(cameraRecordingTimerInterval);
@@ -4833,7 +4841,10 @@ function cancelCameraRecording(){
 }
 
 function capturePhotoFromCamera(){
-    if(!cameraPreview.videoWidth) return;
+    if(!cameraPreview.videoWidth){
+        showToast("Caméra pas encore prête, réessaie dans un instant.",{type:"error"});
+        return;
+    }
     cameraCanvas.width = cameraPreview.videoWidth;
     cameraCanvas.height = cameraPreview.videoHeight;
     cameraCanvas.getContext("2d").drawImage(cameraPreview,0,0);
