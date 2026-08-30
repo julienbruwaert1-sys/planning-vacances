@@ -32,5 +32,25 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ajouter une photo",
+      "short_name": "Photo",
+      "description": "Ouvre directement l'appareil photo pour ajouter une photo au jour en cours",
+      "url": "./Planning_v1.0.html?shortcut=photo",
+      "icons": [
+        { "src": "icons/icon-192-default.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Ajouter une dépense",
+      "short_name": "Dépense",
+      "description": "Ouvre directement le formulaire Tricount pour ajouter une dépense",
+      "url": "./Planning_v1.0.html?shortcut=expense",
+      "icons": [
+        { "src": "icons/icon-192-default.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
   ]
 }

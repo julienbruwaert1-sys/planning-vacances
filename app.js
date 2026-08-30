@@ -2012,11 +2012,11 @@ const switchServerLabel = document.getElementById("switchServerLabel");
 
 const isOnLiveServer = location.hostname === "192.168.1.118";
 
-/* Pas de sens dans une appli empaquetée (Capacitor) : il n'y a qu'une seule
-   origine, pas de Live Server/GitHub Pages à choisir. */
-if(isNativeApp()){
-    switchServerBtn.hidden = true;
-}
+/* Masqué à la demande de l'utilisateur (2026-08-30) — code et constantes
+   conservés (utile pour le dev), juste retiré du menu. Toujours pertinent de
+   le garder caché dans une appli empaquetée (Capacitor) : il n'y a qu'une
+   seule origine, pas de Live Server/GitHub Pages à choisir. */
+switchServerBtn.hidden = true;
 
 switchServerLabel.textContent = isOnLiveServer
     ? "Passer à la version en ligne"
@@ -5903,6 +5903,120 @@ async function renderMapView(){
     }
 }
 
+/* --- Téléchargement hors-ligne d'une zone de carte ---
+   Le service worker met déjà en cache (TILE_CACHE_NAME, jamais purgé) toute
+   tuile OpenStreetMap consultée — voir cacheFirstTiles() dans
+   service-worker.js. Il suffit donc de déclencher nous-mêmes des fetch()
+   vers les tuiles de la zone visible, à plusieurs niveaux de zoom, AVANT le
+   départ : le SW les interceptera et les gardera exactement comme s'il
+   s'agissait d'un vrai déplacement sur la carte. Aucun nouveau mécanisme de
+   cache à écrire côté page. */
+
+const mapDownloadAreaBtn = document.getElementById("mapDownloadAreaBtn");
+const MAP_OFFLINE_TILE_CAP = 1500;
+const MAP_OFFLINE_ZOOM_BEFORE = 1;
+const MAP_OFFLINE_ZOOM_AFTER = 2;
+const MAP_OFFLINE_MAX_ZOOM = 17;
+
+function mapTileRangeForZoom(bounds,zoom){
+    const scale = Math.pow(2,zoom);
+    const xForLon = lon => Math.floor((lon+180)/360*scale);
+    const yForLat = lat => {
+        const rad = lat*Math.PI/180;
+        return Math.floor((1-Math.log(Math.tan(rad)+1/Math.cos(rad))/Math.PI)/2*scale);
+    };
+    return {
+        xMin: xForLon(bounds.getWest()),
+        xMax: xForLon(bounds.getEast()),
+        yMin: yForLat(bounds.getNorth()),
+        yMax: yForLat(bounds.getSouth())
+    };
+}
+
+function mapOfflineTileList(bounds,minZoom,maxZoom){
+    const tiles = [];
+    for(let z=minZoom; z<=maxZoom; z++){
+        const {xMin,xMax,yMin,yMax} = mapTileRangeForZoom(bounds,z);
+        for(let x=xMin; x<=xMax; x++){
+            for(let y=yMin; y<=yMax; y++){
+                tiles.push({x,y,z});
+            }
+        }
+    }
+    return tiles;
+}
+
+async function downloadMapAreaOffline(){
+
+    if(!mapInstance){
+        showToast("Ouvre d'abord la carte.",{type:"error"});
+        return;
+    }
+
+    if(!navigator.onLine){
+        showToast("Connecte-toi à internet pour télécharger cette zone avant de partir.",{type:"error"});
+        return;
+    }
+
+    if(!navigator.serviceWorker || !navigator.serviceWorker.controller){
+        showToast("Le mode hors-ligne n'est pas encore actif sur cet appareil — recharge la page et réessaie.",{type:"error"});
+        return;
+    }
+
+    const bounds = mapInstance.getBounds();
+    const currentZoom = Math.round(mapInstance.getZoom());
+    const minZoom = Math.max(0,currentZoom-MAP_OFFLINE_ZOOM_BEFORE);
+    const maxZoom = Math.min(MAP_OFFLINE_MAX_ZOOM,currentZoom+MAP_OFFLINE_ZOOM_AFTER);
+    const tiles = mapOfflineTileList(bounds,minZoom,maxZoom);
+
+    if(!tiles.length) return;
+
+    if(tiles.length>MAP_OFFLINE_TILE_CAP){
+        showToast(
+            `Zone trop grande pour un téléchargement raisonnable (${tiles.length} tuiles) — dézoome un peu moins large et réessaie.`,
+            {type:"error",duration:4000}
+        );
+        return;
+    }
+
+    const originalLabel = mapDownloadAreaBtn.textContent;
+    mapDownloadAreaBtn.disabled = true;
+    showToast(`Téléchargement de ${tiles.length} tuiles pour un usage hors-ligne…`,{duration:3000});
+
+    const subdomains = ["a","b","c"];
+    let done = 0;
+    let failed = 0;
+    let index = 0;
+
+    async function worker(){
+        while(index<tiles.length){
+            const tile = tiles[index++];
+            const s = subdomains[(tile.x+tile.y)%subdomains.length];
+            const url = `https://${s}.tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png`;
+            try{
+                await fetch(url);
+            }catch(err){
+                failed++;
+            }
+            done++;
+            mapDownloadAreaBtn.textContent = `⬇️ ${done}/${tiles.length}`;
+        }
+    }
+
+    await Promise.all(Array.from({length:6},worker));
+
+    mapDownloadAreaBtn.disabled = false;
+    mapDownloadAreaBtn.textContent = originalLabel;
+
+    if(failed){
+        showToast(`Zone téléchargée avec ${failed} tuile(s) manquante(s) (réseau instable).`,{type:"error",duration:4000});
+    }else{
+        showToast("Zone téléchargée pour un usage hors-ligne.",{type:"success"});
+    }
+}
+
+mapDownloadAreaBtn.addEventListener("click",downloadMapAreaOffline);
+
 /* --- Recherche libre sur la zone visible ("pharmacie", "supermarché",
    nom d'un lieu…) via Nominatim, restreinte à la zone affichée (viewbox
    + bounded=1). Chargée à la demande uniquement (bouton "Rechercher ici"),
@@ -7835,4 +7949,29 @@ renderDayWeather();
    (voir migrateLegacyPhotos) puis réaffiche la bande de photos du jour au
    cas où elle se serait affichée vide avant la fin de la migration. */
 migrateLegacyPhotos().then(renderDayPhotos);
+
+/* --- Raccourcis d'application (appui long sur l'icône, manifest.json) ---
+   Chaque raccourci navigue vers ?shortcut=... — traité une seule fois ici,
+   tout en bas, une fois le reste de l'app initialisé (currentDay, planning,
+   tricountParticipants… doivent déjà avoir leurs vraies valeurs). L'URL est
+   nettoyée juste après pour qu'un simple rechargement de page ne redéclenche
+   pas le raccourci indéfiniment. */
+(function handleAppShortcut(){
+    const shortcut = new URLSearchParams(location.search).get("shortcut");
+    if(!shortcut) return;
+
+    history.replaceState(null,"",location.pathname);
+
+    if(localStorage.getItem(TRIP_CREATED_KEY)!=="1"){
+        showToast("Crée d'abord un voyage pour utiliser ce raccourci.",{type:"error"});
+        return;
+    }
+
+    if(shortcut==="photo"){
+        openDayCameraView(currentDay,null);
+    }else if(shortcut==="expense"){
+        setActiveMainTab("budget");
+        switchTricountTab("new");
+    }
+})();
 
