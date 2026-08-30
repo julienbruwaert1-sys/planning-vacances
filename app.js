@@ -1142,8 +1142,8 @@ dragged = null;
             photoBtn.type = "button";
             photoBtn.className = "activity-photo-btn";
             photoBtn.textContent = "📷";
-            photoBtn.title = "Ajouter une photo";
-            photoBtn.setAttribute("aria-label","Ajouter une photo à cette activité");
+            photoBtn.title = "Ajouter une photo ou vidéo";
+            photoBtn.setAttribute("aria-label","Ajouter une photo ou vidéo à cette activité");
             photoBtn.addEventListener("click",()=>{
                 openDayCamera(currentDay,activity.id);
             });
@@ -1201,7 +1201,7 @@ dragged = null;
             const photoItem = document.createElement("button");
             photoItem.type = "button";
             photoItem.className = "activity-popover-item";
-            photoItem.textContent = "📷 Ajouter une photo";
+            photoItem.textContent = "📷 Ajouter une photo ou vidéo";
             photoItem.addEventListener("click",()=>{
                 closeActivityMenus();
                 openDayCamera(currentDay,activity.id);
@@ -4453,6 +4453,39 @@ async function getAllPhotos(){
     });
 }
 
+function mediaTypeFromBlob(blob){
+    return (blob && blob.type && blob.type.startsWith("video/")) ? "video" : "image";
+}
+
+function extensionForBlob(blob){
+    const type = (blob && blob.type) || "";
+    if(type.includes("mp4")) return ".mp4";
+    if(type.includes("webm")) return ".webm";
+    if(type.includes("quicktime")) return ".mov";
+    if(type.startsWith("video/")) return ".mp4";
+    if(type.includes("png")) return ".png";
+    if(type.includes("webp")) return ".webp";
+    return ".jpg";
+}
+
+function createMediaThumbElement(url,type){
+    if(type==="video"){
+        const video = document.createElement("video");
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        const badge = document.createElement("span");
+        badge.className = "day-photo-video-badge";
+        badge.textContent = "▶";
+        return { media: video, badge };
+    }
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "";
+    return { media: img, badge: null };
+}
+
 async function getPhotoById(id){
     const db = await openPhotoDB();
     return new Promise((resolve,reject)=>{
@@ -4514,6 +4547,7 @@ const dayPhotoGallery = document.getElementById("dayPhotoGallery");
 const dayPhotoInput = document.getElementById("dayPhotoInput");
 const photoLightbox = document.getElementById("photoLightbox");
 const photoLightboxImage = document.getElementById("photoLightboxImage");
+const photoLightboxVideo = document.getElementById("photoLightboxVideo");
 const photoLightboxClose = document.getElementById("photoLightboxClose");
 const photoLightboxDelete = document.getElementById("photoLightboxDelete");
 const photoLightboxSave = document.getElementById("photoLightboxSave");
@@ -4571,7 +4605,7 @@ dayPhotoInput.addEventListener("change",async ()=>{
        utilisateur encore "frais" issu du sélecteur photo — navigator.share()
        exige une interaction récente, et attendre l'écriture IndexedDB
        d'abord risquerait de la perdre. */
-    const galleryFileName = `photo_jour${pendingPhotoDay}_${Date.now()}.jpg`;
+    const galleryFileName = `photo_jour${pendingPhotoDay}_${Date.now()}${extensionForBlob(file)}`;
     saveBlobToGallery(file,galleryFileName).catch(err=>{
         console.error("Enregistrement dans la galerie impossible :",err);
     });
@@ -4614,21 +4648,20 @@ async function renderDayPhotos(){
     const group = photos.map(photo=>{
         const url = URL.createObjectURL(photo.blob);
         dayPhotoObjectUrls.push(url);
-        return {id:photo.id, url};
+        return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob)};
     });
 
     photos.forEach((photo,i)=>{
 
-        const url = group[i].url;
+        const { url, type } = group[i];
 
         const thumb = document.createElement("button");
         thumb.type = "button";
         thumb.className = "day-photo-thumb";
 
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = "";
-        thumb.appendChild(img);
+        const { media, badge } = createMediaThumbElement(url,type);
+        thumb.appendChild(media);
+        if(badge) thumb.appendChild(badge);
 
         thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url,group));
 
@@ -4820,7 +4853,7 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
             const groupUrls = groupPhotos.map(photo=>{
                 const url = URL.createObjectURL(photo.blob);
                 objectUrls.push(url);
-                return {id:photo.id, url};
+                return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob)};
             });
 
             const visible = groupPhotos.slice(0,4);
@@ -4828,16 +4861,15 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
 
             visible.forEach((photo,i)=>{
 
-                const url = groupUrls[i].url;
+                const { url, type } = groupUrls[i];
 
                 const thumb = document.createElement("button");
                 thumb.type = "button";
                 thumb.className = "day-photo-thumb";
 
-                const img = document.createElement("img");
-                img.src = url;
-                img.alt = "";
-                thumb.appendChild(img);
+                const { media, badge } = createMediaThumbElement(url,type);
+                thumb.appendChild(media);
+                if(badge) thumb.appendChild(badge);
 
                 if(i===visible.length-1 && extra>0){
                     const overlay = document.createElement("div");
@@ -5086,13 +5118,26 @@ function showLightboxAt(index){
     lightboxIndex = (index + lightboxGroup.length) % lightboxGroup.length;
     const entry = lightboxGroup[lightboxIndex];
     openLightboxPhotoId = entry.id;
-    photoLightboxImage.src = entry.url;
+
+    photoLightboxVideo.pause();
+    photoLightboxVideo.removeAttribute("src");
+
+    if(entry.type==="video"){
+        photoLightboxImage.hidden = true;
+        photoLightboxVideo.hidden = false;
+        photoLightboxVideo.src = entry.url;
+    }else{
+        photoLightboxVideo.hidden = true;
+        photoLightboxImage.hidden = false;
+        photoLightboxImage.src = entry.url;
+    }
+
     photoLightboxCounter.hidden = lightboxGroup.length<=1;
     photoLightboxCounter.textContent = `${lightboxIndex+1} / ${lightboxGroup.length}`;
 }
 
 function openPhotoLightbox(id,url,group){
-    lightboxGroup = (group && group.length) ? group : [{id,url}];
+    lightboxGroup = (group && group.length) ? group : [{id,url,type:"image"}];
     const startIndex = lightboxGroup.findIndex(p=>p.id===id);
     showLightboxAt(startIndex===-1 ? 0 : startIndex);
     photoLightbox.hidden = false;
@@ -5100,6 +5145,8 @@ function openPhotoLightbox(id,url,group){
 
 function closePhotoLightbox(){
     photoLightbox.hidden = true;
+    photoLightboxVideo.pause();
+    photoLightboxVideo.removeAttribute("src");
     openLightboxPhotoId = null;
     lightboxGroup = [];
 }
@@ -5178,7 +5225,7 @@ photoLightboxSave.addEventListener("click",async ()=>{
         return;
     }
 
-    const fileName = `photo_jour${photo.day || ""}_${photo.timestamp || Date.now()}.jpg`;
+    const fileName = `photo_jour${photo.day || ""}_${photo.timestamp || Date.now()}${extensionForBlob(photo.blob)}`;
     const result = await saveBlobToGallery(photo.blob,fileName);
     if(result==="downloaded") showToast("Photo enregistrée.",{type:"success"});
 });
