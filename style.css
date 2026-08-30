@@ -4443,3 +4443,140 @@ body.dark #welcomeTripName::placeholder{
 body.dark .welcome-select-placeholder{
     color:#7C8BAE;
 }
+
+/* ================= Thème saisonnier "Noël" =================
+   Indépendant du mode clair/sombre (body.dark) — les deux se combinent,
+   body peut porter "theme-noel" seul ou "theme-noel dark" ensemble.
+   Reskin de l'accent principal (#D2503B → rouge sapin) sur les surfaces les
+   plus visibles ; les écrans de réglages profonds gardent l'accent par
+   défaut plutôt que de dupliquer une variante sombre pour chacun des
+   ~35 usages de #D2503B du fichier — ampleur volontairement limitée à ce
+   qu'une "option de thème" doit couvrir, pas une refonte complète. */
+
+body.theme-noel a:focus-visible,
+body.theme-noel button:focus-visible,
+body.theme-noel input:focus-visible,
+body.theme-noel select:focus-visible,
+body.theme-noel .activity:focus-visible,
+body.theme-noel .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#B3261E;
+}
+
+body.theme-noel .date-tab.active,
+body.theme-noel .jump-today-btn,
+body.theme-noel .countdown-banner,
+body.theme-noel .help-report-icon-copy:hover,
+body.theme-noel .profile-stat-value,
+body.theme-noel .profile-link,
+body.theme-noel .bottom-nav-tab.active,
+body.theme-noel .activity-photo-btn,
+body.theme-noel .checklist-chip,
+body.theme-noel .tricount-link-badge,
+body.theme-noel .tricount-receipt-btn,
+body.theme-noel .tricount-add-participant-btn,
+body.theme-noel .welcome-eyebrow{
+    color:#B3261E;
+}
+
+body.theme-noel .sync-direction-option.active,
+body.theme-noel .help-notes-send-btn,
+body.theme-noel .map-country-toggle.active,
+body.theme-noel .map-poi-search-btn,
+body.theme-noel .checklist-template-chip.active,
+body.theme-noel .form-toggle-btn,
+body.theme-noel button.add,
+body.theme-noel .search-filter-btn.active,
+body.theme-noel .tricount-currency-option.active{
+    background:#B3261E;
+}
+
+body.theme-noel .sync-direction-option.active,
+body.theme-noel .map-country-toggle.active,
+body.theme-noel .checklist-template-chip.active,
+body.theme-noel .tricount-currency-option.active{
+    border-color:#B3261E;
+}
+
+body.theme-noel .checklist-hide-toggle input,
+body.theme-noel .checklist-item input[type="checkbox"],
+body.theme-noel .tricount-split-check input[type="checkbox"]{
+    accent-color:#B3261E;
+}
+
+body.theme-noel .checklist-progress-fill{
+    background:linear-gradient(90deg,#B3261E,#C9A227);
+}
+
+/* Surfaces les plus visibles (Planning) : variante sombre dédiée plutôt que
+   la même couleur partout, comme pour l'accent #D2503B → #3D7CFF ailleurs
+   dans l'app. body.dark.theme-noel (2 classes) bat body.dark seul en
+   spécificité, peu importe l'ordre des règles dans ce fichier — même
+   principe que le correctif day-slot-head plus haut. */
+body.theme-noel{
+    background:#FFFBF6;
+}
+
+body.dark.theme-noel{
+    background:#05100C;
+}
+
+body.theme-noel .weather-card{
+    background:linear-gradient(135deg,#EDF5EE,#FFFFFF);
+}
+
+body.dark.theme-noel .weather-card{
+    background:linear-gradient(135deg,#132A22,#0B1A15);
+}
+
+body.theme-noel .activity{
+    background:#EDF5EE;
+}
+
+body.theme-noel .activity:hover{
+    background:#FBEDEC;
+}
+
+body.dark.theme-noel .activity{
+    background:#132A22;
+}
+
+body.dark.theme-noel .activity:hover{
+    background:#1B3A2E;
+}
+
+body.theme-noel #activities::before{
+    background:#C9A227;
+}
+
+body.dark.theme-noel #activities::before{
+    background:#4A6656;
+}
+
+body.theme-noel #activities .day-slot-head{
+    color:#1B4332;
+}
+
+body.dark.theme-noel #activities .day-slot-head{
+    color:#EAF3EC;
+}
+
+body.theme-noel #activities .day-slot-head::before{
+    background:#C9A227;
+}
+
+body.theme-noel .date-tab.active,
+body.dark.theme-noel .date-tab.active{
+    color:#B3261E;
+}
+
+body.dark.theme-noel .date-tab.active{
+    background:#122A21;
+}
+
+body.dark.theme-noel .bottom-nav-tab.active{
+    color:#E0524A;
+}
+
+body.dark.theme-noel .activity-photo-btn{
+    color:#E0524A;
+}

@@ -2641,6 +2641,25 @@ if(localStorage.getItem("theme")==="dark"){
     document.body.classList.add("dark");
 }
 
+/* Thème saisonnier (Noël) : indépendant du mode clair/sombre ci-dessus —
+   les deux se combinent (body.theme-noel ET body.dark peuvent être présents
+   en même temps), voir les règles theme-noel dans style.css qui prévoient
+   les deux variantes. */
+const APP_THEME_KEY = "appTheme";
+const appThemeSelect = document.getElementById("appThemeSelect");
+
+appThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
+
+if(appThemeSelect.value==="noel"){
+    document.body.classList.add("theme-noel");
+}
+
+appThemeSelect.addEventListener("change",()=>{
+    const choice = appThemeSelect.value;
+    localStorage.setItem(APP_THEME_KEY,choice);
+    document.body.classList.toggle("theme-noel",choice==="noel");
+});
+
 themeToggle.addEventListener("click",()=>{
 
     document.body.classList.toggle("dark");
