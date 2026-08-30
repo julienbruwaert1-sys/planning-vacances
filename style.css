@@ -2667,6 +2667,23 @@ h3{
     color:#33404A;
 }
 
+.tricount-link-badge{
+    font-size:12px;
+    padding:2px 8px;
+    border-radius:10px;
+    font-weight:bold;
+    background:#F6DCD6;
+    color:#D2503B;
+    border:none;
+    cursor:pointer;
+    font-family:'Inter',Arial,sans-serif;
+}
+
+body.dark .tricount-link-badge{
+    background:#3A2620;
+    color:#E06A54;
+}
+
 body.dark .price-badge{
     background:#1e3a26;
     color:#6fd68c;

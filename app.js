@@ -10,6 +10,13 @@ var applyingRemoteUpdate = false;
    symbole de devise des prix. */
 let priceCurrencySymbol = localStorage.getItem("priceCurrencySymbol") || "£";
 
+/* Déclarées tôt pour la même raison : renderActivities() (bien plus bas)
+   s'exécute dès le chargement initial et affiche déjà le badge "dépense
+   Tricount liée" sur les activités concernées — valeurs réelles chargées
+   plus bas, dans la section Tricount, qui réaffiche ensuite les activités. */
+let tricountParticipants = [];
+let tricountExpenses = [];
+
 const PRICE_CURRENCY_ICONS = { "£":"💷", "€":"💶", "$":"💵", "¥":"💴" };
 function priceCurrencyIcon(){
     return PRICE_CURRENCY_ICONS[priceCurrencySymbol] || "💰";
@@ -971,12 +978,16 @@ dragged = null;
             infoDiv.appendChild(document.createElement("br"));
             infoDiv.appendChild(small);
 
+            const linkedTricountCount = tricountExpenses.filter(exp=>exp.activityId===activity.id).length;
+
             if(
                 (activity.price!==null && activity.price!==undefined)
                 ||
                 (activity.travelTime!==null && activity.travelTime!==undefined)
                 ||
                 activity.duration
+                ||
+                linkedTricountCount>0
             ){
 
                 const badgeRow = document.createElement("div");
@@ -1004,6 +1015,19 @@ dragged = null;
                     durationBadge.textContent =
                     `⏱️ ${activity.duration}`;
                     badgeRow.appendChild(durationBadge);
+                }
+
+                if(linkedTricountCount>0){
+                    const tricountBadge = document.createElement("button");
+                    tricountBadge.type = "button";
+                    tricountBadge.className = "tricount-link-badge";
+                    tricountBadge.textContent =
+                    linkedTricountCount===1 ? "🧾 1 dépense Tricount" : `🧾 ${linkedTricountCount} dépenses Tricount`;
+                    tricountBadge.addEventListener("click",()=>{
+                        setActiveMainTab("budget");
+                        switchTricountTab("history");
+                    });
+                    badgeRow.appendChild(tricountBadge);
                 }
 
                 infoDiv.appendChild(badgeRow);
@@ -1123,6 +1147,16 @@ dragged = null;
                 openDayCamera(currentDay,activity.id);
             });
             popover.appendChild(photoItem);
+
+            const tricountItem = document.createElement("button");
+            tricountItem.type = "button";
+            tricountItem.className = "activity-popover-item";
+            tricountItem.textContent = "🧾 Ajouter une dépense Tricount";
+            tricountItem.addEventListener("click",()=>{
+                closeActivityMenus();
+                startTricountExpenseFromActivity(activity);
+            });
+            popover.appendChild(tricountItem);
 
             const deleteItem = document.createElement("button");
             deleteItem.type = "button";
@@ -4492,6 +4526,14 @@ function findActivityById(day,activityId,planningSource){
     return null;
 }
 
+function findActivityByIdAnywhere(activityId){
+    for(const day of Object.keys(planning)){
+        const activity = findActivityById(day,activityId);
+        if(activity) return { activity, day };
+    }
+    return null;
+}
+
 /* Jours repliés dans l'Album / le détail d'un voyage archivé — mémorisé par
    voyage (un "Jour 1" replié dans un voyage ne doit pas replier le "Jour 1"
    d'un autre voyage). Tous les jours sont dépliés par défaut : un jour
@@ -5732,8 +5774,9 @@ const TRICOUNT_PARTICIPANTS_KEY = "tricountParticipants";
 const TRICOUNT_EXPENSES_KEY = "tricountExpenses";
 const TRICOUNT_EPS = 0.01;
 
-let tricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
-let tricountExpenses = JSON.parse(localStorage.getItem(TRICOUNT_EXPENSES_KEY)) || [];
+tricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
+tricountExpenses = JSON.parse(localStorage.getItem(TRICOUNT_EXPENSES_KEY)) || [];
+renderActivities();
 
 const tricountParticipantsList = document.getElementById("tricountParticipantsList");
 const tricountAddRow = document.getElementById("tricountAddRow");
@@ -5751,6 +5794,29 @@ const tricountSplitCheckboxes = document.getElementById("tricountSplitCheckboxes
 const tricountAddExpenseBtn = document.getElementById("tricountAddExpenseBtn");
 const tricountCancelEditBtn = document.getElementById("tricountCancelEditBtn");
 let editingTricountExpenseId = null;
+let pendingTricountActivityLink = null;
+
+function startTricountExpenseFromActivity(activity){
+
+    if(tricountParticipants.length<2){
+        showToast("Ajoute au moins 2 participants dans Tricount avant d'associer une dépense.",{type:"error"});
+        setActiveMainTab("budget");
+        switchTricountTab("participants");
+        return;
+    }
+
+    cancelTricountExpenseEdit();
+    pendingTricountActivityLink = activity.id;
+
+    tricountExpenseDesc.value = activity.name;
+    if(activity.price!==null && activity.price!==undefined){
+        tricountExpenseAmount.value = activity.price;
+    }
+
+    setActiveMainTab("budget");
+    switchTricountTab("new");
+    tricountExpenseAmount.focus();
+}
 const tricountExpensesList = document.getElementById("tricountExpensesList");
 const tricountBalancesList = document.getElementById("tricountBalancesList");
 const tricountConversionWarning = document.getElementById("tricountConversionWarning");
@@ -6009,6 +6075,7 @@ function startEditTricountExpense(id){
 function cancelTricountExpenseEdit(){
 
     editingTricountExpenseId = null;
+    pendingTricountActivityLink = null;
 
     tricountExpenseDesc.value = "";
     tricountExpenseAmount.value = "";
@@ -6053,6 +6120,10 @@ function renderTricountExpenses(){
 
         const meta = document.createElement("small");
         meta.textContent = `Payé par ${payer ? payer.name : "?"} · Pour ${splitNames || "personne"}`;
+        if(exp.activityId){
+            const linked = findActivityByIdAnywhere(exp.activityId);
+            if(linked) meta.textContent += ` · 🔗 ${linked.activity.name} (Jour ${linked.day})`;
+        }
         info.appendChild(meta);
 
         if(needsWarning){
@@ -6244,9 +6315,12 @@ function addTricountExpense(){
             currency,
             paidBy: payerId,
             splitBetween,
+            activityId: pendingTricountActivityLink,
             timestamp: Date.now()
         });
     }
+
+    pendingTricountActivityLink = null;
 
     saveTricountExpenses();
     renderTricount();
