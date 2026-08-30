@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v200";
+const CACHE_NAME = "planning-v201";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -94,10 +94,24 @@ const RUNTIME_CACHE_HOSTS = [
     "fonts.gstatic.com"
 ];
 
+/* cache.addAll(APP_SHELL) ferait des requêtes "propres" que le CDN de
+   GitHub Pages peut encore servir depuis un edge pas à jour juste après
+   un déploiement rapide — ça a déjà figé une version périmée d'app.js
+   dans un cache pourtant nommé correctement (planning-vXXX). On force
+   ici un vrai contournement : chaque fichier est d'abord récupéré via
+   une URL à usage unique (jamais vue par aucun cache CDN), puis stocké
+   sous son URL propre pour que le service worker le retrouve normalement. */
 self.addEventListener("install",event=>{
     event.waitUntil(
-        caches.open(CACHE_NAME)
-        .then(cache=>cache.addAll(APP_SHELL))
+        caches.open(CACHE_NAME).then(cache=>{
+            return Promise.all(APP_SHELL.map(url=>{
+                const bustedUrl = url + (url.includes("?") ? "&" : "?") + "swv=" + CACHE_NAME;
+                return fetch(bustedUrl,{cache:"reload"}).then(response=>{
+                    if(!response.ok) throw new Error("Échec du chargement de "+url);
+                    return cache.put(url,response);
+                });
+            }));
+        })
         .then(()=>self.skipWaiting())
     );
 });
