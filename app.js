@@ -1,4 +1,30 @@
 
+/* --- Détection "app native (Capacitor)" ---
+   Cette app reste 100% web pour l'instant : ce qui suit ne change RIEN au
+   comportement actuel (window.Capacitor n'existe jamais dans un navigateur
+   normal, isNativeApp() renvoie donc toujours false ici). C'est un point
+   d'accroche pour une éventuelle conversion en appli Android via Capacitor
+   plus tard, sans réécrire le code à ce moment-là :
+   - Caméra (voir "vue caméra maison" plus bas, openDayCameraView/
+     startCameraStream/capturePhotoFromCamera) : getUserMedia() plafonne la
+     qualité en dessous de l'appli caméra native. Le plugin @capacitor/camera
+     (Camera.getPhoto()) donnerait la pleine résolution du capteur.
+   - Enregistrement galerie (downloadBlobToGallery/saveBlobToGallery) :
+     limité au partage/téléchargement web, impossible de choisir un album
+     ("appli voyage" plutôt que "Téléchargements"). @capacitor/filesystem +
+     un plugin galerie natif permettraient un vrai écriture dans un album
+     nommé.
+   - Le bouton "Live Server ↔ en ligne" (switchServerBtn, juste en dessous)
+     n'a plus de sens dans une appli empaquetée (pas deux origines à changer)
+     — masqué via isNativeApp() dès maintenant.
+   - IndexedDB et le Service Worker n'ont besoin d'aucun changement : une
+     WebView Capacitor tourne sur une vraie origine (capacitor://localhost),
+     donc les deux fonctionnent nativement (contrairement à file:// en dev,
+     voir la note sur indexedDB.open() qui bloque sous file://). */
+function isNativeApp(){
+    return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
 /* Déclarées tôt (var, pas de TDZ) : savePlanning()/saveChecklist() appellent
    pushToSync() bien avant que la section Synchronisation (plus bas) ne
    s'exécute et ne leur donne leur vraie valeur. */
@@ -1985,6 +2011,12 @@ const switchServerBtn = document.getElementById("switchServerBtn");
 const switchServerLabel = document.getElementById("switchServerLabel");
 
 const isOnLiveServer = location.hostname === "192.168.1.118";
+
+/* Pas de sens dans une appli empaquetée (Capacitor) : il n'y a qu'une seule
+   origine, pas de Live Server/GitHub Pages à choisir. */
+if(isNativeApp()){
+    switchServerBtn.hidden = true;
+}
 
 switchServerLabel.textContent = isOnLiveServer
     ? "Passer à la version en ligne"
@@ -4585,7 +4617,13 @@ function refreshOpenPhotoViews(){
 /* Sans fenêtre de partage : téléchargement direct (dossier Téléchargements),
    que la plupart des galeries Android (Google Photos y compris) indexent
    aussi bien que l'appareil photo/DCIM. Utilisée pour la caméra maison, où
-   ouvrir la fenêtre de partage après CHAQUE prise casse le flux tap/hold. */
+   ouvrir la fenêtre de partage après CHAQUE prise casse le flux tap/hold.
+
+   CAPACITOR : downloadBlobToGallery() et saveBlobToGallery() sont les deux
+   à remplacer par @capacitor/filesystem (+ un plugin galerie natif) pour
+   écrire vraiment dans un album choisi (ex. "Voyage") au lieu du dossier
+   Téléchargements générique — impossible à faire depuis le web (voir
+   [[photo_storage_feature]] pour la limite déjà documentée). */
 function downloadBlobToGallery(blob,fileName){
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -4645,7 +4683,15 @@ dayPhotoInput.addEventListener("change",async ()=>{
 /* --- Vue caméra maison : appui court = photo, rester appuyé = vidéo ---
    `<input type=file capture>` ne permet pas ce geste (c'est l'appli caméra
    native de l'OS qui décide de son interface, pas la page web) : il faut
-   son propre aperçu live (getUserMedia) + son propre bouton obturateur. */
+   son propre aperçu live (getUserMedia) + son propre bouton obturateur.
+
+   CAPACITOR : toute cette vue (openDayCameraView → cameraShutterBtn →
+   capturePhotoFromCamera/startCameraRecording) est le point à remplacer par
+   @capacitor/camera si l'app devient une appli native — Camera.getPhoto()
+   donne la pleine résolution du capteur là où getUserMedia() plafonne. Le
+   plus simple sera un nouveau chemin dans openDayCameraView() qui appelle le
+   plugin natif quand isNativeApp() est vrai, et ne touche à rien d'autre
+   (addDayPhoto/refreshOpenPhotoViews restent les mêmes derrière). */
 
 const cameraView = document.getElementById("cameraView");
 const cameraPreview = document.getElementById("cameraPreview");
