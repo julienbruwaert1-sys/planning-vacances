@@ -6836,12 +6836,15 @@ function cancelTricountExpenseEdit(){
 
 let tricountReceiptObjectUrls = [];
 
+/* L'appel async getAllExpensePhotos() vient AVANT tout vidage/reconstruction
+   du DOM, jamais entre les deux : cette fonction est appelée deux fois par
+   addTricountExpense() (une fois via renderTricount(), une fois via
+   refreshOpenPhotoViews() une fois le reçu écrit) et si le vidage et l'ajout
+   des lignes étaient séparés par un await, les deux appels pouvaient se
+   chevaucher — chacun vidant puis rajoutant PAR-DESSUS ce que l'autre venait
+   d'ajouter, doublant chaque ligne. Une fois l'await passé, tout le reste
+   (vidage + reconstruction) est synchrone d'un bloc, donc jamais entrelacé. */
 async function renderTricountExpenses(){
-
-    tricountExpensesList.textContent = "";
-
-    tricountReceiptObjectUrls.forEach(url=>URL.revokeObjectURL(url));
-    tricountReceiptObjectUrls = [];
 
     let receiptsByExpenseId = {};
     try{
@@ -6849,6 +6852,11 @@ async function renderTricountExpenses(){
     }catch(err){
         console.error("Impossible de charger les reçus :",err);
     }
+
+    tricountExpensesList.textContent = "";
+
+    tricountReceiptObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    tricountReceiptObjectUrls = [];
 
     const sorted = [...tricountExpenses].sort((a,b)=>b.timestamp-a.timestamp);
 
