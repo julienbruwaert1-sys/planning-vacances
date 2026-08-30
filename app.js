@@ -4517,11 +4517,14 @@ const photoLightboxImage = document.getElementById("photoLightboxImage");
 const photoLightboxClose = document.getElementById("photoLightboxClose");
 const photoLightboxDelete = document.getElementById("photoLightboxDelete");
 const photoLightboxSave = document.getElementById("photoLightboxSave");
+const photoLightboxCounter = document.getElementById("photoLightboxCounter");
 
 let pendingPhotoDay = null;
 let pendingPhotoActivityId = null;
 let dayPhotoObjectUrls = [];
 let openLightboxPhotoId = null;
+let lightboxGroup = [];
+let lightboxIndex = 0;
 
 function openDayCamera(day,activityId){
     pendingPhotoDay = day;
@@ -4576,10 +4579,15 @@ async function renderDayPhotos(){
 
     dayPhotoGallery.hidden = false;
 
-    photos.forEach(photo=>{
-
+    const group = photos.map(photo=>{
         const url = URL.createObjectURL(photo.blob);
         dayPhotoObjectUrls.push(url);
+        return {id:photo.id, url};
+    });
+
+    photos.forEach((photo,i)=>{
+
+        const url = group[i].url;
 
         const thumb = document.createElement("button");
         thumb.type = "button";
@@ -4590,7 +4598,7 @@ async function renderDayPhotos(){
         img.alt = "";
         thumb.appendChild(img);
 
-        thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url));
+        thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url,group));
 
         dayPhotoGallery.appendChild(thumb);
     });
@@ -4777,13 +4785,18 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
             const row = document.createElement("div");
             row.className = "album-thumb-row";
 
+            const groupUrls = groupPhotos.map(photo=>{
+                const url = URL.createObjectURL(photo.blob);
+                objectUrls.push(url);
+                return {id:photo.id, url};
+            });
+
             const visible = groupPhotos.slice(0,4);
             const extra = groupPhotos.length - visible.length;
 
             visible.forEach((photo,i)=>{
 
-                const url = URL.createObjectURL(photo.blob);
-                objectUrls.push(url);
+                const url = groupUrls[i].url;
 
                 const thumb = document.createElement("button");
                 thumb.type = "button";
@@ -4801,7 +4814,7 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
                     thumb.appendChild(overlay);
                 }
 
-                thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url));
+                thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url,groupUrls));
 
                 row.appendChild(thumb);
             });
@@ -5036,15 +5049,27 @@ function restoreTrip(trip){
     location.reload();
 }
 
-function openPhotoLightbox(id,url){
-    openLightboxPhotoId = id;
-    photoLightboxImage.src = url;
+function showLightboxAt(index){
+    if(!lightboxGroup.length) return;
+    lightboxIndex = (index + lightboxGroup.length) % lightboxGroup.length;
+    const entry = lightboxGroup[lightboxIndex];
+    openLightboxPhotoId = entry.id;
+    photoLightboxImage.src = entry.url;
+    photoLightboxCounter.hidden = lightboxGroup.length<=1;
+    photoLightboxCounter.textContent = `${lightboxIndex+1} / ${lightboxGroup.length}`;
+}
+
+function openPhotoLightbox(id,url,group){
+    lightboxGroup = (group && group.length) ? group : [{id,url}];
+    const startIndex = lightboxGroup.findIndex(p=>p.id===id);
+    showLightboxAt(startIndex===-1 ? 0 : startIndex);
     photoLightbox.hidden = false;
 }
 
 function closePhotoLightbox(){
     photoLightbox.hidden = true;
     openLightboxPhotoId = null;
+    lightboxGroup = [];
 }
 
 photoLightboxClose.addEventListener("click",closePhotoLightbox);
@@ -5054,7 +5079,34 @@ photoLightbox.addEventListener("click",(e)=>{
 });
 
 document.addEventListener("keydown",(e)=>{
-    if(e.key==="Escape" && !photoLightbox.hidden) closePhotoLightbox();
+    if(photoLightbox.hidden) return;
+    if(e.key==="Escape") closePhotoLightbox();
+    if(e.key==="ArrowLeft") showLightboxAt(lightboxIndex-1);
+    if(e.key==="ArrowRight") showLightboxAt(lightboxIndex+1);
+});
+
+let lightboxTouchStartX = null;
+let lightboxTouchStartY = null;
+
+photoLightboxImage.addEventListener("touchstart",(e)=>{
+    const t = e.touches[0];
+    lightboxTouchStartX = t.clientX;
+    lightboxTouchStartY = t.clientY;
+},{passive:true});
+
+photoLightboxImage.addEventListener("touchend",(e)=>{
+    if(lightboxTouchStartX===null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - lightboxTouchStartX;
+    const dy = t.clientY - lightboxTouchStartY;
+    lightboxTouchStartX = null;
+    lightboxTouchStartY = null;
+
+    if(lightboxGroup.length<=1) return;
+    if(Math.abs(dx)<40 || Math.abs(dx)<Math.abs(dy)) return;
+
+    if(dx<0) showLightboxAt(lightboxIndex+1);
+    else showLightboxAt(lightboxIndex-1);
 });
 
 photoLightboxDelete.addEventListener("click",()=>{

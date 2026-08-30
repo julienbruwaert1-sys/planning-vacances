@@ -2618,6 +2618,22 @@ body.dark .trip-history-delete-btn:hover{
     cursor:pointer;
 }
 
+.photo-lightbox-counter{
+    position:absolute;
+    top:16px;
+    left:16px;
+    background:rgba(0,0,0,.4);
+    color:#fff;
+    font-size:12px;
+    font-weight:600;
+    padding:4px 10px;
+    border-radius:999px;
+}
+
+.photo-lightbox-counter[hidden]{
+    display:none;
+}
+
 .photo-lightbox-actions{
     position:absolute;
     bottom:24px;
