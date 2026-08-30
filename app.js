@@ -4537,12 +4537,44 @@ function refreshOpenPhotoViews(){
     if(!document.getElementById("albumView").hidden) renderAlbumView();
 }
 
+async function saveBlobToGallery(blob,fileName){
+
+    const file = new File([blob],fileName,{type:blob.type || "image/jpeg"});
+
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{
+            await navigator.share({files:[file]});
+            return "shared";
+        }catch(err){
+            if(err && err.name==="AbortError") return "cancelled";
+            console.error("Partage impossible :",err);
+        }
+    }
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    return "downloaded";
+}
+
 dayPhotoInput.addEventListener("change",async ()=>{
 
     const file = dayPhotoInput.files[0];
     dayPhotoInput.value = "";
 
     if(!file || pendingPhotoDay===null) return;
+
+    /* Déclenché en premier, avant tout await, pour profiter du geste
+       utilisateur encore "frais" issu du sélecteur photo — navigator.share()
+       exige une interaction récente, et attendre l'écriture IndexedDB
+       d'abord risquerait de la perdre. */
+    const galleryFileName = `photo_jour${pendingPhotoDay}_${Date.now()}.jpg`;
+    saveBlobToGallery(file,galleryFileName).catch(err=>{
+        console.error("Enregistrement dans la galerie impossible :",err);
+    });
 
     try{
         await addDayPhoto(pendingPhotoDay,pendingPhotoActivityId,file);
@@ -5147,25 +5179,8 @@ photoLightboxSave.addEventListener("click",async ()=>{
     }
 
     const fileName = `photo_jour${photo.day || ""}_${photo.timestamp || Date.now()}.jpg`;
-    const file = new File([photo.blob],fileName,{type:photo.blob.type || "image/jpeg"});
-
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-        try{
-            await navigator.share({files:[file]});
-            return;
-        }catch(err){
-            if(err && err.name==="AbortError") return;
-            console.error("Partage impossible :",err);
-        }
-    }
-
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Photo enregistrée.",{type:"success"});
+    const result = await saveBlobToGallery(photo.blob,fileName);
+    if(result==="downloaded") showToast("Photo enregistrée.",{type:"success"});
 });
 
 mapCountryToggle.addEventListener("click",()=>{
