@@ -464,6 +464,25 @@ document.getElementById("dayTitleEditBtn").addEventListener("click",()=>{
     renderTabs();
 });
 
+document.getElementById("tripNameEditBtn").addEventListener("click",()=>{
+
+    const newName = prompt("Nom du voyage :",tripName);
+
+    if(newName===null) return;
+
+    const trimmed = newName.trim();
+
+    if(!trimmed){
+        showToast("Le nom du voyage ne peut pas être vide.",{type:"error"});
+        return;
+    }
+
+    tripName = trimmed;
+    localStorage.setItem(TRIP_NAME_KEY,tripName);
+    appTitle.textContent = "🌴 "+tripName;
+    pushToSync();
+});
+
 let editingActivity = null;
 
 function addActivity(){
@@ -2370,39 +2389,60 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
         dayCountVal = diffDays;
     }
 
-    if(replacingExistingTrip){
-        archiveCurrentTrip();
-        currentTripId = generateId();
-        localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
-        localStorage.removeItem(CHECKLIST_STORAGE_KEY);
-        localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
-        localStorage.removeItem(TRAVELER_INFO_KEY);
-        localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
-        localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
-        localStorage.removeItem("startDate");
-        localStorage.setItem("vacationPlanning",JSON.stringify({}));
+    /* Des données réelles (planning, Tricount...) peuvent déjà avoir été
+       entrées avant la création officielle du voyage, via "Plus tard" —
+       sans ce garde-fou, welcomeSkipped=1 sans tripCreated laissait ces
+       données se glisser silencieusement dans le voyage "nouvellement
+       créé", puisque le bloc de nettoyage ci-dessous ne se déclenchait
+       jusqu'ici que pour "Nouveau voyage" (replacingExistingTrip). */
+    const hasPriorDraftData = !replacingExistingTrip && !!localStorage.getItem(WELCOME_LATER_KEY);
+
+    function finalizeTripCreation(){
+
+        if(replacingExistingTrip || hasPriorDraftData){
+            archiveCurrentTrip();
+            currentTripId = generateId();
+            localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+            localStorage.removeItem(CHECKLIST_STORAGE_KEY);
+            localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
+            localStorage.removeItem(TRAVELER_INFO_KEY);
+            localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
+            localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
+            localStorage.removeItem("startDate");
+            localStorage.setItem("vacationPlanning",JSON.stringify({}));
+        }
+
+        localStorage.setItem(TRIP_NAME_KEY,name);
+        localStorage.setItem("appIconChoice",welcomeIconChoice);
+        localStorage.setItem(TRIP_COUNTRY_KEY,country);
+        if(startDateVal) localStorage.setItem("startDate",startDateVal);
+        localStorage.setItem("dayCount",String(Math.min(30,Math.max(1,dayCountVal))));
+
+        localStorage.setItem("baseCurrency","GBP");
+        localStorage.setItem("priceCurrencySymbol","£");
+        localStorage.setItem("targetCurrency",localCurrency);
+        localStorage.setItem(TRIP_CREATED_KEY,"1");
+
+        if(welcomeParticipants.length){
+            const existingTricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
+            const combinedParticipants = existingTricountParticipants.concat(
+                welcomeParticipants.map(participantName=>({id:generateId(),name:participantName}))
+            );
+            localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(combinedParticipants));
+        }
+
+        location.reload();
     }
 
-    localStorage.setItem(TRIP_NAME_KEY,name);
-    localStorage.setItem("appIconChoice",welcomeIconChoice);
-    localStorage.setItem(TRIP_COUNTRY_KEY,country);
-    if(startDateVal) localStorage.setItem("startDate",startDateVal);
-    localStorage.setItem("dayCount",String(Math.min(30,Math.max(1,dayCountVal))));
-
-    localStorage.setItem("baseCurrency","GBP");
-    localStorage.setItem("priceCurrencySymbol","£");
-    localStorage.setItem("targetCurrency",localCurrency);
-    localStorage.setItem(TRIP_CREATED_KEY,"1");
-
-    if(welcomeParticipants.length){
-        const existingTricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
-        const combinedParticipants = existingTricountParticipants.concat(
-            welcomeParticipants.map(participantName=>({id:generateId(),name:participantName}))
+    if(hasPriorDraftData){
+        showConfirmModal(
+            "Des données ont déjà été ajoutées avant la création officielle de ce voyage (planning, Tricount...). Elles seront archivées dans l'historique des voyages avant de démarrer ce nouveau voyage. Continuer ?",
+            finalizeTripCreation
         );
-        localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(combinedParticipants));
+        return;
     }
 
-    location.reload();
+    finalizeTripCreation();
 });
 
 document.getElementById("welcomeLaterBtn").addEventListener("click",()=>{
@@ -6291,7 +6331,9 @@ function addTricountExpense(){
         return;
     }
 
-    if(editingTricountExpenseId){
+    const isEditing = !!editingTricountExpenseId;
+
+    if(isEditing){
 
         const exp = tricountExpenses.find(e=>e.id===editingTricountExpenseId);
         if(exp){
@@ -6332,6 +6374,11 @@ function addTricountExpense(){
     if(cameFromActivity){
         showToast(`Dépense « ${description} » ajoutée.`,{type:"success",duration:2500});
         setActiveMainTab("planning");
+    }else{
+        showToast(
+            isEditing ? `Dépense « ${description} » modifiée.` : `Dépense « ${description} » ajoutée.`,
+            {type:"success",duration:2000}
+        );
     }
 }
 
