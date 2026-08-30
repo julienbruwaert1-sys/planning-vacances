@@ -4513,19 +4513,19 @@ body.theme-noel .checklist-progress-fill{
    spécificité, peu importe l'ordre des règles dans ce fichier — même
    principe que le correctif day-slot-head plus haut. */
 body.theme-noel{
-    background:#FFFBF6;
+    background:#FFF3E0;
 }
 
 body.dark.theme-noel{
-    background:#05100C;
+    background:#0B1F16;
 }
 
 body.theme-noel #welcomeView{
-    background:#FFFBF6;
+    background:#FFF3E0;
 }
 
 body.dark.theme-noel #welcomeView{
-    background:#05100C;
+    background:#0B1F16;
 }
 
 /* .fullscreen-view est la base commune de TOUTES les vues plein écran
@@ -4538,13 +4538,44 @@ body.dark.theme-noel #welcomeView{
 body.theme-noel .fullscreen-view,
 body.theme-noel .fullscreen-header,
 body.theme-noel .mobile-tab-header{
-    background:#FFFBF6;
+    background:#FFF3E0;
 }
 
 body.dark.theme-noel .fullscreen-view,
 body.dark.theme-noel .fullscreen-header,
 body.dark.theme-noel .mobile-tab-header{
-    background:#05100C;
+    background:#0B1F16;
+}
+
+/* .profile-section est la carte blanche/marine réutilisée par Réservations
+   et la plupart des sous-pages Profil (Historique, Stats, Infos voyageur…)
+   — une carte OPAQUE posée par-dessus le fond de .fullscreen-view, donc
+   themer seulement .fullscreen-view ne suffisait pas : c'est cette carte,
+   pas le fond de la vue, qui était visible et restait dans les tons par
+   défaut. Repéré via une capture d'écran envoyée par l'utilisateur sur
+   Réservations, pas en relisant le code. */
+body.theme-noel .profile-section{
+    background:#EDF5EE;
+}
+
+body.dark.theme-noel .profile-section{
+    background:#132A22;
+}
+
+/* Autres cartes "conteneur principal" de même nature que .profile-section
+   (blanches en clair, marine en sombre) sur les onglets Planning/Profil/
+   Convertisseur — même raisonnement, cartes opaques posées sur le fond de
+   vue déjà themé, pas couvertes par lui. */
+body.theme-noel .day-content,
+body.theme-noel .converter-card,
+body.theme-noel .profile-list{
+    background:#EDF5EE;
+}
+
+body.dark.theme-noel .day-content,
+body.dark.theme-noel .converter-card,
+body.dark.theme-noel .profile-list{
+    background:#132A22;
 }
 
 body.theme-noel .weather-card{
