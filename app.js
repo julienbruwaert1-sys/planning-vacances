@@ -782,7 +782,7 @@ if (
 function updateConverterCountryHeader(){
 
     const country = COUNTRIES[tripCountry];
-    const icon = APP_ICONS[tripCountry];
+    const icon = APP_ICONS[tripCountry] || APP_ICONS.default;
 
     const header = document.getElementById("converterCountryHeader");
     const nameEl = document.getElementById("converterCountryName");
@@ -790,9 +790,7 @@ function updateConverterCountryHeader(){
 
     nameEl.textContent = country ? country.fr : "Voyage";
 
-    header.style.backgroundImage = icon
-        ? `url('${icon.icon512}')`
-        : "none";
+    header.style.backgroundImage = `url('${icon.icon512}')`;
 
     let dayWithData = 0;
 
