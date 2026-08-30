@@ -30,6 +30,7 @@ const planningTabContent = document.getElementById("planningTabContent");
 const budgetTabContent = document.getElementById("budgetTabContent");
 const profileTabContent = document.getElementById("profileTabContent");
 const appTitle = document.getElementById("appTitle");
+const appTitleRow = document.querySelector(".app-title-row");
 let activeMainTab = "planning";
 
 /* Écran de création de voyage — affiché uniquement si aucune des clés
@@ -2757,6 +2758,8 @@ function isAnyFullscreenViewOpen(){
 
 function updateCountdownBanner(){
 
+    appTitleRow.hidden = activeMainTab!=="planning" || isAnyFullscreenViewOpen();
+
     if(!isDesktopContext() && (activeMainTab!=="planning" || isAnyFullscreenViewOpen())){
         countdownBanner.hidden = true;
         jumpTodayBtn.hidden = true;
@@ -3480,7 +3483,6 @@ function setActiveMainTab(tab){
     planningTabContent.hidden = tab!=="planning";
     budgetTabContent.hidden = tab!=="budget";
     profileTabContent.hidden = tab!=="profile";
-    appTitle.hidden = tab!=="planning";
     updateCountdownBanner();
     if(tab==="profile") renderProfileStats();
 }
