@@ -5614,13 +5614,13 @@ document.addEventListener("keydown",(e)=>{
 let lightboxTouchStartX = null;
 let lightboxTouchStartY = null;
 
-photoLightboxImage.addEventListener("touchstart",(e)=>{
+function handleLightboxTouchStart(e){
     const t = e.touches[0];
     lightboxTouchStartX = t.clientX;
     lightboxTouchStartY = t.clientY;
-},{passive:true});
+}
 
-photoLightboxImage.addEventListener("touchend",(e)=>{
+function handleLightboxTouchEnd(e){
     if(lightboxTouchStartX===null) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - lightboxTouchStartX;
@@ -5633,6 +5633,14 @@ photoLightboxImage.addEventListener("touchend",(e)=>{
 
     if(dx<0) showLightboxAt(lightboxIndex+1);
     else showLightboxAt(lightboxIndex-1);
+}
+
+/* Sur les deux éléments (photo ET vidéo) — sans ça, swiper fonctionnait
+   uniquement sur les photos : <video> n'hérite d'aucun geste tant qu'on ne
+   lui attache pas les mêmes écouteurs que <img>. */
+[photoLightboxImage,photoLightboxVideo].forEach(el=>{
+    el.addEventListener("touchstart",handleLightboxTouchStart,{passive:true});
+    el.addEventListener("touchend",handleLightboxTouchEnd);
 });
 
 photoLightboxDelete.addEventListener("click",()=>{

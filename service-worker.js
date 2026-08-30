@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v213";
+const CACHE_NAME = "planning-v214";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
