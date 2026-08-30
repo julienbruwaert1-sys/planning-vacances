@@ -1326,7 +1326,6 @@ priceCurrencySelect.addEventListener("change",()=>{
     localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
     activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
     activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
-    tricountExpenseAmountSuffix.textContent = `Montant (${priceCurrencySymbol})`;
     renderActivities();
     renderTricount();
     if(activeMainTab==="profile") renderProfileStats();
@@ -5573,6 +5572,8 @@ async function fetchExchangeRate(){
     if(currentRate!==null && baseInput.value!==""){
         convertFromBase();
     }
+
+    renderTricount();
 }
 
 fetchExchangeRate();
@@ -5608,8 +5609,9 @@ const tricountHint = document.getElementById("tricountHint");
 const tricountExpenseForm = document.getElementById("tricountExpenseForm");
 const tricountExpenseDesc = document.getElementById("tricountExpenseDesc");
 const tricountExpenseAmount = document.getElementById("tricountExpenseAmount");
-const tricountExpenseAmountSuffix = document.getElementById("tricountExpenseAmountSuffix");
-tricountExpenseAmountSuffix.textContent = `Montant (${priceCurrencySymbol})`;
+const tricountCurrencyBaseBtn = document.getElementById("tricountCurrencyBaseBtn");
+const tricountCurrencyTargetBtn = document.getElementById("tricountCurrencyTargetBtn");
+let tricountExpenseCurrencyRole = "base";
 const tricountPayerSelect = document.getElementById("tricountPayerSelect");
 const tricountSplitCheckboxes = document.getElementById("tricountSplitCheckboxes");
 const tricountAddExpenseBtn = document.getElementById("tricountAddExpenseBtn");
@@ -5627,14 +5629,22 @@ function saveTricountExpenses(){
     pushToSync();
 }
 
+function tricountAmountInBase(exp){
+    const currency = exp.currency || baseCurrency;
+    if(currency===baseCurrency) return exp.amount;
+    if(currency===targetCurrency && currentRate) return exp.amount / currentRate;
+    return exp.amount;
+}
+
 function computeTricountBalances(){
     const paid = {}, owed = {};
     tricountParticipants.forEach(p=>{ paid[p.id]=0; owed[p.id]=0; });
     tricountExpenses.forEach(exp=>{
-        if(paid[exp.paidBy]!==undefined) paid[exp.paidBy] += exp.amount;
+        const amount = tricountAmountInBase(exp);
+        if(paid[exp.paidBy]!==undefined) paid[exp.paidBy] += amount;
         const n = exp.splitBetween.length;
         if(n===0) return;
-        const share = exp.amount / n;
+        const share = amount / n;
         exp.splitBetween.forEach(pid=>{
             if(owed[pid]!==undefined) owed[pid] += share;
         });
@@ -5685,8 +5695,8 @@ function renderTricountParticipants(){
 
     tricountParticipants.forEach(p=>{
 
-        const row = document.createElement("div");
-        row.className = "tricount-participant-row";
+        const row = document.createElement("span");
+        row.className = "tricount-participant-chip";
 
         const name = document.createElement("span");
         name.textContent = p.name;
@@ -5712,7 +5722,26 @@ function renderTricountParticipants(){
     renderTricountExpenseForm();
 }
 
+function updateTricountCurrencyToggle(){
+    tricountCurrencyBaseBtn.textContent = baseCurrency;
+    tricountCurrencyTargetBtn.textContent = targetCurrency;
+    tricountCurrencyBaseBtn.classList.toggle("active",tricountExpenseCurrencyRole==="base");
+    tricountCurrencyTargetBtn.classList.toggle("active",tricountExpenseCurrencyRole==="target");
+}
+
+tricountCurrencyBaseBtn.addEventListener("click",()=>{
+    tricountExpenseCurrencyRole = "base";
+    updateTricountCurrencyToggle();
+});
+
+tricountCurrencyTargetBtn.addEventListener("click",()=>{
+    tricountExpenseCurrencyRole = "target";
+    updateTricountCurrencyToggle();
+});
+
 function renderTricountExpenseForm(){
+
+    updateTricountCurrencyToggle();
 
     const previousPayer = tricountPayerSelect.value;
 
@@ -5770,7 +5799,12 @@ function renderTricountExpenses(){
 
         const info = document.createElement("div");
         const title = document.createElement("div");
-        title.textContent = `${exp.description} — ${exp.amount.toFixed(2)} ${priceCurrencySymbol}`;
+        const expCurrency = exp.currency || baseCurrency;
+        let amountText = `${exp.amount.toFixed(2)} ${expCurrency}`;
+        if(expCurrency!==baseCurrency){
+            amountText += ` (≈ ${tricountAmountInBase(exp).toFixed(2)} ${baseCurrency})`;
+        }
+        title.textContent = `${exp.description} — ${amountText}`;
         info.appendChild(title);
 
         const meta = document.createElement("small");
@@ -5809,7 +5843,7 @@ function renderTricountBalances(){
         row.appendChild(name);
 
         const amount = document.createElement("span");
-        amount.textContent = `${b.amount>0 ? "+" : ""}${b.amount.toFixed(2)} ${priceCurrencySymbol}`;
+        amount.textContent = `${b.amount>0 ? "+" : ""}${b.amount.toFixed(2)} ${baseCurrency}`;
         row.appendChild(amount);
 
         tricountBalancesList.appendChild(row);
@@ -5833,7 +5867,7 @@ function renderTricountSettleUp(){
     transfers.forEach(t=>{
         const row = document.createElement("div");
         row.className = "tricount-settle-row";
-        row.textContent = `${t.fromName} doit ${t.amount.toFixed(2)} ${priceCurrencySymbol} à ${t.toName}`;
+        row.textContent = `${t.fromName} doit ${t.amount.toFixed(2)} ${baseCurrency} à ${t.toName}`;
         tricountSettleList.appendChild(row);
     });
 }
@@ -5908,10 +5942,21 @@ function addTricountExpense(){
         return;
     }
 
+    const currency = tricountExpenseCurrencyRole==="target" ? targetCurrency : baseCurrency;
+
+    if(currency!==baseCurrency && currentRate===null){
+        showToast(
+            "Taux de change indisponible pour convertir cette devise — réessaie plus tard ou choisis la devise de départ.",
+            {type:"error"}
+        );
+        return;
+    }
+
     tricountExpenses.push({
         id: generateId(),
         description,
         amount,
+        currency,
         paidBy: payerId,
         splitBetween,
         timestamp: Date.now()

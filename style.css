@@ -3176,6 +3176,37 @@ body.dark .rate-info{
     flex-shrink:0;
 }
 
+#tricountParticipantsList{
+    flex-direction:row;
+    flex-wrap:wrap;
+}
+
+.tricount-participant-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:#F1F7FB;
+    border-radius:999px;
+    padding:6px 8px 6px 14px;
+    font-size:13px;
+    font-weight:500;
+    color:#33404A;
+    line-height:1.2;
+}
+
+.tricount-participant-chip .tricount-remove{
+    width:18px;
+    height:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    background:#F6DCD6;
+    color:#D2503B;
+    font-size:11px;
+    flex-shrink:0;
+}
+
 .tricount-expense-row > div{
     display:flex;
     flex-direction:column;
@@ -3428,6 +3459,53 @@ body.dark .tricount-balance-row,
 body.dark .tricount-settle-row{
     background:#182238;
     color:#EAF0FB;
+}
+
+body.dark .tricount-participant-chip{
+    background:#182238;
+    color:#EAF0FB;
+}
+
+body.dark .tricount-participant-chip .tricount-remove{
+    background:#3A2620;
+    color:#E06A54;
+}
+
+.tricount-currency-toggle{
+    display:flex;
+    gap:8px;
+}
+
+.tricount-currency-option{
+    flex:1;
+    padding:7px 10px;
+    border-radius:10px;
+    border:1px solid rgba(51,64,74,.15);
+    background:#F1F7FB;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:12.5px;
+    font-weight:700;
+    text-align:center;
+    cursor:pointer;
+}
+
+.tricount-currency-option.active{
+    background:#D2503B;
+    color:#FFFFFF;
+    border-color:#D2503B;
+}
+
+body.dark .tricount-currency-option{
+    background:#182238;
+    color:#EAF0FB;
+    border-color:rgba(234,240,251,.15);
+}
+
+body.dark .tricount-currency-option.active{
+    background:#3D7CFF;
+    color:#FFFFFF;
+    border-color:#3D7CFF;
 }
 
 body.dark .tricount-expense-row small{ color:#7C8BAE; }

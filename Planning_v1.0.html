@@ -387,9 +387,10 @@ Ajouter
 
 <div class="tricount-expense-form" id="tricountExpenseForm" hidden>
 <input type="text" id="tricountExpenseDesc" placeholder="Description de la dépense">
-<div class="field-suffix">
 <input type="number" id="tricountExpenseAmount" placeholder="Montant" min="0" step="0.01">
-<span class="field-suffix-label" id="tricountExpenseAmountSuffix">Montant (£)</span>
+<div class="tricount-currency-toggle" id="tricountCurrencyToggle" role="group" aria-label="Devise du montant">
+<button type="button" class="tricount-currency-option active" id="tricountCurrencyBaseBtn"></button>
+<button type="button" class="tricount-currency-option" id="tricountCurrencyTargetBtn"></button>
 </div>
 <select id="tricountPayerSelect" aria-label="Payé par"></select>
 <div class="tricount-split-checkboxes" id="tricountSplitCheckboxes"></div>
