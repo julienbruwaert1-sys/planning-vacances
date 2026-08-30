@@ -1145,7 +1145,7 @@ dragged = null;
             photoBtn.title = "Ajouter une photo ou vidéo";
             photoBtn.setAttribute("aria-label","Ajouter une photo ou vidéo à cette activité");
             photoBtn.addEventListener("click",()=>{
-                openDayCamera(currentDay,activity.id);
+                openDayPhotoPicker(currentDay,activity.id);
             });
             btnGroup.appendChild(photoBtn);
 
@@ -1204,7 +1204,7 @@ dragged = null;
             photoItem.textContent = "📷 Ajouter une photo ou vidéo";
             photoItem.addEventListener("click",()=>{
                 closeActivityMenus();
-                openDayCamera(currentDay,activity.id);
+                openDayPhotoPicker(currentDay,activity.id);
             });
             popover.appendChild(photoItem);
 
@@ -4560,7 +4560,7 @@ let openLightboxPhotoId = null;
 let lightboxGroup = [];
 let lightboxIndex = 0;
 
-function openDayCamera(day,activityId){
+function openDayPhotoPicker(day,activityId){
     pendingPhotoDay = day;
     pendingPhotoActivityId = activityId || null;
     dayPhotoInput.click();
