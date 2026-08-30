@@ -3348,52 +3348,47 @@ small.tricount-warning{
     flex-shrink:0;
 }
 
-#tricountParticipantsList{
-    flex-direction:row;
-    flex-wrap:wrap;
-    align-items:center;
-}
-
 .tricount-add-participant-btn{
-    width:30px;
-    height:30px;
-    border-radius:50%;
-    border:none;
-    background:#D2503B;
-    color:#FFFFFF;
-    font-size:16px;
-    line-height:1;
-    cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    flex-shrink:0;
-}
-
-.tricount-participant-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    background:#F1F7FB;
-    border-radius:999px;
-    padding:6px 8px 6px 14px;
-    font-size:13px;
-    font-weight:500;
-    color:#33404A;
-    line-height:1.2;
-}
-
-.tricount-participant-chip .tricount-remove{
-    width:18px;
-    height:18px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:50%;
-    background:#F6DCD6;
+    gap:8px;
+    width:100%;
+    padding:10px;
+    border-radius:12px;
+    border:1.5px dashed rgba(51,64,74,.25);
+    background:none;
     color:#D2503B;
-    font-size:11px;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.tricount-avatar{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:700;
+    color:#FFFFFF;
     flex-shrink:0;
+}
+
+.tricount-participant-info{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex:1;
+    min-width:0;
+}
+
+.tricount-participant-info small{
+    color:#9AAAB4;
+    font-size:11px;
 }
 
 .tricount-expense-row > div{
@@ -3651,13 +3646,12 @@ body.dark .tricount-settle-row{
     color:#EAF0FB;
 }
 
-body.dark .tricount-participant-chip{
-    background:#182238;
-    color:#EAF0FB;
+body.dark .tricount-participant-info small{
+    color:#7C8BAE;
 }
 
-body.dark .tricount-participant-chip .tricount-remove{
-    background:#3A2620;
+body.dark .tricount-add-participant-btn{
+    border-color:rgba(234,240,251,.20);
     color:#E06A54;
 }
 
@@ -3722,10 +3716,6 @@ body.dark .tricount-currency-option.active{
     background:#3D7CFF;
     color:#FFFFFF;
     border-color:#3D7CFF;
-}
-
-body.dark .tricount-add-participant-btn{
-    background:#3D7CFF;
 }
 
 body.dark .tricount-expense-row small{ color:#7C8BAE; }

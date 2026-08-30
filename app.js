@@ -5851,18 +5851,47 @@ function tricountIsParticipantReferenced(id){
     return tricountExpenses.some(exp=>exp.paidBy===id || exp.splitBetween.includes(id));
 }
 
+const TRICOUNT_AVATAR_COLORS = ["#D2503B","#3D7CFF","#2F8F5B","#00ACC1","#FFB300","#78909C","#EF5350"];
+
+function tricountAvatarColor(id){
+    let hash = 0;
+    for(let i=0;i<id.length;i++){
+        hash = (hash*31 + id.charCodeAt(i)) >>> 0;
+    }
+    return TRICOUNT_AVATAR_COLORS[hash % TRICOUNT_AVATAR_COLORS.length];
+}
+
 function renderTricountParticipants(){
 
     tricountParticipantsList.textContent = "";
 
     tricountParticipants.forEach(p=>{
 
-        const row = document.createElement("span");
-        row.className = "tricount-participant-chip";
+        const row = document.createElement("div");
+        row.className = "tricount-participant-row";
+
+        const avatar = document.createElement("span");
+        avatar.className = "tricount-avatar";
+        avatar.style.background = tricountAvatarColor(p.id);
+        avatar.textContent = (p.name.trim().charAt(0) || "?").toUpperCase();
+        row.appendChild(avatar);
+
+        const info = document.createElement("span");
+        info.className = "tricount-participant-info";
 
         const name = document.createElement("span");
         name.textContent = p.name;
-        row.appendChild(name);
+        info.appendChild(name);
+
+        const paidCount = tricountExpenses.filter(exp=>exp.paidBy===p.id).length;
+        const sub = document.createElement("small");
+        sub.textContent =
+            paidCount===0 ? "Aucune dépense payée" :
+            paidCount===1 ? "A payé 1 dépense" :
+            `A payé ${paidCount} dépenses`;
+        info.appendChild(sub);
+
+        row.appendChild(info);
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -5880,8 +5909,7 @@ function renderTricountParticipants(){
     const addBtn = document.createElement("button");
     addBtn.type = "button";
     addBtn.className = "tricount-add-participant-btn";
-    addBtn.textContent = "+";
-    addBtn.setAttribute("aria-label","Ajouter un participant");
+    addBtn.textContent = "＋ Ajouter un participant";
     addBtn.setAttribute("aria-expanded",String(!tricountAddRow.hidden));
     addBtn.addEventListener("click",()=>{
         tricountAddRow.hidden = !tricountAddRow.hidden;
