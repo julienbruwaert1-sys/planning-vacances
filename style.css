@@ -4580,3 +4580,65 @@ body.dark.theme-noel .bottom-nav-tab.active{
 body.dark.theme-noel .activity-photo-btn{
     color:#E0524A;
 }
+
+/* Guirlande décorative sous le titre de l'app — masquée par défaut via
+   display:none (pas l'attribut [hidden] : la visibilité dépend uniquement
+   de la classe theme-noel sur body, jamais togglée en JS), donc aucun des
+   pièges [hidden] vs display de ce projet ne s'applique ici. */
+.noel-garland{
+    display:none;
+    justify-content:center;
+    gap:10px;
+    font-size:13px;
+    margin:-8px 0 14px;
+    letter-spacing:2px;
+}
+
+body.theme-noel .noel-garland{
+    display:flex;
+}
+
+.noel-garland span:nth-child(3n+1){ color:#B3261E; }
+.noel-garland span:nth-child(3n+2){ color:#C9A227; }
+.noel-garland span:nth-child(3n+3){ color:#2F6B47; }
+
+body.dark.theme-noel .noel-garland span:nth-child(3n+3){ color:#7FBE96; }
+
+/* Neige animée — le conteneur #noelSnow existe toujours dans le DOM mais ne
+   contient des <span> (ajoutés/retirés en JS) que lorsque le thème Noël est
+   actif ; un conteneur vide n'affiche rien, donc pas besoin de le
+   masquer/afficher lui-même. pointer-events:none partout pour ne jamais
+   intercepter un tap destiné à l'app en dessous. */
+.noel-snow{
+    position:fixed;
+    inset:0;
+    z-index:5;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.noel-snow span{
+    position:absolute;
+    top:-5%;
+    color:#C9A227;
+    opacity:.6;
+    animation:noelSnowfall linear infinite;
+}
+
+body.dark .noel-snow span{
+    color:#E3C05B;
+    opacity:.45;
+}
+
+@keyframes noelSnowfall{
+    to{
+        transform:translateY(105vh) translateX(var(--drift,0px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .noel-snow span{
+        animation:none;
+        opacity:0;
+    }
+}

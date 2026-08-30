@@ -2647,17 +2647,45 @@ if(localStorage.getItem("theme")==="dark"){
    les deux variantes. */
 const APP_THEME_KEY = "appTheme";
 const appThemeSelect = document.getElementById("appThemeSelect");
+const noelSnow = document.getElementById("noelSnow");
+const NOEL_SNOWFLAKE_COUNT = 24;
+const NOEL_SNOWFLAKE_CHARS = ["❄","❅","❆"];
+
+/* Le conteneur reste vide (donc invisible) tant que le thème n'est pas
+   actif — voir la note dans style.css sur .noel-snow. Chaque flocon a sa
+   propre durée/délai/position aléatoires pour ne pas avoir un motif de
+   chute qui se répète visiblement. */
+function startNoelSnow(){
+    if(noelSnow.childElementCount) return;
+    for(let i=0;i<NOEL_SNOWFLAKE_COUNT;i++){
+        const flake = document.createElement("span");
+        flake.textContent = NOEL_SNOWFLAKE_CHARS[i%NOEL_SNOWFLAKE_CHARS.length];
+        flake.style.left = `${Math.random()*100}%`;
+        flake.style.fontSize = `${8+Math.random()*10}px`;
+        flake.style.setProperty("--drift",`${(Math.random()*40)-20}px`);
+        flake.style.animationDuration = `${8+Math.random()*8}s`;
+        flake.style.animationDelay = `${Math.random()*10}s`;
+        noelSnow.appendChild(flake);
+    }
+}
+
+function stopNoelSnow(){
+    noelSnow.textContent = "";
+}
 
 appThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
 
 if(appThemeSelect.value==="noel"){
     document.body.classList.add("theme-noel");
+    startNoelSnow();
 }
 
 appThemeSelect.addEventListener("change",()=>{
     const choice = appThemeSelect.value;
     localStorage.setItem(APP_THEME_KEY,choice);
     document.body.classList.toggle("theme-noel",choice==="noel");
+    if(choice==="noel") startNoelSnow();
+    else stopNoelSnow();
 });
 
 themeToggle.addEventListener("click",()=>{
