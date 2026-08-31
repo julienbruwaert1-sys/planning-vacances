@@ -287,6 +287,23 @@ body.dark .date-tab.active{
     display:none;
 }
 
+/* .profile-section a normalement width:auto (rétréci à son contenu en tant
+   qu'enfant flex de .date-wrap-row) — on force la pleine largeur ici pour
+   qu'elle occupe toute la colonne de 480px comme prévu, sans toucher au
+   comportement de .profile-section ailleurs dans l'appli (Infos voyageur…). */
+.date-wrap-row .profile-section{
+    width:100%;
+    max-width:480px;
+}
+
+/* .profile-hint n'a normalement de marge qu'au-dessus (elle clôt toujours
+   une carte ailleurs, ex. Infos voyageur) — ici plusieurs indices
+   apparaissent AU MILIEU de la carte, entre deux groupes de champs, d'où
+   ce complément d'espace en dessous propre à cette page. */
+.date-wrap-row .profile-hint{
+    margin-bottom:10px;
+}
+
 .date-field{
     display:flex;
     flex-direction:column;

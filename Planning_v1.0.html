@@ -310,22 +310,51 @@
 <div class="date-tabs-group">
 <button class="date-tab active" type="button" data-tab="dates">🗓️ Dates</button>
 <button class="date-tab" type="button" data-tab="devise">💱 Devise</button>
+<button class="date-tab" type="button" data-tab="destination">📍 Destination</button>
 </div>
 </div>
 <div class="date-wrap" id="dateWrap">
 <div class="date-wrap-row" data-tab="dates">
-<div class="date-field">
+<div class="profile-section">
+<div class="profile-field">
 <label for="startDate">Date de départ (optionnelle)</label>
 <input type="date" id="startDate">
 </div>
-<div class="date-field">
-<label for="dayCount">Nombre de jours</label>
-<input type="number" id="dayCount" min="1" max="30" value="7">
+<div class="profile-field">
+<label for="endDate">Date de fin (optionnelle)</label>
+<input type="date" id="endDate">
+</div>
+<p class="profile-hint" id="tripDurationHint"></p>
+<div class="profile-field">
+<label for="tripTimezoneSelect">Fuseau horaire du voyage</label>
+<select id="tripTimezoneSelect" aria-label="Fuseau horaire du voyage">
+<option value="">Fuseau automatique (appareil)</option>
+<option value="Europe/Paris">Europe/Paris</option>
+<option value="Europe/London">Europe/Londres</option>
+<option value="America/New_York">Amérique/New York</option>
+<option value="America/Los_Angeles">Amérique/Los Angeles</option>
+<option value="Asia/Tokyo">Asie/Tokyo</option>
+<option value="Asia/Bangkok">Asie/Bangkok</option>
+<option value="Australia/Sydney">Australie/Sydney</option>
+</select>
+</div>
+<p class="profile-hint">Pas encore utilisé pour recalculer le compte à rebours ou la météo — préparé pour une prochaine mise à jour.</p>
+<div class="profile-field">
+<label for="countdownThresholdSelect">Afficher le compte à rebours</label>
+<select id="countdownThresholdSelect" aria-label="Seuil d'affichage du compte à rebours">
+<option value="0">Toujours</option>
+<option value="30">À partir de 30 jours avant</option>
+<option value="14">À partir de 14 jours avant</option>
+<option value="7">À partir de 7 jours avant</option>
+<option value="3">À partir de 3 jours avant</option>
+</select>
 </div>
 <button id="jumpTodayBtn" class="jump-today-btn" type="button" hidden>📍 Aujourd'hui</button>
 </div>
+</div>
 <div class="date-wrap-row" data-tab="devise">
-<div class="date-field">
+<div class="profile-section">
+<div class="profile-field">
 <label for="priceCurrencySelect">Devise de saisie des prix</label>
 <select id="priceCurrencySelect" aria-label="Devise de saisie des prix des activités">
 <option value="£">£ GBP</option>
@@ -334,13 +363,33 @@
 <option value="¥">¥ JPY</option>
 </select>
 </div>
-<div class="date-field">
+<div class="profile-field">
 <label for="converterBaseCurrencySelect">Devise de départ (convertisseur)</label>
 <select id="converterBaseCurrencySelect" aria-label="Devise de départ du convertisseur"></select>
 </div>
-<div class="date-field">
+<div class="profile-field">
 <label for="targetCurrency">Devise d'arrivée (convertisseur)</label>
 <select id="targetCurrency" aria-label="Devise d'arrivée du convertisseur"></select>
+</div>
+<div class="profile-field">
+<label for="conversionDecimalsSelect">Décimales des conversions</label>
+<select id="conversionDecimalsSelect" aria-label="Nombre de décimales affichées dans le convertisseur">
+<option value="">Automatique (selon la devise)</option>
+<option value="0">0 décimale</option>
+<option value="1">1 décimale</option>
+<option value="2">2 décimales</option>
+<option value="3">3 décimales</option>
+</select>
+</div>
+</div>
+</div>
+<div class="date-wrap-row" data-tab="destination">
+<div class="profile-section">
+<div class="profile-field">
+<label for="tripCountrySelect">Pays de destination</label>
+<select id="tripCountrySelect" aria-label="Pays de destination"></select>
+</div>
+<p class="profile-hint">Utilisé pour la Carte du voyage (« Pays du voyage uniquement ») et le géocodage des adresses. Modifiable ici sans recréer le voyage — n'affecte pas l'icône de l'application (réglable séparément dans Options).</p>
 </div>
 </div>
 </div>

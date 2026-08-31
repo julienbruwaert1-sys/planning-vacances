@@ -1790,7 +1790,7 @@ function importRows(rows){
 
         if(maxDay > dayCount){
             dayCount = maxDay;
-            document.getElementById("dayCount").value = dayCount;
+            refreshEndDateDisplay();
             localStorage.setItem("dayCount",dayCount);
         }
 
@@ -1981,7 +1981,7 @@ function importICSEvents(text){
 
         if(maxDay > dayCount){
             dayCount = maxDay;
-            document.getElementById("dayCount").value = dayCount;
+            refreshEndDateDisplay();
             localStorage.setItem("dayCount",dayCount);
         }
 
@@ -2517,6 +2517,33 @@ Object.keys(APP_ICONS).forEach(key=>{
 
 welcomeCountrySelect.classList.add("welcome-select-placeholder");
 
+/* Pays de destination, éditable après la création du voyage (Dates &
+   devise → Destination) — décorrélé de appIconChoice (icône de l'app,
+   réglable séparément dans Options) même si les deux partagent la même
+   liste de pays et étaient liés au moment de la création du voyage. */
+const tripCountrySelect = document.getElementById("tripCountrySelect");
+
+const tripCountryPlaceholder = document.createElement("option");
+tripCountryPlaceholder.value = "";
+tripCountryPlaceholder.textContent = "Non précisé";
+tripCountrySelect.appendChild(tripCountryPlaceholder);
+
+Object.keys(APP_ICONS).forEach(key=>{
+    if(key==="default") return;
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = APP_ICONS[key].label;
+    tripCountrySelect.appendChild(opt);
+});
+
+tripCountrySelect.value = tripCountry;
+
+tripCountrySelect.addEventListener("change",()=>{
+    tripCountry = tripCountrySelect.value;
+    localStorage.setItem(TRIP_COUNTRY_KEY,tripCountry);
+    pushToSync();
+});
+
 let welcomeIconChoice = "default";
 
 let welcomeParticipants = [];
@@ -2655,6 +2682,7 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
             localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
             localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
             localStorage.removeItem("startDate");
+            localStorage.removeItem(TRIP_TIMEZONE_KEY);
             localStorage.setItem("vacationPlanning",JSON.stringify({}));
         }
 
@@ -3032,17 +3060,15 @@ welcomeThemeSelect.addEventListener("change",()=>{
     refreshThemeIcons();
 });
 
-const dayCountInput = document.getElementById("dayCount");
-dayCountInput.value = dayCount;
+/* Le nombre de jours n'a plus de champ de saisie dédié — il se déduit de
+   Date de départ / Date de fin (voir refreshEndDateDisplay ci-dessous),
+   comme à la création du voyage (welcomeCreateBtn). applyDayCountChange()
+   reste le point d'entrée unique pour toute modification de dayCount,
+   qu'elle vienne d'ici ou d'un import/sync qui dépasse le nombre de jours
+   actuel. */
+function applyDayCountChange(val){
 
-dayCountInput.addEventListener("change",()=>{
-
-    let val = parseInt(dayCountInput.value,10);
-
-    if(isNaN(val) || val<1) val = 1;
-    if(val>30) val = 30;
-
-    dayCountInput.value = val;
+    val = Math.min(30,Math.max(1,val));
     dayCount = val;
 
     localStorage.setItem("dayCount",dayCount);
@@ -3056,13 +3082,32 @@ dayCountInput.addEventListener("change",()=>{
 
     createTabs();
     renderActivities();
-});
+}
 
-/* --- Date de départ / compte à rebours / "Aujourd'hui" --- */
+/* --- Date de départ / date de fin / compte à rebours / "Aujourd'hui" --- */
 
 const startDateInput = document.getElementById("startDate");
 const countdownBanner = document.getElementById("countdownBanner");
 const jumpTodayBtn = document.getElementById("jumpTodayBtn");
+
+const TRIP_TIMEZONE_KEY = "tripTimezone";
+const tripTimezoneSelect = document.getElementById("tripTimezoneSelect");
+tripTimezoneSelect.value = localStorage.getItem(TRIP_TIMEZONE_KEY) || "";
+tripTimezoneSelect.addEventListener("change",()=>{
+    localStorage.setItem(TRIP_TIMEZONE_KEY,tripTimezoneSelect.value);
+    pushToSync();
+});
+
+const COUNTDOWN_THRESHOLD_KEY = "countdownThresholdDays";
+let countdownThresholdDays = parseInt(localStorage.getItem(COUNTDOWN_THRESHOLD_KEY),10) || 0;
+const countdownThresholdSelect = document.getElementById("countdownThresholdSelect");
+countdownThresholdSelect.value = String(countdownThresholdDays);
+countdownThresholdSelect.addEventListener("change",()=>{
+    countdownThresholdDays = parseInt(countdownThresholdSelect.value,10) || 0;
+    localStorage.setItem(COUNTDOWN_THRESHOLD_KEY,countdownThresholdDays);
+    pushToSync();
+    updateCountdownBanner();
+});
 
 const dateWrap = document.getElementById("dateWrap");
 const dateProfileSlot = document.getElementById("dateProfileSlot");
@@ -3072,6 +3117,69 @@ const dateWrapRows = dateWrap.querySelectorAll(".date-wrap-row");
 
 let startDate = localStorage.getItem("startDate") || "";
 startDateInput.value = startDate;
+
+const endDateInput = document.getElementById("endDate");
+const tripDurationHint = document.getElementById("tripDurationHint");
+
+/* toISOString() convertit en UTC : avec un fuseau local en avance sur UTC
+   (Asie, Australie…), minuit local peut retomber sur la veille en UTC et
+   décaler la date affichée d'un jour. On formate donc les composants
+   locaux à la main plutôt que de passer par toISOString(). */
+function formatDateInputValue(dateObj){
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth()+1).padStart(2,"0");
+    const d = String(dateObj.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+}
+
+/* Affiche la date de fin déduite de startDate+dayCount (jamais stockée
+   séparément — startDate+dayCount restent la seule source de vérité, pour
+   éviter qu'une date de fin mémorisée à part ne se désynchronise si
+   dayCount change ailleurs, ex. import Excel dépassant la durée actuelle). */
+function refreshEndDateDisplay(){
+
+    const base = new Date(startDate+"T00:00:00");
+
+    if(!startDate || isNaN(base.getTime())){
+        endDateInput.value = "";
+        tripDurationHint.textContent = "";
+        return;
+    }
+
+    const end = new Date(base);
+    end.setDate(end.getDate() + dayCount - 1);
+
+    endDateInput.value = formatDateInputValue(end);
+    tripDurationHint.textContent = `Durée : ${dayCount} jour${dayCount>1 ? "s" : ""}`;
+}
+
+endDateInput.addEventListener("change",()=>{
+
+    if(!startDate){
+        showToast("Définis d'abord une date de départ.",{type:"error"});
+        refreshEndDateDisplay();
+        return;
+    }
+
+    const base = new Date(startDate+"T00:00:00");
+    const end = new Date(endDateInput.value+"T00:00:00");
+
+    if(isNaN(end.getTime())){
+        refreshEndDateDisplay();
+        return;
+    }
+
+    const diffDays = Math.round((end-base)/86400000) + 1;
+
+    if(diffDays<1){
+        showToast("La date de fin doit être après la date de départ.",{type:"error"});
+        refreshEndDateDisplay();
+        return;
+    }
+
+    applyDayCountChange(diffDays);
+    refreshEndDateDisplay();
+});
 
 let activeDateTab = "dates";
 
@@ -3191,6 +3299,15 @@ function updateCountdownBanner(){
         (base - today) / (1000*60*60*24)
     );
 
+    /* Le seuil ne s'applique qu'au compte à rebours "avant le départ" —
+       jamais aux états "en voyage"/"voyage terminé", qui restent toujours
+       pertinents une fois le départ passé, quel que soit le seuil choisi. */
+    if(diffDays > countdownThresholdDays && countdownThresholdDays>0){
+        countdownBanner.hidden = true;
+        jumpTodayBtn.hidden = true;
+        return;
+    }
+
     countdownBanner.hidden = false;
 
     if(diffDays > 0){
@@ -3248,6 +3365,7 @@ startDateInput.addEventListener("change",()=>{
 
     updateCountdownBanner();
     updateDatePlacement();
+    refreshEndDateDisplay();
     createTabs();
     renderTabs();
 });
@@ -3256,6 +3374,7 @@ jumpTodayBtn.addEventListener("click",jumpToToday);
 
 updateCountdownBanner();
 updateDatePlacement();
+refreshEndDateDisplay();
 
 /* --- Recherche globale --- */
 
@@ -6703,6 +6822,17 @@ const CURRENCIES = {
     THB:{symbol:"฿",decimals:2,label:"Baht thaïlandais (THB)"}
 };
 
+const CONVERSION_DECIMALS_KEY = "conversionDecimals";
+const conversionDecimalsStored = localStorage.getItem(CONVERSION_DECIMALS_KEY);
+let conversionDecimalsOverride = conversionDecimalsStored!==null ? parseInt(conversionDecimalsStored,10) : null;
+
+/* null = "Automatique" : garde le nombre de décimales propre à chaque
+   devise (CURRENCIES[x].decimals, ex. 0 pour le yen) comme avant ce
+   réglage. Une valeur choisie l'emporte sur toutes les devises. */
+function decimalsFor(currencyCode){
+    return conversionDecimalsOverride!==null ? conversionDecimalsOverride : CURRENCIES[currencyCode].decimals;
+}
+
 function rateStorageKey(base,currency){
     return "rate_"+base+"_"+currency;
 }
@@ -6718,6 +6848,20 @@ const targetInput = document.getElementById("targetInput");
 const targetCurrencyDisplay = document.getElementById("targetCurrencyDisplay");
 const targetCurrencySelect = document.getElementById("targetCurrency");
 const rateInfo = document.getElementById("rateInfo");
+
+const conversionDecimalsSelect = document.getElementById("conversionDecimalsSelect");
+conversionDecimalsSelect.value = conversionDecimalsOverride!==null ? String(conversionDecimalsOverride) : "";
+conversionDecimalsSelect.addEventListener("change",()=>{
+    conversionDecimalsOverride = conversionDecimalsSelect.value==="" ? null : parseInt(conversionDecimalsSelect.value,10);
+    if(conversionDecimalsOverride===null){
+        localStorage.removeItem(CONVERSION_DECIMALS_KEY);
+    }else{
+        localStorage.setItem(CONVERSION_DECIMALS_KEY,conversionDecimalsOverride);
+    }
+    pushToSync();
+    convertFromBase();
+    updateRateDisplay();
+});
 
 [converterBaseCurrencySelect,targetCurrencySelect].forEach(select=>{
     select.innerHTML = "";
@@ -6834,7 +6978,7 @@ function updateRateDisplay(){
 
     const rateText = document.createElement("span");
     rateText.textContent =
-    `1 ${baseCurrency} = ${currentRate.toFixed(2)} ${targetCurrency}`;
+    `1 ${baseCurrency} = ${currentRate.toFixed(decimalsFor(targetCurrency))} ${targetCurrency}`;
 
     rateRow.appendChild(statusSpan);
     rateRow.appendChild(rateText);
@@ -6862,7 +7006,7 @@ function convertFromBase(){
     }
 
     targetInput.value =
-    (val * currentRate).toFixed(CURRENCIES[targetCurrency].decimals);
+    (val * currentRate).toFixed(decimalsFor(targetCurrency));
 }
 
 function convertFromTarget(){
@@ -6876,7 +7020,7 @@ function convertFromTarget(){
         return;
     }
 
-    baseInput.value = (val / currentRate).toFixed(CURRENCIES[baseCurrency].decimals);
+    baseInput.value = (val / currentRate).toFixed(decimalsFor(baseCurrency));
 }
 
 baseInput.addEventListener("input",convertFromBase);
@@ -7843,6 +7987,7 @@ function collectSyncData(){
         startDate,
         tripName,
         tripCountry,
+        tripTimezone: localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
         baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
         priceCurrencySymbol: localStorage.getItem("priceCurrencySymbol") || "£",
         targetCurrency: localStorage.getItem("targetCurrency") || "",
@@ -8012,7 +8157,6 @@ function applySyncData(data){
 
     if(data.dayCount){
         dayCount = data.dayCount;
-        dayCountInput.value = dayCount;
         localStorage.setItem("dayCount",dayCount);
     }
 
@@ -8031,6 +8175,12 @@ function applySyncData(data){
     if(data.tripCountry!==undefined && data.tripCountry!==tripCountry){
         tripCountry = data.tripCountry;
         localStorage.setItem(TRIP_COUNTRY_KEY,tripCountry);
+        tripCountrySelect.value = tripCountry;
+    }
+
+    if(data.tripTimezone!==undefined){
+        localStorage.setItem(TRIP_TIMEZONE_KEY,data.tripTimezone);
+        tripTimezoneSelect.value = data.tripTimezone;
     }
 
     let currencyChanged = false;
@@ -8091,6 +8241,7 @@ function applySyncData(data){
     renderTricount();
     updateCountdownBanner();
     updateDatePlacement();
+    refreshEndDateDisplay();
 
     applyingRemoteUpdate = false;
 
