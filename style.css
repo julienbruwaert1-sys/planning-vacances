@@ -136,6 +136,37 @@ body.dark .modal-box{
     line-height:1.4;
 }
 
+.paste-import-title{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:17px;
+    margin:0 0 10px;
+    color:#33404A;
+}
+
+body.dark .paste-import-title{
+    color:#EAF0FB;
+}
+
+.paste-import-textarea{
+    width:100%;
+    box-sizing:border-box;
+    border:1px solid #E3E9EF;
+    border-radius:12px;
+    padding:10px 12px;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13.5px;
+    color:#33404A;
+    background:#F1F7FB;
+    resize:vertical;
+    margin-bottom:16px;
+}
+
+body.dark .paste-import-textarea{
+    background:#182238;
+    color:#EAF0FB;
+    border-color:#33364A;
+}
+
 .modal-preview-image{
     display:block;
     width:96px;

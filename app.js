@@ -1998,6 +1998,119 @@ async function fetchICSFromURL(url){
     }
 }
 
+/* --- Importer une réservation depuis un texte collé ---
+   Pas un parseur universel fiable (le texte d'un email varie trop d'un
+   service à l'autre) : extraction "au mieux" (nom, date, heure, lien),
+   puis pré-remplissage du formulaire d'activité existant pour relecture/
+   correction avant validation — jamais d'ajout silencieux sans passer par
+   la review humaine du formulaire habituel. */
+
+const pasteImportBtn = document.getElementById("pasteImportBtn");
+const pasteImportModal = document.getElementById("pasteImportModal");
+const pasteImportTextarea = document.getElementById("pasteImportTextarea");
+const pasteImportCancelBtn = document.getElementById("pasteImportCancelBtn");
+const pasteImportAnalyzeBtn = document.getElementById("pasteImportAnalyzeBtn");
+
+const PASTE_IMPORT_MONTHS = {
+    "janvier":0,"février":1,"fevrier":1,"mars":2,"avril":3,"mai":4,"juin":5,
+    "juillet":6,"août":7,"aout":7,"septembre":8,"octobre":9,
+    "novembre":10,"décembre":11,"decembre":11
+};
+
+function dayNumberForDate(dateObj){
+    if(!startDate) return null;
+    const start = new Date(startDate+"T00:00:00");
+    if(isNaN(start)) return null;
+    const diffDays = Math.round((dateObj - start) / 86400000) + 1;
+    if(diffDays>=1 && diffDays<=dayCount) return diffDays;
+    return null;
+}
+
+function parseReservationText(text){
+
+    const result = { name:"", time:"", link:"", day:null };
+
+    const urlMatch = text.match(/https?:\/\/[^\s)>\]]+/i);
+    if(urlMatch) result.link = urlMatch[0];
+
+    const timeMatch = text.match(/\b([01]?\d|2[0-3])[:h]([0-5]\d)\b/);
+    if(timeMatch) result.time = `${timeMatch[1].padStart(2,"0")}:${timeMatch[2]}`;
+
+    let dateObj = null;
+
+    let m = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+    if(m) dateObj = new Date(+m[1], +m[2]-1, +m[3]);
+
+    if(!dateObj){
+        m = text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+        if(m) dateObj = new Date(+m[3], +m[2]-1, +m[1]);
+    }
+
+    if(!dateObj){
+        const monthPattern = Object.keys(PASTE_IMPORT_MONTHS).join("|");
+        const re = new RegExp(`\\b(\\d{1,2})\\s+(${monthPattern})\\s+(\\d{4})\\b`,"i");
+        m = text.match(re);
+        if(m) dateObj = new Date(+m[3], PASTE_IMPORT_MONTHS[m[2].toLowerCase()], +m[1]);
+    }
+
+    if(dateObj && !isNaN(dateObj)) result.day = dayNumberForDate(dateObj);
+
+    const firstLine = text.split("\n").map(l=>l.trim()).find(Boolean);
+    if(firstLine) result.name = firstLine.slice(0,80);
+
+    return result;
+}
+
+pasteImportBtn.addEventListener("click",()=>{
+    optionsMenuPanel.hidden = true;
+    pasteImportTextarea.value = "";
+    pasteImportModal.hidden = false;
+    pasteImportTextarea.focus();
+});
+
+pasteImportCancelBtn.addEventListener("click",()=>{
+    pasteImportModal.hidden = true;
+});
+
+pasteImportAnalyzeBtn.addEventListener("click",()=>{
+
+    const text = pasteImportTextarea.value.trim();
+
+    if(!text){
+        showToast("Colle d'abord le texte de ta confirmation.",{type:"error"});
+        return;
+    }
+
+    const parsed = parseReservationText(text);
+
+    pasteImportModal.hidden = true;
+
+    closeAllFullscreenViews();
+    setActiveMainTab("planning");
+
+    if(parsed.day){
+        currentDay = parsed.day;
+        document.getElementById("daySelect").value = currentDay;
+        renderTabs();
+        renderActivities();
+    }
+
+    closeFormDrawer();
+
+    document.getElementById("activityName").value = parsed.name;
+    document.getElementById("activityTime").value = parsed.time;
+    document.getElementById("activityReservationLink").value = parsed.link;
+
+    openFormDrawer();
+
+    showToast(
+        parsed.day
+            ? "Champs pré-remplis à partir du texte — vérifie avant d'ajouter."
+            : "Champs pré-remplis, mais la date n'a pas été reconnue — vérifie le jour et les champs avant d'ajouter.",
+        {duration:5000}
+    );
+});
+
 /* --- Bascule Live Server (WiFi maison) ↔ version en ligne ---
    Simple lien de navigation entre les deux origines (chacune a son propre
    localStorage/service worker, la synchro Firebase existante réconcilie

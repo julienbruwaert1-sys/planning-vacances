@@ -131,6 +131,18 @@
 </div>
 </div>
 
+<div id="pasteImportModal" class="modal-overlay" hidden>
+<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="pasteImportTitle">
+<h3 id="pasteImportTitle" class="paste-import-title">📋 Importer depuis un texte</h3>
+<p>Colle le texte d'un email ou d'une confirmation — nom, date, heure et lien seront pré-remplis dans le formulaire, à vérifier avant d'ajouter.</p>
+<textarea id="pasteImportTextarea" class="paste-import-textarea" rows="7" placeholder="Colle ici le texte de ta confirmation…"></textarea>
+<div class="modal-actions">
+<button id="pasteImportCancelBtn" class="modal-btn modal-btn-cancel" type="button">Annuler</button>
+<button id="pasteImportAnalyzeBtn" class="modal-btn modal-btn-confirm" type="button">Analyser</button>
+</div>
+</div>
+</div>
+
 <div id="photoLightbox" class="photo-lightbox" hidden>
 <button id="photoLightboxClose" class="photo-lightbox-close" type="button" aria-label="Fermer la photo">✕</button>
 <span id="photoLightboxCounter" class="photo-lightbox-counter" hidden></span>
@@ -200,6 +212,7 @@
 <button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json,.ics" hidden>
 <button id="importIcsBtn" class="menu-item" type="button" role="menuitem" title="Importer un calendrier .ics (Airbnb, etc.)" aria-label="Importer un calendrier .ics"><span class="menu-item-icon">📅</span><span class="menu-item-label">Importer un calendrier (.ics)</span></button>
+<button id="pasteImportBtn" class="menu-item" type="button" role="menuitem" title="Importer une réservation depuis un texte collé" aria-label="Importer une réservation depuis un texte collé"><span class="menu-item-icon">📋</span><span class="menu-item-label">Importer depuis un texte</span></button>
 <input type="file" id="importIcsFile" accept=".ics,text/calendar" hidden>
 <input type="file" id="dayPhotoInput" accept="image/*,video/*" hidden>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
