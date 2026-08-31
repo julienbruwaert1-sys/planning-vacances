@@ -31,6 +31,8 @@ h1{
 
 .app-title-row h1{
     margin-top:0;
+    min-width:0;
+    overflow-wrap:break-word;
 }
 
 /* Accessibilité : focus clavier visible */
@@ -514,27 +516,6 @@ body.dark .search-result-item:hover{
 
 /* Résumé du séjour */
 
-.trip-summary{
-    max-width:420px;
-    margin:0 auto 16px;
-    text-align:center;
-    font-size:13px;
-    font-weight:bold;
-    color:#E0954A;
-    background:linear-gradient(135deg,#FCEEE8,#F7D9CE);
-    border-radius:12px;
-    padding:8px 16px;
-}
-
-.trip-summary:empty{
-    display:none;
-    padding:0;
-}
-
-body.dark .trip-summary{
-    color:#6fd68c;
-}
-
 /* Checklist de voyage */
 
 .checklist-toggle-btn{
@@ -556,15 +537,6 @@ html body.has-bottom-nav{
 
 body.has-bottom-nav #planningTabContent{
     padding-bottom:24px;
-}
-
-.profile-title{
-    font-family:'Playfair Display',Georgia,serif;
-    font-size:26px;
-    font-weight:700;
-    margin:36px 0 18px;
-    padding:0 4px;
-    color:#33404A;
 }
 
 .mobile-tab-header{
@@ -665,9 +637,6 @@ body.dark .mobile-tab-header h2{
     margin:14px 0 0;
 }
 
-body.dark .profile-title{
-    color:#EAF0FB;
-}
 
 body.dark .profile-list{
     background:#121A2E;
@@ -922,17 +891,6 @@ body.dark .help-report-icon-copy:hover{
     margin:0 0 10px;
 }
 
-.profile-link{
-    font-size:13px;
-    font-weight:600;
-    color:#D2503B;
-    text-decoration:none;
-}
-
-.profile-link:hover{
-    text-decoration:underline;
-}
-
 body.dark .profile-section{
     background:#121A2E;
     box-shadow:0 2px 8px rgba(0,0,0,.4);
@@ -965,9 +923,6 @@ body.dark .profile-stat-hint{
     color:#7C8BAE;
 }
 
-body.dark .profile-link{
-    color:#3D7CFF;
-}
 
 /* dataSettingsContent / syncPanelContent réutilisent le style .menu-item déjà
    défini pour le menu ⋮ — pas besoin de nouvelles règles ici, ils s'affichent
@@ -1630,6 +1585,10 @@ body.dark .checklist-chip{
     font-size:14px;
     font-weight:600;
     color:#33404A;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 body.dark .planning-search-bar{
@@ -1930,6 +1889,13 @@ body.dark .weather-card.weather-location-unavailable .weather-condition{
     display:inline-block;
     font-size:16px;
     transition:transform .25s ease;
+}
+
+#formToggleLabel{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 .form-toggle-btn.open #formToggleIcon{
@@ -2895,16 +2861,6 @@ body.dark .trip-history-delete-btn:hover{
     min-height:60px;
 }
 
-.dropzone{
-    min-height:50px;
-    border:2px dashed #F7D9CE;
-    border-radius:14px;
-    padding:15px;
-    text-align:center;
-    color:#9AAAB4;
-    font-style:italic;
-}
-
 h3{
     background:#D2503B;
     color:white;
@@ -3279,15 +3235,6 @@ body.dark .menu-hint{
     box-shadow:0 4px 14px rgba(51,64,74,.16);
 }
 
-.icon-btn-danger{
-    background:#A8323A;
-    color:white;
-}
-
-.icon-btn-danger:hover{
-    background:#8F2A31;
-}
-
 body.dark .options-menu-panel,
 body.dark .search-panel,
 body.dark .date-panel{
@@ -3350,10 +3297,6 @@ body.dark .day-select-wrap{
     color:#EAF0FB;
 }
 
-body.dark .dropzone{
-    border-color:rgba(61,124,255,.25);
-    color:#7C8BAE;
-}
 
 /* Convertisseur de devises */
 
@@ -3993,12 +3936,6 @@ body.dark .icon-btn:hover{
     box-shadow:0 4px 14px rgba(0,0,0,.5), 0 0 16px rgba(61,124,255,.25);
 }
 
-body.dark .icon-btn-danger{
-    background:#2A1420;
-    color:#FF9B9B;
-    border:none;
-}
-
 body.dark .day-content{
     background:#121A2E;
     border:none;
@@ -4226,11 +4163,6 @@ body.dark #daySummary{
     background:linear-gradient(135deg,#16213D,#1B2C55);
     color:#6FA8FF;
     border:none;
-}
-
-body.dark .trip-summary{
-    color:#6FA8FF;
-    background:linear-gradient(135deg,#16213D,#1B2C55);
 }
 
 body.dark .countdown-banner{
@@ -4467,7 +4399,6 @@ body.theme-noel .jump-today-btn,
 body.theme-noel .countdown-banner,
 body.theme-noel .help-report-icon-copy:hover,
 body.theme-noel .profile-stat-value,
-body.theme-noel .profile-link,
 body.theme-noel .bottom-nav-tab.active,
 body.theme-noel .activity-photo-btn,
 body.theme-noel .checklist-chip,
@@ -4807,7 +4738,6 @@ body.theme-ghibli .jump-today-btn,
 body.theme-ghibli .countdown-banner,
 body.theme-ghibli .help-report-icon-copy:hover,
 body.theme-ghibli .profile-stat-value,
-body.theme-ghibli .profile-link,
 body.theme-ghibli .bottom-nav-tab.active,
 body.theme-ghibli .activity-photo-btn,
 body.theme-ghibli .checklist-chip,
@@ -5281,7 +5211,6 @@ body.theme-halloween .jump-today-btn,
 body.theme-halloween .countdown-banner,
 body.theme-halloween .help-report-icon-copy:hover,
 body.theme-halloween .profile-stat-value,
-body.theme-halloween .profile-link,
 body.theme-halloween .bottom-nav-tab.active,
 body.theme-halloween .activity-photo-btn,
 body.theme-halloween .checklist-chip,
