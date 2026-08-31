@@ -5586,6 +5586,215 @@ async function renderDayWeather(){
     }
 }
 
+/* --- Vue "Météo des prochains jours" (mockup B validé, voir la mémoire du
+   projet) : ouverte en tapant la carte météo du Planning, dayWeatherCard
+   porte data-profile-view="weatherForecastView" (voir la boucle générique
+   [data-profile-view] plus bas, qui l'attache donc automatiquement — pas de
+   gestionnaire de clic ni de fermeture spécifique nécessaires ici, cette
+   vue est une .fullscreen-view.profile-sub-view standard comme Carte/
+   Checklist). Même position que la carte météo du jour (lastKnownPosition,
+   jamais la destination du voyage — voir renderDayWeather() ci-dessus). */
+
+const WEATHER_FORECAST_DAYS = 7;
+const weatherForecastPlace = document.getElementById("weatherForecastPlace");
+const weatherForecastContent = document.getElementById("weatherForecastContent");
+let weatherForecastDays = null;
+let weatherForecastSelectedIndex = 0;
+
+async function fetchMultiDayWeather(lat,lon){
+
+    const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)}_forecast${WEATHER_FORECAST_DAYS}`;
+    const cache = loadWeatherCache();
+    const cached = cache[cacheKey];
+
+    if(cached && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS){
+        return cached.data;
+    }
+
+    const url =
+        "https://api.open-meteo.com/v1/forecast?latitude="+lat
+        + "&longitude="+lon
+        + "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max"
+        + "&timezone=auto&forecast_days="+WEATHER_FORECAST_DAYS;
+
+    const response = await fetchWithTimeout(url,8000);
+
+    if(!response.ok){
+        throw new Error("Open-Meteo: réponse HTTP "+response.status);
+    }
+
+    const data = await response.json();
+
+    if(!data.daily || !data.daily.time || !data.daily.time.length){
+        throw new Error("Open-Meteo: pas de données");
+    }
+
+    const days = data.daily.time.map((dateStr,i)=>({
+        date: dateStr,
+        code: data.daily.weathercode[i],
+        max: Math.round(data.daily.temperature_2m_max[i]),
+        min: Math.round(data.daily.temperature_2m_min[i]),
+        precipitation: data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[i] : null,
+        wind: data.daily.windspeed_10m_max ? Math.round(data.daily.windspeed_10m_max[i]) : null
+    }));
+
+    cache[cacheKey] = {data:days,timestamp:Date.now()};
+    saveWeatherCache(cache);
+
+    return days;
+}
+
+function weatherForecastEmptyState(message){
+    weatherForecastContent.textContent = "";
+    const msg = document.createElement("p");
+    msg.className = "weather-forecast-empty";
+    msg.textContent = message;
+    weatherForecastContent.appendChild(msg);
+}
+
+function drawWeatherForecast(){
+
+    weatherForecastContent.textContent = "";
+    if(!weatherForecastDays || !weatherForecastDays.length) return;
+
+    const stripWrap = document.createElement("div");
+    stripWrap.className = "weather-strip-wrap";
+    const strip = document.createElement("div");
+    strip.className = "weather-strip";
+
+    weatherForecastDays.forEach((day,i)=>{
+
+        const dateObj = new Date(day.date+"T00:00:00");
+        const info = weatherInfoFor(day.code);
+
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "weather-chip";
+        chip.classList.toggle("selected",i===weatherForecastSelectedIndex);
+        chip.setAttribute("aria-pressed",String(i===weatherForecastSelectedIndex));
+
+        const dayLabel = document.createElement("div");
+        dayLabel.className = "weather-chip-day";
+        dayLabel.textContent = i===0 ? "Auj." : dateObj.toLocaleDateString("fr-FR",{weekday:"short"});
+        chip.appendChild(dayLabel);
+
+        const icon = document.createElement("div");
+        icon.className = "weather-chip-icon";
+        icon.textContent = info.icon;
+        chip.appendChild(icon);
+
+        const max = document.createElement("div");
+        max.className = "weather-chip-max";
+        max.textContent = `${day.max}°`;
+        chip.appendChild(max);
+
+        const min = document.createElement("div");
+        min.className = "weather-chip-min";
+        min.textContent = `${day.min}°`;
+        chip.appendChild(min);
+
+        chip.addEventListener("click",()=>{
+            weatherForecastSelectedIndex = i;
+            drawWeatherForecast();
+        });
+
+        strip.appendChild(chip);
+    });
+
+    stripWrap.appendChild(strip);
+    weatherForecastContent.appendChild(stripWrap);
+
+    const selected = weatherForecastDays[weatherForecastSelectedIndex];
+    const selectedDate = new Date(selected.date+"T00:00:00");
+    const info = weatherInfoFor(selected.code);
+
+    const summary = document.createElement("div");
+    summary.className = "weather-summary-card";
+
+    const top = document.createElement("div");
+    top.className = "weather-summary-top";
+
+    const summaryIcon = document.createElement("div");
+    summaryIcon.className = "weather-summary-icon";
+    summaryIcon.textContent = info.icon;
+    top.appendChild(summaryIcon);
+
+    const summaryText = document.createElement("div");
+    summaryText.className = "weather-summary-text";
+
+    const cond = document.createElement("div");
+    cond.className = "weather-summary-cond";
+    cond.textContent = info.label;
+    summaryText.appendChild(cond);
+
+    const dayLine = document.createElement("div");
+    dayLine.className = "weather-summary-day";
+    dayLine.textContent =
+        (weatherForecastSelectedIndex===0 ? "Aujourd'hui — " : "")
+        + selectedDate.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+    summaryText.appendChild(dayLine);
+
+    top.appendChild(summaryText);
+
+    const summaryTemps = document.createElement("div");
+    summaryTemps.className = "weather-summary-temps";
+    const maxB = document.createElement("b");
+    maxB.textContent = `${selected.max}°`;
+    summaryTemps.appendChild(maxB);
+    summaryTemps.appendChild(document.createTextNode(` / ${selected.min}°`));
+    top.appendChild(summaryTemps);
+
+    summary.appendChild(top);
+
+    if(selected.precipitation!==null || selected.wind!==null){
+        const detailRow = document.createElement("div");
+        detailRow.className = "weather-detail-row";
+        if(selected.precipitation!==null){
+            const precip = document.createElement("span");
+            const precipB = document.createElement("b");
+            precipB.textContent = `${selected.precipitation} %`;
+            precip.append("Précipitations ",precipB);
+            detailRow.appendChild(precip);
+        }
+        if(selected.wind!==null){
+            const wind = document.createElement("span");
+            const windB = document.createElement("b");
+            windB.textContent = `${selected.wind} km/h`;
+            wind.append("Vent ",windB);
+            detailRow.appendChild(wind);
+        }
+        summary.appendChild(detailRow);
+    }
+
+    weatherForecastContent.appendChild(summary);
+}
+
+async function renderWeatherForecast(){
+
+    weatherForecastSelectedIndex = 0;
+
+    if(!lastKnownPosition || (Date.now()-lastKnownPosition.timestamp) >= USER_LOCATION_TTL_MS){
+        weatherForecastPlace.textContent = "";
+        weatherForecastEmptyState(
+            navigator.geolocation
+                ? "Localisation indisponible pour l'instant — réessaie depuis la carte météo du Planning."
+                : "La géolocalisation n'est pas disponible sur cet appareil."
+        );
+        return;
+    }
+
+    weatherForecastPlace.textContent = lastKnownPosition.city;
+    weatherForecastEmptyState("Chargement des prévisions…");
+
+    try{
+        weatherForecastDays = await fetchMultiDayWeather(lastKnownPosition.lat,lastKnownPosition.lon);
+        drawWeatherForecast();
+    }catch(err){
+        console.error("Prévisions indisponibles :",err);
+        weatherForecastEmptyState("Prévisions indisponibles pour le moment.");
+    }
+}
+
 /* --- Photos du jour (stockage 100% local, IndexedDB — pas de synchro
    entre appareils, voir la mémoire du projet pour le pourquoi) --- */
 
@@ -7678,8 +7887,22 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         if(row.dataset.profileView==="mapView") renderMapView();
         if(row.dataset.profileView==="albumView") renderAlbumView();
         if(row.dataset.profileView==="tripHistoryView") renderTripHistoryView();
+        if(row.dataset.profileView==="weatherForecastView") renderWeatherForecast();
         updateCountdownBanner();
     });
+});
+
+/* dayWeatherCard porte data-profile-view="weatherForecastView" (voir la
+   boucle juste au-dessus, qui l'attache donc automatiquement) mais ce n'est
+   pas un <button> comme les autres déclencheurs [data-profile-view] — même
+   patron que .activity (div rendue focusable/cliquable au clavier) pour ne
+   pas perdre l'accessibilité clavier en gardant le style .weather-card
+   existant plutôt que de basculer vers un vrai bouton. */
+dayWeatherCard.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter" || e.key===" "){
+        e.preventDefault();
+        dayWeatherCard.click();
+    }
 });
 
 const profileSearchInput = document.getElementById("profileSearchInput");

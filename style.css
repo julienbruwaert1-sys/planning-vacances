@@ -2106,6 +2106,194 @@ body.dark .weather-icon-big.weather-spin{
     font-size:12.5px;
 }
 
+.weather-card{
+    cursor:pointer;
+}
+
+.weather-card:focus-visible{
+    outline:2px solid #D2503B;
+    outline-offset:2px;
+}
+
+/* --- Vue "Météo des prochains jours" (ouverte en tapant la carte météo) --- */
+
+.weather-forecast-empty{
+    font-size:13px;
+    color:#9AAAB4;
+    text-align:center;
+    margin:24px 0;
+}
+
+.weather-strip-wrap{
+    overflow-x:auto;
+    margin:0 -16px 16px;
+    padding:2px 16px 6px;
+}
+
+.weather-strip{
+    display:flex;
+    gap:10px;
+    width:max-content;
+}
+
+.weather-chip{
+    width:66px;
+    flex-shrink:0;
+    background:#FFFFFF;
+    border:1.5px solid transparent;
+    border-radius:16px;
+    padding:12px 6px 10px;
+    text-align:center;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:5px;
+    font-family:'Inter',Arial,sans-serif;
+    cursor:pointer;
+}
+
+.weather-chip.selected{
+    border-color:#D2503B;
+}
+
+.weather-chip:focus-visible{
+    outline:2px solid #D2503B;
+    outline-offset:2px;
+}
+
+.weather-chip-day{
+    font-size:10.5px;
+    font-weight:700;
+    color:#33404A;
+    text-transform:capitalize;
+}
+
+.weather-chip-icon{
+    font-size:21px;
+}
+
+.weather-chip-max{
+    font-size:13px;
+    font-weight:700;
+    color:#33404A;
+    font-variant-numeric:tabular-nums;
+}
+
+.weather-chip-min{
+    font-size:10.5px;
+    color:#9AAAB4;
+    font-variant-numeric:tabular-nums;
+}
+
+.weather-summary-card{
+    background:linear-gradient(135deg,#F1F7FB,#FFFFFF);
+    border-radius:16px;
+    padding:16px;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+.weather-summary-top{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.weather-summary-icon{
+    font-size:34px;
+    line-height:1;
+}
+
+.weather-summary-text{
+    flex:1;
+    min-width:0;
+}
+
+.weather-summary-cond{
+    font-size:14px;
+    font-weight:700;
+    color:#33404A;
+}
+
+.weather-summary-day{
+    font-size:11.5px;
+    color:#9AAAB4;
+    margin-top:1px;
+    text-transform:capitalize;
+}
+
+.weather-summary-temps{
+    font-size:16px;
+    font-variant-numeric:tabular-nums;
+    color:#9AAAB4;
+    flex-shrink:0;
+}
+
+.weather-summary-temps b{
+    color:#33404A;
+    font-weight:700;
+}
+
+.weather-detail-row{
+    display:flex;
+    gap:18px;
+    font-size:11.5px;
+    color:#9AAAB4;
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px solid rgba(51,64,74,.08);
+}
+
+.weather-detail-row b{
+    color:#33404A;
+    font-weight:700;
+}
+
+body.dark .weather-forecast-empty{
+    color:#7C8BAE;
+}
+
+body.dark .weather-chip{
+    background:#182238;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+body.dark .weather-chip-day,
+body.dark .weather-chip-max{
+    color:#EAF0FB;
+}
+
+body.dark .weather-chip-min{
+    color:#7C8BAE;
+}
+
+body.dark .weather-summary-card{
+    background:linear-gradient(135deg,#182238,#121A2E);
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+body.dark .weather-summary-cond{
+    color:#EAF0FB;
+}
+
+body.dark .weather-summary-day,
+body.dark .weather-summary-temps{
+    color:#7C8BAE;
+}
+
+body.dark .weather-summary-temps b{
+    color:#EAF0FB;
+}
+
+body.dark .weather-detail-row{
+    color:#7C8BAE;
+    border-top-color:rgba(234,240,251,.08);
+}
+
+body.dark .weather-detail-row b{
+    color:#EAF0FB;
+}
+
 body.dark .weather-card{
     background:linear-gradient(135deg,#182238,#121A2E);
     box-shadow:0 2px 8px rgba(0,0,0,.4);
@@ -4875,11 +5063,13 @@ body.dark.theme-noel .profile-list{
     background:#132A22;
 }
 
-body.theme-noel .weather-card{
+body.theme-noel .weather-card,
+body.theme-noel .weather-summary-card{
     background:linear-gradient(135deg,#EDF5EE,#FFFFFF);
 }
 
-body.dark.theme-noel .weather-card{
+body.dark.theme-noel .weather-card,
+body.dark.theme-noel .weather-summary-card{
     background:linear-gradient(135deg,#132A22,#0B1A15);
 }
 
@@ -5191,11 +5381,13 @@ body.dark.theme-ghibli .profile-list{
     background:#2A3A2E;
 }
 
-body.theme-ghibli .weather-card{
+body.theme-ghibli .weather-card,
+body.theme-ghibli .weather-summary-card{
     background:linear-gradient(135deg,#E7EFDA,#FFFDF7);
 }
 
-body.dark.theme-ghibli .weather-card{
+body.dark.theme-ghibli .weather-card,
+body.dark.theme-ghibli .weather-summary-card{
     background:linear-gradient(135deg,#2A3A2E,#1A241D);
 }
 
@@ -5664,11 +5856,13 @@ body.dark.theme-halloween .profile-list{
     background:#332440;
 }
 
-body.theme-halloween .weather-card{
+body.theme-halloween .weather-card,
+body.theme-halloween .weather-summary-card{
     background:linear-gradient(135deg,#F3DCC0,#FFF8EC);
 }
 
-body.dark.theme-halloween .weather-card{
+body.dark.theme-halloween .weather-card,
+body.dark.theme-halloween .weather-summary-card{
     background:linear-gradient(135deg,#332440,#241A28);
 }
 

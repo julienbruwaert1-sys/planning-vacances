@@ -451,7 +451,7 @@
 <select id="daySelect"></select>
 </div>
 <div class="day-content">
-<div id="dayWeatherCard" class="weather-card" hidden>
+<div id="dayWeatherCard" class="weather-card" hidden role="button" tabindex="0" aria-label="Voir les prévisions des prochains jours" data-profile-view="weatherForecastView">
 <span id="weatherIcon" class="weather-icon-big"></span>
 <div class="weather-details">
 <div id="weatherCondition" class="weather-condition"></div>
@@ -779,6 +779,17 @@ Masquer les éléments cochés
 </div>
 <p class="profile-hint">Synchronisées entre tes appareils si la synchronisation (☁️) est active, et incluses dans les sauvegardes JSON exportées — jamais partagées ailleurs.</p>
 </div>
+</div>
+</div>
+
+<div id="weatherForecastView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🌤️ Météo des prochains jours</h2>
+</div>
+<div class="fullscreen-body">
+<p id="weatherForecastPlace" class="profile-hint"></p>
+<div id="weatherForecastContent"></div>
 </div>
 </div>
 
