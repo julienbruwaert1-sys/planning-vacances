@@ -136,6 +136,14 @@ const profileTabContent = document.getElementById("profileTabContent");
 const appTitle = document.getElementById("appTitle");
 const appTitleRow = document.querySelector(".app-title-row");
 let activeMainTab = "planning";
+/* Déclarées ici (et non plus loin, près de setActiveMainTab) car
+   updateDatePlacement() les utilise dès l'exécution initiale du script
+   (ligne ~3738, bien avant sa propre définition ne serait un problème vu le
+   hoisting des fonctions) — un const utilisé avant son initialisation (TDZ)
+   aurait sinon fait planter tout le script à ce moment-là, empêchant
+   n'importe quel onglet d'être masqué correctement (bug du 2026-08-31). */
+const LAST_MAIN_TAB_KEY = "lastMainTab";
+const LAST_FULLSCREEN_VIEW_KEY = "lastFullscreenView";
 
 /* Écran de création de voyage — affiché uniquement si aucune des clés
    ci-dessous n'existe (vrai premier lancement). Ne PAS se baser sur la
@@ -4376,9 +4384,9 @@ renderChecklist();
    systématiquement au Planning — écrit à chaque navigation plutôt que sur
    beforeunload, cet évènement n'étant pas fiable sur mobile/PWA installée
    (peut ne jamais se déclencher si l'appli est juste mise en arrière-plan
-   plutôt que vraiment rechargée). */
-const LAST_MAIN_TAB_KEY = "lastMainTab";
-const LAST_FULLSCREEN_VIEW_KEY = "lastFullscreenView";
+   plutôt que vraiment rechargée). LAST_MAIN_TAB_KEY/LAST_FULLSCREEN_VIEW_KEY
+   sont déclarées tout en haut du fichier, pas ici : voir le commentaire
+   près de leur déclaration. */
 
 function setActiveMainTab(tab){
     activeMainTab = tab;
@@ -8416,11 +8424,6 @@ const syncDb = firebase.database();
    correctement pour que l'utilisateur ne pense pas que "rien ne se passe". */
 let firebaseConnected = true;
 
-syncDb.ref(".info/connected").on("value",(snap)=>{
-    firebaseConnected = snap.val()===true;
-    updateSyncConnectionStatus();
-});
-
 function updateSyncConnectionStatus(){
     if(!syncCode || !syncStatus) return;
     if(!firebaseConnected){
@@ -8460,6 +8463,16 @@ const syncHistoryInfo = document.getElementById("syncHistoryInfo");
 const syncUnlinkBtn = document.getElementById("syncUnlinkBtn");
 const syncRegenerateBtn = document.getElementById("syncRegenerateBtn");
 const syncSectionMetaList = document.getElementById("syncSectionMetaList");
+
+/* Enregistré seulement une fois syncCode/syncStatus déclarés plus haut :
+   ce callback est asynchrone (déclenché par Firebase, pas par le script
+   lui-même) mais s'exécutait avant que "let syncCode" ait pu s'initialiser
+   dans certains cas, ce qui levait un ReferenceError (TDZ) qui bloquait
+   ensuite toute la synchronisation (bug du 2026-08-31). */
+syncDb.ref(".info/connected").on("value",(snap)=>{
+    firebaseConnected = snap.val()===true;
+    updateSyncConnectionStatus();
+});
 
 const SYNC_HISTORY_KEY = "syncHistory";
 
