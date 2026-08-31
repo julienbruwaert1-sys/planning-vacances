@@ -109,10 +109,68 @@ function isNativeApp(){
 var syncRef = null;
 var applyingRemoteUpdate = false;
 
-/* Déclarée tôt pour la même raison : renderActivities()/updateConverterCountryHeader()
-   (bien plus bas) s'exécutent dès le chargement initial et affichent le
-   symbole de devise des prix. */
-let priceCurrencySymbol = localStorage.getItem("priceCurrencySymbol") || "£";
+/* Déclarées tôt pour la même raison : renderActivities()/updateConverterCountryHeader()
+   (bien plus bas) s'exécutent dès le chargement initial et affichent le prix
+   des activités dans SA devise (activity.priceCurrency, "départ" ou
+   "arrivée" du convertisseur — remplace l'ancienne devise de saisie unique,
+   voir activity_price_currency en mémoire). CURRENCIES est une donnée pure
+   (aucune dépendance), sans risque à charger ici ; baseCurrency/targetCurrency
+   ne sont que les valeurs lues depuis localStorage — le remplissage des
+   <select> correspondants (converterBaseCurrencySelect/targetCurrencySelect,
+   qui eux ONT besoin du DOM et de CURRENCIES) reste plus bas, à sa place
+   naturelle dans la section Convertisseur. */
+const CURRENCIES = {
+    GBP:{symbol:"£",decimals:2,label:"Livre (GBP)"},
+    JPY:{symbol:"¥",decimals:0,label:"Yen (JPY)"},
+    EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"},
+    USD:{symbol:"$",decimals:2,label:"Dollar (USD)"},
+    CZK:{symbol:"Kč",decimals:2,label:"Couronne tchèque (CZK)"},
+    DKK:{symbol:"kr",decimals:2,label:"Couronne danoise (DKK)"},
+    HUF:{symbol:"Ft",decimals:0,label:"Forint (HUF)"},
+    ISK:{symbol:"kr",decimals:0,label:"Couronne islandaise (ISK)"},
+    NOK:{symbol:"kr",decimals:2,label:"Couronne norvégienne (NOK)"},
+    RON:{symbol:"lei",decimals:2,label:"Leu roumain (RON)"},
+    SEK:{symbol:"kr",decimals:2,label:"Couronne suédoise (SEK)"},
+    SGD:{symbol:"S$",decimals:2,label:"Dollar de Singapour (SGD)"},
+    TRY:{symbol:"₺",decimals:2,label:"Livre turque (TRY)"},
+    AUD:{symbol:"A$",decimals:2,label:"Dollar australien (AUD)"},
+    BRL:{symbol:"R$",decimals:2,label:"Real brésilien (BRL)"},
+    CAD:{symbol:"C$",decimals:2,label:"Dollar canadien (CAD)"},
+    CLP:{symbol:"CLP$",decimals:0,label:"Peso chilien (CLP)"},
+    CHF:{symbol:"Fr",decimals:2,label:"Franc suisse (CHF)"},
+    CNY:{symbol:"¥",decimals:2,label:"Yuan (CNY)"},
+    EGP:{symbol:"E£",decimals:2,label:"Livre égyptienne (EGP)"},
+    INR:{symbol:"₹",decimals:2,label:"Roupie indienne (INR)"},
+    KRW:{symbol:"₩",decimals:0,label:"Won sud-coréen (KRW)"},
+    NPR:{symbol:"Rs",decimals:2,label:"Roupie népalaise (NPR)"},
+    THB:{symbol:"฿",decimals:2,label:"Baht thaïlandais (THB)"}
+};
+let baseCurrency = localStorage.getItem("baseCurrency") || "GBP";
+let targetCurrency = localStorage.getItem("targetCurrency") || "JPY";
+/* currentRate aussi ici (pas juste déclarée plus bas avec le reste du
+   Convertisseur) : activityPriceInBase() ci-dessous, appelée dès le premier
+   renderActivities() au chargement, la lit — même raison que
+   baseCurrency/targetCurrency juste au-dessus. Reste réassignée à sa vraie
+   valeur plus bas, une fois le taux de change récupéré (async). */
+let currentRate = null;
+
+function activityPriceSymbol(activity){
+    const code = activity.priceCurrency;
+    return (code && CURRENCIES[code]) ? CURRENCIES[code].symbol : CURRENCIES[baseCurrency].symbol;
+}
+
+/* Miroir de tricountAmountInBase() : convertit vers baseCurrency pour les
+   totaux agrégés (jour, statistiques) quand l'activité a été saisie dans
+   targetCurrency — currentRate n'est prêt qu'une fois le taux de change
+   récupéré (async), d'où le repli "tel quel" sinon, même logique que côté
+   Tricount. */
+function activityPriceInBase(activity){
+    if(activity.price===null || activity.price===undefined) return 0;
+    const currency = activity.priceCurrency || baseCurrency;
+    if(currency===baseCurrency) return activity.price;
+    if(currency===targetCurrency && typeof currentRate==="number" && currentRate) return activity.price / currentRate;
+    return activity.price;
+}
 
 /* Déclarées tôt pour la même raison : renderActivities() (bien plus bas)
    s'exécute dès le chargement initial et affiche déjà le badge "dépense
@@ -144,8 +202,8 @@ const tricountTabButtons = document.querySelectorAll("#tricountTabs .date-tab");
 const tricountTabPanels = document.querySelectorAll(".tricount-tab-panel");
 
 const PRICE_CURRENCY_ICONS = { "£":"💷", "€":"💶", "$":"💵", "¥":"💴" };
-function priceCurrencyIcon(){
-    return PRICE_CURRENCY_ICONS[priceCurrencySymbol] || "💰";
+function priceCurrencyIcon(symbol){
+    return PRICE_CURRENCY_ICONS[symbol] || "💰";
 }
 
 /* Déclarées tôt pour la même raison : updateDatePlacement() (plus bas)
@@ -699,6 +757,9 @@ function addActivity(){
     const price =
     priceRaw!=="" ? Math.max(0,parseFloat(priceRaw)) : null;
 
+    const priceCurrency =
+    price!==null ? (activityPriceCurrencyRole==="target" ? targetCurrency : baseCurrency) : null;
+
     const travelTime =
     travelRaw!=="" ? Math.max(0,parseInt(travelRaw,10)) : null;
 
@@ -728,7 +789,7 @@ function addActivity(){
         const existing = list[index];
 
         const updated = Object.assign({},existing,{
-            name, type, address, price, travelTime,
+            name, type, address, price, priceCurrency, travelTime,
             time: time || null,
             duration: duration || null,
             note: note || null,
@@ -758,6 +819,7 @@ function addActivity(){
         type,
         address,
         price,
+        priceCurrency,
         travelTime,
         time: time || null,
         duration: duration || null,
@@ -791,6 +853,9 @@ function fillActivityForm(activity,section){
     document.getElementById("timeSlot").value = section;
     document.getElementById("activityPrice").value =
         (activity.price!==null && activity.price!==undefined) ? activity.price : "";
+    activityPriceCurrencyRole =
+        (activity.priceCurrency===targetCurrency && targetCurrency!==baseCurrency) ? "target" : "base";
+    updateActivityPriceCurrencyToggle();
     document.getElementById("activityTravelTime").value =
         (activity.travelTime!==null && activity.travelTime!==undefined) ? activity.travelTime : "";
     document.getElementById("activityReservationLink").value = activity.reservationLink || "";
@@ -805,6 +870,8 @@ function clearActivityForm(){
     activityTypeSelect.selectedIndex = 0;
     updateActivityTypePlaceholderStyle();
     document.getElementById("activityPrice").value="";
+    activityPriceCurrencyRole = "base";
+    updateActivityPriceCurrencyToggle();
     document.getElementById("activityTravelTime").value="";
     document.getElementById("activityReservationLink").value="";
     document.getElementById("activityTime").value="";
@@ -1004,7 +1071,10 @@ function renderActivities(){
     sections.forEach(s=>{
         (planning[currentDay][s.key] || []).forEach(a=>{
             if(a.price!==null && a.price!==undefined){
-                dayTotalPrice += a.price;
+                /* Converti vers baseCurrency (activityPriceInBase()) : un
+                   total qui mélangerait des prix saisis dans des devises
+                   différentes sans conversion n'aurait aucun sens. */
+                dayTotalPrice += activityPriceInBase(a);
                 hasPrice = true;
             }
             if(a.travelTime!==null && a.travelTime!==undefined){
@@ -1018,9 +1088,10 @@ function renderActivities(){
     summary.innerHTML = "";
 
     if(hasPrice){
+        const baseSymbol = CURRENCIES[baseCurrency].symbol;
         const priceSpan = document.createElement("span");
         priceSpan.textContent =
-        `${priceCurrencyIcon()} Total du jour : ${dayTotalPrice.toFixed(2)} ${priceCurrencySymbol}`;
+        `${priceCurrencyIcon(baseSymbol)} Total du jour : ${dayTotalPrice.toFixed(2)} ${baseSymbol}`;
         summary.appendChild(priceSpan);
     }
 
@@ -1211,10 +1282,11 @@ dragged = null;
                 badgeRow.className = "badge-row";
 
                 if(activity.price!==null && activity.price!==undefined){
+                    const priceSymbol = activityPriceSymbol(activity);
                     const priceBadge = document.createElement("span");
                     priceBadge.className = "price-badge";
                     priceBadge.textContent =
-                    `${priceCurrencyIcon()} ${activity.price.toFixed(2)} ${priceCurrencySymbol}`;
+                    `${priceCurrencyIcon(priceSymbol)} ${activity.price.toFixed(2)} ${priceSymbol}`;
                     badgeRow.appendChild(priceBadge);
                 }
 
@@ -1617,7 +1689,7 @@ function buildPrintView(){
                 const metaParts = [];
                 if(activity.address) metaParts.push(activity.address);
                 if(activity.price!==null && activity.price!==undefined){
-                    metaParts.push(`${activity.price.toFixed(2)} ${priceCurrencySymbol}`);
+                    metaParts.push(`${activity.price.toFixed(2)} ${activityPriceSymbol(activity)}`);
                 }
                 if(activity.travelTime!==null && activity.travelTime!==undefined){
                     metaParts.push(`${activity.travelTime} min de trajet`);
@@ -1667,25 +1739,40 @@ printBtn.addEventListener("click",()=>{
     window.print();
 });
 
-/* --- Devise de saisie des prix des activités (indépendante du convertisseur) --- */
+/* --- Devise du prix d'une activité : "départ" ou "arrivée" du
+   convertisseur (baseCurrency/targetCurrency), au cas par cas pour chaque
+   activité — remplace l'ancienne devise de saisie unique et globale. Même
+   patron que le bascule base/cible de Tricount
+   (tricountCurrencyBaseBtn/TargetBtn, tricountExpenseCurrencyRole). --- */
 
-const priceCurrencySelect = document.getElementById("priceCurrencySelect");
 const activityPriceInput = document.getElementById("activityPrice");
 const activityPriceSuffix = document.getElementById("activityPriceSuffix");
+const activityPriceCurrencyBaseBtn = document.getElementById("activityPriceCurrencyBaseBtn");
+const activityPriceCurrencyTargetBtn = document.getElementById("activityPriceCurrencyTargetBtn");
 
-priceCurrencySelect.value = priceCurrencySymbol;
-activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
-activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
+let activityPriceCurrencyRole = "base";
 
-priceCurrencySelect.addEventListener("change",()=>{
-    priceCurrencySymbol = priceCurrencySelect.value;
-    localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
-    activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
-    activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
-    renderActivities();
-    renderTricount();
-    if(activeMainTab==="profile") renderProfileStats();
+function updateActivityPriceCurrencyToggle(){
+    activityPriceCurrencyBaseBtn.textContent = baseCurrency;
+    activityPriceCurrencyTargetBtn.textContent = targetCurrency;
+    activityPriceCurrencyBaseBtn.classList.toggle("active",activityPriceCurrencyRole==="base");
+    activityPriceCurrencyTargetBtn.classList.toggle("active",activityPriceCurrencyRole==="target");
+    const symbol = CURRENCIES[activityPriceCurrencyRole==="target" ? targetCurrency : baseCurrency].symbol;
+    activityPriceInput.placeholder = `Prix (${symbol})`;
+    activityPriceSuffix.textContent = `Prix (${symbol})`;
+}
+
+activityPriceCurrencyBaseBtn.addEventListener("click",()=>{
+    activityPriceCurrencyRole = "base";
+    updateActivityPriceCurrencyToggle();
 });
+
+activityPriceCurrencyTargetBtn.addEventListener("click",()=>{
+    activityPriceCurrencyRole = "target";
+    updateActivityPriceCurrencyToggle();
+});
+
+updateActivityPriceCurrencyToggle();
 
 /* --- Export / Import JSON (sauvegarde complète) ---
    CAPACITOR : cette sauvegarde reste 100% manuelle (l'utilisateur clique,
@@ -1713,7 +1800,6 @@ exportDataBtn.addEventListener("click",()=>{
         dayCount,
         startDate:localStorage.getItem("startDate") || "",
         baseCurrency:localStorage.getItem("baseCurrency") || "GBP",
-        priceCurrencySymbol:localStorage.getItem("priceCurrencySymbol") || "£",
         targetCurrency:localStorage.getItem("targetCurrency") || "",
         checklist,
         checklistTemplates:JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
@@ -1779,7 +1865,6 @@ function handleImportBackupFile(file){
                 if(data.tripName!==undefined) localStorage.setItem(TRIP_NAME_KEY,data.tripName);
                 if(data.tripCountry!==undefined) localStorage.setItem(TRIP_COUNTRY_KEY,data.tripCountry);
                 if(data.baseCurrency!==undefined) localStorage.setItem("baseCurrency",data.baseCurrency);
-                if(data.priceCurrencySymbol!==undefined) localStorage.setItem("priceCurrencySymbol",data.priceCurrencySymbol);
                 if(data.targetCurrency!==undefined) localStorage.setItem("targetCurrency",data.targetCurrency);
                 if(Array.isArray(data.checklist)) localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(data.checklist));
                 if(Array.isArray(data.checklistTemplates)) localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(data.checklistTemplates));
@@ -1960,11 +2045,17 @@ function importRows(rows){
             planning[day].title = dayTitle;
         }
 
+        const importedPrice = isNaN(price) ? null : price;
+
         planning[day][slot].push({
             name,
             type,
             address,
-            price: isNaN(price) ? null : price,
+            price: importedPrice,
+            /* Pas de colonne dédiée dans le modèle CSV — la devise de départ
+               du convertisseur est l'hypothèse la plus raisonnable pour un
+               prix importé sans contexte. */
+            priceCurrency: importedPrice!==null ? baseCurrency : null,
             travelTime: isNaN(travelTime) ? null : travelTime,
             time: time || null,
             duration: duration || null,
@@ -2527,6 +2618,21 @@ function qrScanFrame(){
         if(code && code.data){
             triggerHaptic(20);
             stopQrScan();
+
+            /* SYNC_QR_PREFIX (déclaré plus bas avec le reste de la
+               synchronisation, mais lu ici sans risque de TDZ : ce code ne
+               s'exécute que sur un vrai scan, forcément après le chargement
+               complet du script) distingue un QR généré par
+               showSyncQrCode() d'un vrai texte de réservation scanné —
+               réutilise syncCodeInput/syncJoinBtn tels quels (même logique
+               de liaison, écran de confirmation inclus) plutôt que de la
+               dupliquer. */
+            if(code.data.startsWith(SYNC_QR_PREFIX)){
+                syncCodeInput.value = code.data.slice(SYNC_QR_PREFIX.length).trim().toUpperCase();
+                syncJoinBtn.click();
+                return;
+            }
+
             applyParsedReservationToForm(parseReservationText(code.data));
             return;
         }
@@ -3092,7 +3198,6 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
         localStorage.setItem("dayCount",String(Math.min(30,Math.max(1,dayCountVal))));
 
         localStorage.setItem("baseCurrency","GBP");
-        localStorage.setItem("priceCurrencySymbol","£");
         localStorage.setItem("targetCurrency",localCurrency);
         localStorage.setItem(TRIP_CREATED_KEY,"1");
 
@@ -4821,7 +4926,7 @@ function renderProfileStats(){
             (planning[day][slot] || []).forEach(a=>{
                 activityCount++;
                 if(a.price!==null && a.price!==undefined){
-                    totalPrice += a.price;
+                    totalPrice += activityPriceInBase(a);
                 }
             });
         });
@@ -4851,7 +4956,7 @@ function renderProfileStats(){
 
     profileStatsEl.innerHTML = `
         <div class="profile-stat">
-            <span class="profile-stat-value">${totalPrice.toFixed(2)} ${priceCurrencySymbol}</span>
+            <span class="profile-stat-value">${totalPrice.toFixed(2)} ${CURRENCIES[baseCurrency].symbol}</span>
             <span class="profile-stat-label">Budget total</span>
         </div>
         <div class="profile-stat">
@@ -6882,7 +6987,6 @@ function restoreTrip(trip){
     localStorage.setItem(TRIP_NAME_KEY,trip.name || "");
     localStorage.setItem(TRIP_COUNTRY_KEY,trip.country || "");
     localStorage.setItem("baseCurrency",trip.baseCurrency || "GBP");
-    localStorage.setItem("priceCurrencySymbol",trip.priceCurrencySymbol || "£");
     localStorage.setItem("targetCurrency",trip.targetCurrency || "");
     localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(trip.checklist || []));
     localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(trip.tricountParticipants || []));
@@ -7664,34 +7768,9 @@ document.addEventListener("keydown",(e)=>{
     updateCountdownBanner();
 });
 
-/* --- Convertisseur de devises GBP ↔ (JPY / EUR) --- */
-
-const CURRENCIES = {
-    GBP:{symbol:"£",decimals:2,label:"Livre (GBP)"},
-    JPY:{symbol:"¥",decimals:0,label:"Yen (JPY)"},
-    EUR:{symbol:"€",decimals:2,label:"Euro (EUR)"},
-    USD:{symbol:"$",decimals:2,label:"Dollar (USD)"},
-    CZK:{symbol:"Kč",decimals:2,label:"Couronne tchèque (CZK)"},
-    DKK:{symbol:"kr",decimals:2,label:"Couronne danoise (DKK)"},
-    HUF:{symbol:"Ft",decimals:0,label:"Forint (HUF)"},
-    ISK:{symbol:"kr",decimals:0,label:"Couronne islandaise (ISK)"},
-    NOK:{symbol:"kr",decimals:2,label:"Couronne norvégienne (NOK)"},
-    RON:{symbol:"lei",decimals:2,label:"Leu roumain (RON)"},
-    SEK:{symbol:"kr",decimals:2,label:"Couronne suédoise (SEK)"},
-    SGD:{symbol:"S$",decimals:2,label:"Dollar de Singapour (SGD)"},
-    TRY:{symbol:"₺",decimals:2,label:"Livre turque (TRY)"},
-    AUD:{symbol:"A$",decimals:2,label:"Dollar australien (AUD)"},
-    BRL:{symbol:"R$",decimals:2,label:"Real brésilien (BRL)"},
-    CAD:{symbol:"C$",decimals:2,label:"Dollar canadien (CAD)"},
-    CLP:{symbol:"CLP$",decimals:0,label:"Peso chilien (CLP)"},
-    CHF:{symbol:"Fr",decimals:2,label:"Franc suisse (CHF)"},
-    CNY:{symbol:"¥",decimals:2,label:"Yuan (CNY)"},
-    EGP:{symbol:"E£",decimals:2,label:"Livre égyptienne (EGP)"},
-    INR:{symbol:"₹",decimals:2,label:"Roupie indienne (INR)"},
-    KRW:{symbol:"₩",decimals:0,label:"Won sud-coréen (KRW)"},
-    NPR:{symbol:"Rs",decimals:2,label:"Roupie népalaise (NPR)"},
-    THB:{symbol:"฿",decimals:2,label:"Baht thaïlandais (THB)"}
-};
+/* --- Convertisseur de devises GBP ↔ (JPY / EUR) ---
+   CURRENCIES/baseCurrency/targetCurrency/currentRate sont déclarées tout en
+   haut du fichier, pas ici : voir le commentaire près de leur déclaration. */
 
 const CONVERSION_DECIMALS_KEY = "conversionDecimals";
 const conversionDecimalsStored = localStorage.getItem(CONVERSION_DECIMALS_KEY);
@@ -7744,13 +7823,9 @@ conversionDecimalsSelect.addEventListener("change",()=>{
     });
 });
 
-let baseCurrency = localStorage.getItem("baseCurrency") || "GBP";
 converterBaseCurrencySelect.value = baseCurrency;
-
-let targetCurrency = localStorage.getItem("targetCurrency") || "JPY";
 targetCurrencySelect.value = targetCurrency;
 
-let currentRate = null;
 let rateIsLive = false;
 let rateTimestamp = null;
 
@@ -7778,6 +7853,8 @@ converterBaseCurrencySelect.addEventListener("change",()=>{
     currentRate = null;
 
     fetchExchangeRate();
+    updateActivityPriceCurrencyToggle();
+    renderActivities();
 });
 
 targetCurrencySelect.addEventListener("change",()=>{
@@ -7790,6 +7867,8 @@ targetCurrencySelect.addEventListener("change",()=>{
     currentRate = null;
 
     fetchExchangeRate();
+    updateActivityPriceCurrencyToggle();
+    renderActivities();
 });
 
 function formatTimestamp(iso){
@@ -8127,6 +8206,9 @@ function startTricountExpenseFromActivity(activity){
     tricountExpenseDesc.value = activity.name;
     if(activity.price!==null && activity.price!==undefined){
         tricountExpenseAmount.value = activity.price;
+        tricountExpenseCurrencyRole =
+            (activity.priceCurrency===targetCurrency && targetCurrency!==baseCurrency) ? "target" : "base";
+        updateTricountCurrencyToggle();
     }
 
     setActiveMainTab("budget");
@@ -8829,6 +8911,44 @@ const syncHistoryInfo = document.getElementById("syncHistoryInfo");
 const syncUnlinkBtn = document.getElementById("syncUnlinkBtn");
 const syncRegenerateBtn = document.getElementById("syncRegenerateBtn");
 const syncSectionMetaList = document.getElementById("syncSectionMetaList");
+const syncQrBtn = document.getElementById("syncQrBtn");
+const qrCodeModal = document.getElementById("qrCodeModal");
+const qrCodeContainer = document.getElementById("qrCodeContainer");
+const qrCodeModalCloseBtn = document.getElementById("qrCodeModalCloseBtn");
+
+/* Préfixe distinctif (pas juste le code nu) : permet à qrScanFrame() plus
+   haut de reconnaître un QR de synchronisation et de le router vers la
+   liaison plutôt que vers le parsing de réservation habituel, sans
+   ambiguïté possible avec un vrai texte de réservation scanné. */
+const SYNC_QR_PREFIX = "planvac-sync:";
+
+function showSyncQrCode(){
+
+    if(!syncCode) return;
+
+    qrCodeContainer.textContent = "";
+
+    if(typeof QRCode!=="function"){
+        showToast("Le module QR code n'a pas pu être chargé.",{type:"error"});
+        return;
+    }
+
+    new QRCode(qrCodeContainer,{
+        text: SYNC_QR_PREFIX+syncCode,
+        width:200,
+        height:200,
+        colorDark:"#33404A",
+        colorLight:"#FFFFFF"
+    });
+
+    qrCodeModal.hidden = false;
+}
+
+syncQrBtn.addEventListener("click",showSyncQrCode);
+
+qrCodeModalCloseBtn.addEventListener("click",()=>{
+    qrCodeModal.hidden = true;
+});
 
 /* Enregistré seulement une fois syncCode/syncStatus déclarés plus haut :
    ce callback est asynchrone (déclenché par Firebase, pas par le script
@@ -8870,7 +8990,7 @@ function recordSyncHistory(deviceId,updatedAt){
 const SYNC_SECTION_GROUPS = [
     { label:"Planning", keys:["planning"] },
     { label:"Checklist", keys:["checklist","checklistTemplates"] },
-    { label:"Budget & devises", keys:["tricountParticipants","tricountExpenses","baseCurrency","priceCurrencySymbol","targetCurrency"] },
+    { label:"Budget & devises", keys:["tricountParticipants","tricountExpenses","baseCurrency","targetCurrency"] },
     { label:"Dates & voyage", keys:["dayCount","startDate","tripName","tripCountry","tripTimezone"] },
     { label:"Infos voyageur", keys:["travelerInfo"] },
     { label:"Aide", keys:["helpNotes","helpReports"] }
@@ -8945,7 +9065,6 @@ function collectSyncData(){
         tripCountry,
         tripTimezone: localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
         baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
-        priceCurrencySymbol: localStorage.getItem("priceCurrencySymbol") || "£",
         targetCurrency: localStorage.getItem("targetCurrency") || "",
         checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
         travelerInfo: JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
@@ -9079,7 +9198,6 @@ function buildCurrentTripSnapshot(){
         startDate: localStorage.getItem("startDate") || "",
         dayCount,
         baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
-        priceCurrencySymbol: localStorage.getItem("priceCurrencySymbol") || "£",
         targetCurrency: localStorage.getItem("targetCurrency") || "",
         planning,
         checklist,
@@ -9246,15 +9364,7 @@ function applySyncData(data,isInitialLoad){
         applyCurrencyMeta();
         currentRate = null;
         fetchExchangeRate();
-    }
-
-    if(data.priceCurrencySymbol!==undefined && data.priceCurrencySymbol!==priceCurrencySymbol && !sectionIsSelf("priceCurrencySymbol")){
-        priceCurrencySymbol = data.priceCurrencySymbol;
-        localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
-        priceCurrencySelect.value = priceCurrencySymbol;
-        activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
-        activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
-        anyRemoteChangeApplied = true;
+        updateActivityPriceCurrencyToggle();
     }
 
     if(Array.isArray(data.checklistTemplates) && !sectionIsSelf("checklistTemplates")){

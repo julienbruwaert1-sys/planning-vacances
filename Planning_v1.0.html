@@ -156,6 +156,17 @@
 </div>
 </div>
 
+<div id="qrCodeModal" class="modal-overlay" hidden>
+<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="qrCodeModalTitle">
+<h3 id="qrCodeModalTitle" class="paste-import-title">🔳 Scanner pour se synchroniser</h3>
+<p>Sur l'autre appareil : menu ⋮ → « Scanner un QR code », puis vise cet écran.</p>
+<div id="qrCodeContainer" class="qr-code-container"></div>
+<div class="modal-actions">
+<button id="qrCodeModalCloseBtn" class="modal-btn modal-btn-cancel" type="button">Fermer</button>
+</div>
+</div>
+</div>
+
 <div id="photoLightbox" class="photo-lightbox" hidden>
 <button id="photoLightboxClose" class="photo-lightbox-close" type="button" aria-label="Fermer la photo">✕</button>
 <span id="photoLightboxCounter" class="photo-lightbox-counter" hidden></span>
@@ -297,7 +308,10 @@
 
 <div id="syncPaired" hidden>
 <p class="sync-desc">Code à saisir sur tes autres appareils :</p>
+<div class="sync-code-row">
 <div id="syncCodeDisplay" class="sync-code-display"></div>
+<button id="syncQrBtn" class="map-country-toggle" type="button">🔳 QR code</button>
+</div>
 <p id="syncStatus" class="sync-status">En attente…</p>
 <p id="syncHistoryInfo" class="sync-status sync-history-info"></p>
 <div id="syncSectionMetaList" class="sync-section-meta-list"></div>
@@ -386,15 +400,6 @@
 <div class="date-wrap-row" data-tab="devise">
 <div class="profile-section">
 <div class="profile-field">
-<label for="priceCurrencySelect">Devise de saisie des prix</label>
-<select id="priceCurrencySelect" aria-label="Devise de saisie des prix des activités">
-<option value="£">£ GBP</option>
-<option value="€">€ EUR</option>
-<option value="$">$ USD</option>
-<option value="¥">¥ JPY</option>
-</select>
-</div>
-<div class="profile-field">
 <label for="converterBaseCurrencySelect">Devise de départ (convertisseur)</label>
 <select id="converterBaseCurrencySelect" aria-label="Devise de départ du convertisseur"></select>
 </div>
@@ -412,6 +417,7 @@
 <option value="3">3 décimales</option>
 </select>
 </div>
+<p class="profile-hint">Ces deux devises servent aussi au prix des activités : choisis "départ" ou "arrivée" directement dans le champ Prix de chaque activité.</p>
 </div>
 </div>
 <div class="date-wrap-row" data-tab="destination">
@@ -506,6 +512,10 @@ placeholder="Prix (£)"
 min="0"
 step="0.01">
 <span class="field-suffix-label" id="activityPriceSuffix">Prix (£)</span>
+</div>
+<div class="tricount-currency-toggle" id="activityPriceCurrencyToggle" role="group" aria-label="Devise du prix">
+<button type="button" class="tricount-currency-option active" id="activityPriceCurrencyBaseBtn"></button>
+<button type="button" class="tricount-currency-option" id="activityPriceCurrencyTargetBtn"></button>
 </div>
 <div class="field-suffix">
 <input
@@ -963,6 +973,7 @@ Masquer les éléments cochés
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/leaflet.markercluster.js"></script>
 <script src="vendor/jsQR.js"></script>
+<script src="vendor/qrcode.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

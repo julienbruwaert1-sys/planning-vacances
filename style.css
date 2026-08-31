@@ -512,6 +512,18 @@ body.dark .sync-direction-option.active{
     border-color:#3D7CFF;
 }
 
+.sync-code-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+}
+
+.sync-code-row .sync-code-display{
+    flex:1;
+    margin-bottom:0;
+}
+
 .sync-code-display{
     font-family:'Courier New',monospace;
     font-size:14px;
@@ -525,6 +537,15 @@ body.dark .sync-direction-option.active{
     color:#33404A;
     user-select:all;
     word-break:break-all;
+}
+
+.qr-code-container{
+    display:flex;
+    justify-content:center;
+    background:#FFFFFF;
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:14px;
 }
 
 .sync-status{
