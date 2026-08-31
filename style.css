@@ -4786,3 +4786,318 @@ body.dark .noel-snow span{
         opacity:0;
     }
 }
+
+/* ================= Thème saisonnier "Forêt enchantée" =================
+   Même structure et même liste de sélecteurs que le thème Noël ci-dessus
+   (voir ses commentaires pour le détail du raisonnement) — juste une
+   palette différente (vert forêt / or, façon lucioles) et mutuellement
+   exclusif avec theme-noel (un seul choisi à la fois dans le sélecteur). */
+
+body.theme-ghibli a:focus-visible,
+body.theme-ghibli button:focus-visible,
+body.theme-ghibli input:focus-visible,
+body.theme-ghibli select:focus-visible,
+body.theme-ghibli .activity:focus-visible,
+body.theme-ghibli .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#5B7B4F;
+}
+
+body.theme-ghibli .date-tab.active,
+body.theme-ghibli .jump-today-btn,
+body.theme-ghibli .countdown-banner,
+body.theme-ghibli .help-report-icon-copy:hover,
+body.theme-ghibli .profile-stat-value,
+body.theme-ghibli .profile-link,
+body.theme-ghibli .bottom-nav-tab.active,
+body.theme-ghibli .activity-photo-btn,
+body.theme-ghibli .checklist-chip,
+body.theme-ghibli .tricount-link-badge,
+body.theme-ghibli .tricount-receipt-btn,
+body.theme-ghibli .tricount-add-participant-btn,
+body.theme-ghibli .welcome-eyebrow{
+    color:#5B7B4F;
+}
+
+body.theme-ghibli .sync-direction-option.active,
+body.theme-ghibli .help-notes-send-btn,
+body.theme-ghibli .map-country-toggle.active,
+body.theme-ghibli .map-poi-search-btn,
+body.theme-ghibli .checklist-template-chip.active,
+body.theme-ghibli .form-toggle-btn,
+body.theme-ghibli button.add,
+body.theme-ghibli .search-filter-btn.active,
+body.theme-ghibli .tricount-currency-option.active{
+    background:#5B7B4F;
+}
+
+body.theme-ghibli .sync-direction-option.active,
+body.theme-ghibli .map-country-toggle.active,
+body.theme-ghibli .checklist-template-chip.active,
+body.theme-ghibli .tricount-currency-option.active{
+    border-color:#5B7B4F;
+}
+
+body.theme-ghibli .checklist-hide-toggle input,
+body.theme-ghibli .checklist-item input[type="checkbox"],
+body.theme-ghibli .tricount-split-check input[type="checkbox"]{
+    accent-color:#5B7B4F;
+}
+
+body.theme-ghibli .checklist-progress-fill{
+    background:linear-gradient(90deg,#5B7B4F,#C9A227);
+}
+
+body.theme-ghibli{
+    background:#F3ECD3;
+}
+
+body.dark.theme-ghibli{
+    background:#1F2A22;
+}
+
+body.theme-ghibli #welcomeView{
+    background:#F3ECD3;
+}
+
+body.dark.theme-ghibli #welcomeView{
+    background:#1F2A22;
+}
+
+body.theme-ghibli .fullscreen-view,
+body.theme-ghibli .fullscreen-header,
+body.theme-ghibli .mobile-tab-header{
+    background:#F3ECD3;
+}
+
+body.dark.theme-ghibli .fullscreen-view,
+body.dark.theme-ghibli .fullscreen-header,
+body.dark.theme-ghibli .mobile-tab-header{
+    background:#1F2A22;
+}
+
+body.theme-ghibli .profile-section{
+    background:#E7EFDA;
+}
+
+body.dark.theme-ghibli .profile-section{
+    background:#2A3A2E;
+}
+
+body.theme-ghibli .day-content,
+body.theme-ghibli .converter-card,
+body.theme-ghibli .profile-list{
+    background:#E7EFDA;
+}
+
+body.dark.theme-ghibli .day-content,
+body.dark.theme-ghibli .converter-card,
+body.dark.theme-ghibli .profile-list{
+    background:#2A3A2E;
+}
+
+body.theme-ghibli .weather-card{
+    background:linear-gradient(135deg,#E7EFDA,#FFFDF7);
+}
+
+body.dark.theme-ghibli .weather-card{
+    background:linear-gradient(135deg,#2A3A2E,#1A241D);
+}
+
+body.theme-ghibli .activity{
+    background:#E7EFDA;
+}
+
+body.theme-ghibli .activity:hover{
+    background:#DCE9C7;
+}
+
+body.dark.theme-ghibli .activity{
+    background:#2A3A2E;
+}
+
+body.dark.theme-ghibli .activity:hover{
+    background:#33452F;
+}
+
+body.theme-ghibli #activities::before{
+    background:#C9A227;
+}
+
+body.dark.theme-ghibli #activities::before{
+    background:#4A5B45;
+}
+
+body.theme-ghibli #activities .day-slot-head{
+    color:#33422C;
+}
+
+body.dark.theme-ghibli #activities .day-slot-head{
+    color:#EAF0E4;
+}
+
+/* Remplace le point plein par une feuille (❧), même logique que le flocon
+   ❆ du thème Noël — remise à zéro de background/border/width/height. */
+body.theme-ghibli #activities .day-slot-head::before{
+    content:"❧";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#C9A227;
+}
+
+body.dark.theme-ghibli #activities .day-slot-head::before{
+    content:"❧";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#F4E27A;
+}
+
+body.theme-ghibli .date-tab.active,
+body.dark.theme-ghibli .date-tab.active{
+    color:#5B7B4F;
+}
+
+body.dark.theme-ghibli .date-tab.active{
+    background:#2A3A2E;
+}
+
+body.dark.theme-ghibli .bottom-nav-tab.active{
+    color:#D9C563;
+}
+
+body.dark.theme-ghibli .activity-photo-btn{
+    color:#D9C563;
+}
+
+/* Feuilles encadrant les titres de TOUTES les vues (Réservations, Album,
+   Carte, Historique, Checklist, sous-pages Profil, écran de création) —
+   même mécanisme que les flocons du thème Noël, voir son commentaire pour
+   le détail (.fullscreen-header est un flex-row sans wrap, un ::before/
+   ::after inline évite de casser sa mise en page). */
+body.theme-ghibli .fullscreen-header h2::before,
+body.theme-ghibli .welcome-title::before{
+    content:"🍃 ";
+}
+
+body.theme-ghibli .fullscreen-header h2::after,
+body.theme-ghibli .welcome-title::after{
+    content:" 🍃";
+}
+
+/* Bandeau mascotte "Tanuki" — masqué par défaut via display:none (dépend
+   uniquement de la classe body, jamais togglée en JS, donc pas de piège
+   [hidden] vs display ici, même raisonnement que .noel-mascot-banner). */
+.ghibli-mascot-banner{
+    display:none;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(135deg,#E7EFDA,#FFFDF7);
+    border-radius:14px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#33422C;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+body.theme-ghibli .ghibli-mascot-banner{
+    display:flex;
+}
+
+body.dark.theme-ghibli .ghibli-mascot-banner{
+    background:linear-gradient(135deg,#2A3A2E,#1A241D);
+    color:#EAF0E4;
+}
+
+.ghibli-mascot-emoji{
+    font-size:26px;
+    flex-shrink:0;
+    animation:ghibliMascotBob 2.6s ease-in-out infinite;
+}
+
+@keyframes ghibliMascotBob{
+    0%,100%{ transform:translateY(0) rotate(-3deg); }
+    50%{ transform:translateY(-3px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .ghibli-mascot-emoji{ animation:none; }
+}
+
+/* Feuilles qui tombent — même principe que .noel-snow (conteneur toujours
+   présent mais vide tant que le thème n'est pas actif), même z-index
+   (3100 : au-dessus des vues plein écran/écran de création, en dessous
+   des superpositions fonctionnelles). */
+.ghibli-leaves{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.ghibli-leaves span{
+    position:absolute;
+    top:-5%;
+    color:#5B7B4F;
+    opacity:.6;
+    animation:ghibliLeafFall linear infinite;
+}
+
+body.dark .ghibli-leaves span{
+    color:#7FA46E;
+    opacity:.5;
+}
+
+@keyframes ghibliLeafFall{
+    to{
+        transform:translateY(105vh) translateX(var(--drift,0px)) rotate(180deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .ghibli-leaves span{
+        animation:none;
+        opacity:0;
+    }
+}
+
+/* Lucioles — uniquement au crépuscule (thème Ghibli + mode sombre combinés),
+   même conteneur-toujours-présent-mais-vide que les feuilles/la neige. */
+.ghibli-fireflies{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.ghibli-fireflies span{
+    position:absolute;
+    width:4px;
+    height:4px;
+    border-radius:50%;
+    background:#F4E27A;
+    box-shadow:0 0 8px 3px rgba(244,226,122,.7);
+    animation:ghibliFireflyGlow ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .ghibli-fireflies span{
+        animation:none;
+        opacity:.4;
+    }
+}
+
+@keyframes ghibliFireflyGlow{
+    0%,100%{ opacity:.15; }
+    50%{ opacity:1; }
+}

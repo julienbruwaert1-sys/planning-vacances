@@ -2641,15 +2641,22 @@ if(localStorage.getItem("theme")==="dark"){
     document.body.classList.add("dark");
 }
 
-/* Thème saisonnier (Noël) : indépendant du mode clair/sombre ci-dessus —
-   les deux se combinent (body.theme-noel ET body.dark peuvent être présents
-   en même temps), voir les règles theme-noel dans style.css qui prévoient
-   les deux variantes. */
+/* Thèmes saisonniers (Noël / Forêt enchantée) : indépendants du mode clair/
+   sombre ci-dessus — les deux se combinent (body.theme-noel ou
+   body.theme-ghibli ET body.dark peuvent être présents en même temps), voir
+   les règles correspondantes dans style.css qui prévoient toutes les
+   variantes. Les deux thèmes sont mutuellement exclusifs entre eux
+   (un seul choisi à la fois dans le sélecteur). */
 const APP_THEME_KEY = "appTheme";
 const appThemeSelect = document.getElementById("appThemeSelect");
 const noelSnow = document.getElementById("noelSnow");
+const ghibliLeaves = document.getElementById("ghibliLeaves");
+const ghibliFireflies = document.getElementById("ghibliFireflies");
 const NOEL_SNOWFLAKE_COUNT = 24;
 const NOEL_SNOWFLAKE_CHARS = ["❄","❅","❆"];
+const GHIBLI_LEAF_COUNT = 18;
+const GHIBLI_LEAF_CHARS = ["🍃","🌿"];
+const GHIBLI_FIREFLY_COUNT = 12;
 
 /* Le conteneur reste vide (donc invisible) tant que le thème n'est pas
    actif — voir la note dans style.css sur .noel-snow. Chaque flocon a sa
@@ -2673,35 +2680,90 @@ function stopNoelSnow(){
     noelSnow.textContent = "";
 }
 
-/* Emoji du titre et de l'icône "Ajouter une activité" : lus dans les
-   fonctions qui les affectent (appTitleEmoji() est appelée à chaque endroit
-   qui construit déjà le titre) plutôt que codés en dur "🌴"/"➕" à 4+
-   endroits différents — un seul endroit à vérifier si le thème change. */
-function appTitleEmoji(){
-    return document.body.classList.contains("theme-noel") ? "⛄" : "🌴";
-}
-
-function refreshNoelIcons(){
-    if(tripName) appTitle.textContent = appTitleEmoji()+" "+tripName;
-    if(!formDrawer.classList.contains("open") && !editingActivity){
-        formToggleIcon.textContent = document.body.classList.contains("theme-noel") ? "⛄" : "➕";
+/* Même principe que les flocons de neige pour les feuilles qui tombent. */
+function startGhibliLeaves(){
+    if(ghibliLeaves.childElementCount) return;
+    for(let i=0;i<GHIBLI_LEAF_COUNT;i++){
+        const leaf = document.createElement("span");
+        leaf.textContent = GHIBLI_LEAF_CHARS[i%GHIBLI_LEAF_CHARS.length];
+        leaf.style.left = `${Math.random()*100}%`;
+        leaf.style.fontSize = `${10+Math.random()*8}px`;
+        leaf.style.setProperty("--drift",`${(Math.random()*60)-30}px`);
+        leaf.style.animationDuration = `${10+Math.random()*8}s`;
+        leaf.style.animationDelay = `${Math.random()*10}s`;
+        ghibliLeaves.appendChild(leaf);
     }
 }
 
-appThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
-
-if(appThemeSelect.value==="noel"){
-    document.body.classList.add("theme-noel");
-    startNoelSnow();
+function stopGhibliLeaves(){
+    ghibliLeaves.textContent = "";
 }
+
+/* Lucioles : uniquement au crépuscule, donc thème Forêt ET mode sombre tous
+   les deux actifs en même temps — appelée à chaque fois que l'un des deux
+   change (sélecteur de thème OU bascule clair/sombre), pas seulement au
+   changement de thème. */
+function updateGhibliFireflies(){
+    const shouldShow = document.body.classList.contains("theme-ghibli") && document.body.classList.contains("dark");
+    if(!shouldShow){
+        ghibliFireflies.textContent = "";
+        return;
+    }
+    if(ghibliFireflies.childElementCount) return;
+    for(let i=0;i<GHIBLI_FIREFLY_COUNT;i++){
+        const firefly = document.createElement("span");
+        firefly.style.top = `${20+Math.random()*60}%`;
+        firefly.style.left = `${Math.random()*90+5}%`;
+        firefly.style.animationDuration = `${2+Math.random()*2}s`;
+        firefly.style.animationDelay = `${Math.random()*3}s`;
+        ghibliFireflies.appendChild(firefly);
+    }
+}
+
+/* Emoji du titre et de l'icône "Ajouter une activité" : lus dans les
+   fonctions qui les affectent (appTitleEmoji() est appelée à chaque endroit
+   qui construit déjà le titre) plutôt que codés en dur "🌴"/"➕" à 4+
+   endroits différents — un seul endroit à vérifier si un thème change. */
+function appTitleEmoji(){
+    if(document.body.classList.contains("theme-noel")) return "⛄";
+    if(document.body.classList.contains("theme-ghibli")) return "🌳";
+    return "🌴";
+}
+
+function currentThemeAddIcon(){
+    if(document.body.classList.contains("theme-noel")) return "⛄";
+    if(document.body.classList.contains("theme-ghibli")) return "🌳";
+    return "➕";
+}
+
+function refreshThemeIcons(){
+    if(tripName) appTitle.textContent = appTitleEmoji()+" "+tripName;
+    if(!formDrawer.classList.contains("open") && !editingActivity){
+        formToggleIcon.textContent = currentThemeAddIcon();
+    }
+}
+
+/* Ne touche jamais formDrawer/formToggleIcon/editingActivity ici (via
+   refreshThemeIcons) : ces const/let sont déclarées bien plus bas dans le
+   fichier, et cette fonction est appelée dès le chargement initial, avant
+   qu'elles existent (TDZ). refreshThemeIcons() est appelée séparément,
+   juste après leur déclaration — voir plus bas. */
+function applySelectedTheme(choice){
+    document.body.classList.toggle("theme-noel",choice==="noel");
+    document.body.classList.toggle("theme-ghibli",choice==="ghibli");
+    if(choice==="noel") startNoelSnow(); else stopNoelSnow();
+    if(choice==="ghibli") startGhibliLeaves(); else stopGhibliLeaves();
+    updateGhibliFireflies();
+}
+
+appThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
+applySelectedTheme(appThemeSelect.value);
 
 appThemeSelect.addEventListener("change",()=>{
     const choice = appThemeSelect.value;
     localStorage.setItem(APP_THEME_KEY,choice);
-    document.body.classList.toggle("theme-noel",choice==="noel");
-    if(choice==="noel") startNoelSnow();
-    else stopNoelSnow();
-    refreshNoelIcons();
+    applySelectedTheme(choice);
+    refreshThemeIcons();
 });
 
 themeToggle.addEventListener("click",()=>{
@@ -2716,6 +2778,7 @@ themeToggle.addEventListener("click",()=>{
     );
 
     updateThemeButton();
+    updateGhibliFireflies();
 });
 
 const welcomeThemeToggle = document.getElementById("welcomeThemeToggle");
@@ -2731,6 +2794,7 @@ welcomeThemeToggle.addEventListener("change",()=>{
     );
 
     updateThemeButton();
+    updateGhibliFireflies();
 });
 
 /* Même logique que appThemeSelect (menu Options) — reflète juste la valeur
@@ -2744,11 +2808,9 @@ welcomeThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
 welcomeThemeSelect.addEventListener("change",()=>{
     const choice = welcomeThemeSelect.value;
     localStorage.setItem(APP_THEME_KEY,choice);
-    document.body.classList.toggle("theme-noel",choice==="noel");
     appThemeSelect.value = choice;
-    if(choice==="noel") startNoelSnow();
-    else stopNoelSnow();
-    refreshNoelIcons();
+    applySelectedTheme(choice);
+    refreshThemeIcons();
 });
 
 const dayCountInput = document.getElementById("dayCount");
@@ -3175,7 +3237,7 @@ const formDrawer = document.getElementById("formDrawer");
    lors d'une session précédente — sans ça, elle ne se mettait à jour qu'à
    la prochaine ouverture/fermeture du volet. Doit venir après les const
    ci-dessus (formDrawer/formToggleIcon), pas avant, sinon TDZ. */
-refreshNoelIcons();
+refreshThemeIcons();
 
 function openFormDrawer(){
     formDrawer.classList.add("open");
@@ -3189,7 +3251,7 @@ function closeFormDrawer(){
     formToggleLabel.textContent = "Ajouter une activité";
     editingActivity = null;
     document.getElementById("activitySubmitBtn").textContent = "Ajouter";
-    formToggleIcon.textContent = document.body.classList.contains("theme-noel") ? "⛄" : "➕";
+    formToggleIcon.textContent = currentThemeAddIcon();
     clearActivityForm();
 }
 
