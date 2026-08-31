@@ -118,8 +118,30 @@ let priceCurrencySymbol = localStorage.getItem("priceCurrencySymbol") || "£";
    s'exécute dès le chargement initial et affiche déjà le badge "dépense
    Tricount liée" sur les activités concernées — valeurs réelles chargées
    plus bas, dans la section Tricount, qui réaffiche ensuite les activités. */
-let tricountParticipants = [];
-let tricountExpenses = [];
+/* Chargées tout de suite (pas de [] en attendant "plus bas" comme avant) :
+   setActiveMainTab() (plus bas) appelle désormais switchTricountTab() dès
+   qu'on entre sur l'onglet budget pour choisir Participants ou Nouvelle
+   dépense selon tricountParticipants.length — y compris depuis
+   restoreLastMainView() qui peut s'exécuter dès le chargement initial si le
+   dernier onglet mémorisé était "budget". Avec l'ancien chargement tardif,
+   restoreLastMainView() lisait toujours un tableau vide à ce moment-là et
+   ouvrait à tort sur Participants même avec des participants existants
+   (repéré en testant ce nouveau comportement). renderActivities() (pour le
+   badge "dépense liée") reste appelée plus bas, une fois le reste du rendu
+   prêt — seule la lecture localStorage a besoin d'être précoce. */
+const TRICOUNT_PARTICIPANTS_KEY = "tricountParticipants";
+const TRICOUNT_EXPENSES_KEY = "tricountExpenses";
+let tricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
+let tricountExpenses = JSON.parse(localStorage.getItem(TRICOUNT_EXPENSES_KEY)) || [];
+
+/* Déclarées tôt pour la même raison (voir juste au-dessus) : setActiveMainTab()
+   (plus bas) appelle désormais switchTricountTab() dès qu'on entre sur l'onglet
+   budget, y compris depuis restoreLastMainView() qui peut s'exécuter dès le
+   chargement initial si le dernier onglet mémorisé était "budget" — sans ça,
+   même bug de TDZ que celui corrigé le 2026-08-31 (voir
+   feedback_tdz_const_declaration_order en mémoire). */
+const tricountTabButtons = document.querySelectorAll("#tricountTabs .date-tab");
+const tricountTabPanels = document.querySelectorAll(".tricount-tab-panel");
 
 const PRICE_CURRENCY_ICONS = { "£":"💷", "€":"💶", "$":"💵", "¥":"💴" };
 function priceCurrencyIcon(){
@@ -4388,9 +4410,18 @@ renderChecklist();
    sont déclarées tout en haut du fichier, pas ici : voir le commentaire
    près de leur déclaration. */
 
-function setActiveMainTab(tab){
-    activeMainTab = tab;
-    localStorage.setItem(LAST_MAIN_TAB_KEY,tab);
+/* Purement visuel, sans effet de bord (pas d'écriture localStorage, pas de
+   sélection d'onglet Tricount par défaut) : utilisée par updateBottomNavVisibility()
+   pour resynchroniser l'affichage sur activeMainTab après un changement de
+   layout (rotation, redimensionnement), sans re-déclencher tout ce que fait
+   setActiveMainTab() ci-dessous. Appeler setActiveMainTab(activeMainTab) à la
+   place ici écrasait silencieusement LAST_MAIN_TAB_KEY avec la valeur
+   courante dès le chargement initial (avant que restoreLastMainView(), plus
+   bas, ait pu lire la vraie valeur mémorisée) — la restauration de l'onglet
+   principal après rafraîchissement ne fonctionnait donc jamais en pratique
+   (bug pré-existant, repéré en vérifiant le nouveau comportement Tricount
+   sur l'onglet budget). */
+function applyActiveMainTabDisplay(tab){
     bottomNavTabs.forEach(btn=>{
         btn.classList.toggle("active",btn.dataset.mainTab===tab);
     });
@@ -4399,6 +4430,24 @@ function setActiveMainTab(tab){
     profileTabContent.hidden = tab!=="profile";
     updateCountdownBanner();
     if(tab==="profile") renderProfileStats();
+}
+
+function setActiveMainTab(tab){
+    /* Seulement à l'ENTRÉE sur l'onglet budget (pas à chaque appui si on y
+       est déjà) : sinon rappuyer sur l'icône Convertisseur du bandeau du bas
+       ramènerait sans arrêt sur l'onglet Tricount par défaut, écrasant un
+       onglet choisi à la main (Historique, Soldes...). Les appelants qui
+       veulent un onglet précis (ex. startTricountExpenseFromActivity)
+       appellent switchTricountTab() juste après — cette valeur par défaut
+       est alors immédiatement remplacée, sans effet visible. */
+    const enteringBudget = tab==="budget" && activeMainTab!=="budget";
+
+    activeMainTab = tab;
+    localStorage.setItem(LAST_MAIN_TAB_KEY,tab);
+    applyActiveMainTabDisplay(tab);
+    if(enteringBudget){
+        switchTricountTab(tricountParticipants.length===0 ? "participants" : "new");
+    }
 }
 
 document.querySelectorAll(".mobile-tab-back").forEach(btn=>{
@@ -4451,7 +4500,7 @@ function updateBottomNavVisibility(){
         budgetTabContent.hidden = false;
         profileTabContent.hidden = true;
     }else{
-        setActiveMainTab(activeMainTab);
+        applyActiveMainTabDisplay(activeMainTab);
     }
 
     syncBottomNavHeight();
@@ -7743,14 +7792,13 @@ window.addEventListener("online",()=>{
 
 setInterval(fetchExchangeRate,30*60*1000);
 
-/* --- Tricount (dépenses partagées) --- */
+/* --- Tricount (dépenses partagées) ---
+   TRICOUNT_PARTICIPANTS_KEY/TRICOUNT_EXPENSES_KEY et le chargement initial de
+   tricountParticipants/tricountExpenses sont tout en haut du fichier, pas
+   ici : voir le commentaire près de leur déclaration. */
 
-const TRICOUNT_PARTICIPANTS_KEY = "tricountParticipants";
-const TRICOUNT_EXPENSES_KEY = "tricountExpenses";
 const TRICOUNT_EPS = 0.01;
 
-tricountParticipants = JSON.parse(localStorage.getItem(TRICOUNT_PARTICIPANTS_KEY)) || [];
-tricountExpenses = JSON.parse(localStorage.getItem(TRICOUNT_EXPENSES_KEY)) || [];
 renderActivities();
 
 const tricountParticipantsList = document.getElementById("tricountParticipantsList");
@@ -7851,8 +7899,8 @@ const tricountBalancesList = document.getElementById("tricountBalancesList");
 const tricountConversionWarning = document.getElementById("tricountConversionWarning");
 const tricountSettleList = document.getElementById("tricountSettleList");
 
-const tricountTabButtons = document.querySelectorAll("#tricountTabs .date-tab");
-const tricountTabPanels = document.querySelectorAll(".tricount-tab-panel");
+/* tricountTabButtons/tricountTabPanels déclarées tout en haut du fichier,
+   pas ici : voir le commentaire près de leur déclaration. */
 
 function switchTricountTab(tabName){
     tricountTabButtons.forEach(b=>b.classList.toggle("active",b.dataset.tricountTab===tabName));
