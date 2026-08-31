@@ -3660,7 +3660,29 @@ function isAnyFullscreenViewOpen(){
     return !!document.querySelector(".fullscreen-view:not([hidden])");
 }
 
+/* Réservations/Album sont des .fullscreen-view ouvertes PAR-DESSUS le
+   Planning (activeMainTab reste "planning", voir la valeur passée à
+   setActiveMainTab() dans leurs branches du gestionnaire du bandeau du bas)
+   — un simple btn.dataset.mainTab===activeMainTab laisserait donc
+   Planning "actif" (coloré) pendant qu'on regarde en fait Réservations ou
+   Album, et ces deux-là ne s'allumeraient jamais elles-mêmes. Cette
+   fonction est appelée à chaque ouverture/fermeture de vue plein écran
+   (voir updateCountdownBanner(), qui l'appelle) pour rattraper les deux
+   cas que activeMainTab seul ne peut pas distinguer. */
+function updateBottomNavActiveState(){
+    const openOverlayTab =
+        (!document.getElementById("reservationsView").hidden && "reservations") ||
+        (!document.getElementById("albumView").hidden && "album") ||
+        null;
+    const highlightedTab = openOverlayTab || activeMainTab;
+    bottomNavTabs.forEach(btn=>{
+        btn.classList.toggle("active",btn.dataset.mainTab===highlightedTab);
+    });
+}
+
 function updateCountdownBanner(){
+
+    updateBottomNavActiveState();
 
     appTitleRow.hidden = activeMainTab!=="planning" || isAnyFullscreenViewOpen();
 
@@ -4422,9 +4444,10 @@ renderChecklist();
    (bug pré-existant, repéré en vérifiant le nouveau comportement Tricount
    sur l'onglet budget). */
 function applyActiveMainTabDisplay(tab){
-    bottomNavTabs.forEach(btn=>{
-        btn.classList.toggle("active",btn.dataset.mainTab===tab);
-    });
+    /* Le surlignage .active du bandeau du bas est calculé dans
+       updateCountdownBanner() (via updateBottomNavActiveState()), appelée
+       juste en dessous — pas ici directement, puisque Réservations/Album
+       doivent parfois s'allumer elles-mêmes plutôt que "planning". */
     planningTabContent.hidden = tab!=="planning";
     budgetTabContent.hidden = tab!=="budget";
     profileTabContent.hidden = tab!=="profile";

@@ -1209,7 +1209,22 @@ body.dark .bottom-nav-tab.active{
 }
 
 body.has-bottom-nav .fullscreen-view{
-    bottom:var(--bottom-nav-h,64px);
+    /* -1px volontaire : filet de sécurité contre un arrondi de sous-pixel
+       entre cet élément et .bottom-nav (tous deux position:fixed, hauteurs
+       calculées indépendamment) qui peut laisser un liseré d'un pixel où le
+       Planning en dessous reste visible sur certains écrans de téléphone —
+       invisible ici (z-index plus haut, .bottom-nav garde son propre fond).
+       Uniquement visible sur Réservations/Album : ce sont les deux seules
+       .fullscreen-view ouvertes SANS masquer Planning en dessous (elles
+       gardent activeMainTab="planning"), donc les seules où un contenu
+       coloré peut être révélé par ce genre de gap. Retiré une fois
+       (commit c45197b) après avoir trouvé que la vraie cause de CE
+       liseré-là était le bandeau compte à rebours jamais masqué derrière
+       ces deux vues (voir updateCountdownBanner()/isAnyFullscreenViewOpen())
+       — remis en 2026-08-31 comme filet de sécurité pour le gap de
+       sous-pixel, qui est un problème distinct et réel (pas vérifiable en
+       environnement de test, seulement sur de vrais écrans). */
+    bottom:calc(var(--bottom-nav-h,64px) - 1px);
 }
 
 #mapView{
