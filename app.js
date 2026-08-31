@@ -4191,13 +4191,18 @@ function renderProfileStats(){
 
 /* --- Profil : réservations (vue consolidée des liens par activité) --- */
 
+/* Vue "jours repliables" — mêmes classes/interaction que l'Album
+   (.album-day-group/-heading/-toggle/-body, voir renderPhotoGroups()) pour
+   rester cohérent visuellement, mais avec sa propre clé de repli
+   (RESERVATIONS_COLLAPSE_KEY) : un jour replié ici ne doit pas replier le
+   même jour dans l'Album, et inversement. */
 function renderReservations(){
 
     const reservationsList = document.getElementById("reservationsList");
     reservationsList.innerHTML = "";
 
     const sections = ["matin","midi","apresMidi","soir"];
-    const matches = [];
+    const byDay = {};
 
     Object.keys(planning)
     .map(d=>parseInt(d,10))
@@ -4206,13 +4211,16 @@ function renderReservations(){
         sections.forEach(slot=>{
             (planning[day][slot] || []).forEach(activity=>{
                 if(activity.reservationLink){
-                    matches.push({day,activity});
+                    if(!byDay[day]) byDay[day] = [];
+                    byDay[day].push(activity);
                 }
             });
         });
     });
 
-    if(matches.length===0){
+    const days = Object.keys(byDay).map(d=>parseInt(d,10)).sort((a,b)=>a-b);
+
+    if(days.length===0){
         const empty = document.createElement("div");
         empty.className = "search-result-item";
         empty.textContent = "Aucune réservation enregistrée pour l'instant.";
@@ -4220,33 +4228,83 @@ function renderReservations(){
         return;
     }
 
-    matches.forEach(m=>{
+    days.forEach(day=>{
 
-        const item = document.createElement("div");
-        item.className = "search-result-item";
+        const dayGroup = document.createElement("div");
+        dayGroup.className = "album-day-group";
+        if(isDayCollapsed(RESERVATIONS_COLLAPSE_KEY,currentTripId,day)) dayGroup.classList.add("collapsed");
 
-        const nameDiv = document.createElement("div");
-        nameDiv.textContent =
-        `${icons[m.activity.type] || "📌"} ${m.activity.name}`;
+        const dayHeading = document.createElement("div");
+        dayHeading.className = "album-day-heading";
+        const dateLabel = formatDayDate(day);
+        let heading = `Jour ${day}`;
+        if(dateLabel) heading += ` — ${dateLabel}`;
 
-        const dayDiv = document.createElement("div");
-        dayDiv.className = "search-result-day";
-        dayDiv.textContent =
-        `Jour ${m.day}`
-        + (m.activity.time ? ` · ${m.activity.time}` : "");
+        const headingText = document.createElement("span");
+        headingText.className = "album-day-heading-text";
+        headingText.textContent = heading;
+        const countSpan = document.createElement("span");
+        countSpan.className = "album-day-count";
+        countSpan.textContent = `· ${byDay[day].length} réservation${byDay[day].length>1 ? "s" : ""}`;
+        headingText.appendChild(countSpan);
+        dayHeading.appendChild(headingText);
 
-        item.appendChild(nameDiv);
-        item.appendChild(dayDiv);
+        const toggleBtn = document.createElement("span");
+        toggleBtn.className = "album-day-toggle";
+        const svgNS = "http://www.w3.org/2000/svg";
+        const chevronSvg = document.createElementNS(svgNS,"svg");
+        chevronSvg.setAttribute("width","15");
+        chevronSvg.setAttribute("height","15");
+        chevronSvg.setAttribute("viewBox","0 0 20 20");
+        chevronSvg.setAttribute("fill","none");
+        chevronSvg.setAttribute("stroke","currentColor");
+        chevronSvg.setAttribute("stroke-width","2");
+        chevronSvg.setAttribute("stroke-linecap","round");
+        chevronSvg.setAttribute("stroke-linejoin","round");
+        const chevronPath = document.createElementNS(svgNS,"path");
+        chevronPath.setAttribute("d","M5 8l5 5 5-5");
+        chevronSvg.appendChild(chevronPath);
+        toggleBtn.appendChild(chevronSvg);
+        dayHeading.appendChild(toggleBtn);
 
-        item.addEventListener("click",()=>{
-            if(/^https?:\/\//i.test(m.activity.reservationLink)){
-                window.open(m.activity.reservationLink,"_blank","noopener,noreferrer");
-            }else{
-                showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
-            }
+        dayHeading.addEventListener("click",()=>{
+            dayGroup.classList.toggle("collapsed");
+            toggleDayCollapsed(RESERVATIONS_COLLAPSE_KEY,currentTripId,day);
         });
 
-        reservationsList.appendChild(item);
+        dayGroup.appendChild(dayHeading);
+
+        const dayBody = document.createElement("div");
+        dayBody.className = "album-day-body";
+
+        byDay[day].forEach(activity=>{
+
+            const item = document.createElement("div");
+            item.className = "search-result-item";
+
+            const nameDiv = document.createElement("div");
+            nameDiv.textContent = `${icons[activity.type] || "📌"} ${activity.name}`;
+
+            const dayDiv = document.createElement("div");
+            dayDiv.className = "search-result-day";
+            dayDiv.textContent = activity.time || "";
+
+            item.appendChild(nameDiv);
+            item.appendChild(dayDiv);
+
+            item.addEventListener("click",()=>{
+                if(/^https?:\/\//i.test(activity.reservationLink)){
+                    window.open(activity.reservationLink,"_blank","noopener,noreferrer");
+                }else{
+                    showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
+                }
+            });
+
+            dayBody.appendChild(item);
+        });
+
+        dayGroup.appendChild(dayBody);
+        reservationsList.appendChild(dayGroup);
     });
 }
 
@@ -5482,27 +5540,32 @@ function findActivityByIdAnywhere(activityId){
    d'un autre voyage). Tous les jours sont dépliés par défaut : un jour
    n'apparaît dans cet ensemble qu'après avoir été explicitement replié. */
 const ALBUM_COLLAPSE_KEY = "albumCollapsedDays";
+const RESERVATIONS_COLLAPSE_KEY = "reservationsCollapsedDays";
 
-function loadCollapsedDaysMap(){
+/* storageKey paramétré (pas juste ALBUM_COLLAPSE_KEY en dur) : réutilisé
+   tel quel pour la vue Réservations (RESERVATIONS_COLLAPSE_KEY) — un jour
+   replié dans l'un ne doit pas replier le même jour dans l'autre, d'où deux
+   clés localStorage séparées plutôt qu'une seule partagée. */
+function loadCollapsedDaysMap(storageKey){
     try{
-        return JSON.parse(localStorage.getItem(ALBUM_COLLAPSE_KEY)) || {};
+        return JSON.parse(localStorage.getItem(storageKey)) || {};
     }catch(err){
         return {};
     }
 }
 
-function isDayCollapsed(tripId,day){
-    const map = loadCollapsedDaysMap();
+function isDayCollapsed(storageKey,tripId,day){
+    const map = loadCollapsedDaysMap(storageKey);
     return !!(map[tripId] && map[tripId].includes(day));
 }
 
-function toggleDayCollapsed(tripId,day){
-    const map = loadCollapsedDaysMap();
+function toggleDayCollapsed(storageKey,tripId,day){
+    const map = loadCollapsedDaysMap(storageKey);
     const days = map[tripId] || [];
     const index = days.indexOf(day);
     if(index===-1) days.push(day); else days.splice(index,1);
     map[tripId] = days;
-    localStorage.setItem(ALBUM_COLLAPSE_KEY,JSON.stringify(map));
+    localStorage.setItem(storageKey,JSON.stringify(map));
 }
 
 /* Regroupe et affiche une liste de photos (jour -> activité) dans un
@@ -5557,7 +5620,7 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
 
         const dayGroup = document.createElement("div");
         dayGroup.className = "album-day-group";
-        if(isDayCollapsed(tripIdForCollapse,day)) dayGroup.classList.add("collapsed");
+        if(isDayCollapsed(ALBUM_COLLAPSE_KEY,tripIdForCollapse,day)) dayGroup.classList.add("collapsed");
 
         const dayHeading = document.createElement("div");
         dayHeading.className = "album-day-heading";
@@ -5597,7 +5660,7 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
 
         dayHeading.addEventListener("click",()=>{
             dayGroup.classList.toggle("collapsed");
-            toggleDayCollapsed(tripIdForCollapse,day);
+            toggleDayCollapsed(ALBUM_COLLAPSE_KEY,tripIdForCollapse,day);
         });
 
         dayGroup.appendChild(dayHeading);
