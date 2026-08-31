@@ -2656,6 +2656,21 @@ body.dark .album-activity-label{
     justify-content:center;
 }
 
+/* Vue grille compacte : réutilise .day-photo-thumb tel quel (bordure,
+   coins arrondis, position:relative déjà là) — seule la taille passe
+   d'un carré fixe 64px à une cellule de grille responsive. */
+.album-compact-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+    gap:6px;
+}
+
+.album-compact-grid .day-photo-thumb{
+    width:100%;
+    height:auto;
+    aspect-ratio:1/1;
+}
+
 .album-empty{
     display:flex;
     flex-direction:column;

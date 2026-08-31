@@ -6104,7 +6104,10 @@ async function renderDayPhotos(){
 /* --- Album photos (toutes les journées, rangées par activité) --- */
 
 const albumContent = document.getElementById("albumContent");
+const albumTypeFilter = document.getElementById("albumTypeFilter");
+const albumGridToggle = document.getElementById("albumGridToggle");
 let albumObjectUrls = [];
+let albumGridModeActive = false;
 
 function findActivityById(day,activityId,planningSource){
     const dayData = (planningSource || planning)[day];
@@ -6163,6 +6166,30 @@ function toggleDayCollapsed(storageKey,tripId,day){
    conteneur donné — partagé entre l'Album (voyage actif, planning en
    mémoire) et le détail d'un voyage archivé (planning figé du moment
    de l'archivage), pour ne pas dupliquer cette logique deux fois. */
+/* Partagé entre renderPhotoGroups() et renderCompactPhotoGrid() — même
+   état vide dans les deux modes d'affichage de l'Album. */
+function buildAlbumEmptyState(message){
+    const empty = document.createElement("div");
+    empty.className = "album-empty";
+
+    const icon = document.createElement("div");
+    icon.className = "album-empty-icon";
+    icon.textContent = "🖼️";
+    empty.appendChild(icon);
+
+    const title = document.createElement("div");
+    title.className = "album-empty-title";
+    title.textContent = "Aucune photo pour l'instant";
+    empty.appendChild(title);
+
+    const text = document.createElement("p");
+    text.className = "album-empty-text";
+    text.textContent = message;
+    empty.appendChild(text);
+
+    return empty;
+}
+
 function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessage,dateLabelFn,tripIdForCollapse){
 
     objectUrls.forEach(url=>URL.revokeObjectURL(url));
@@ -6170,25 +6197,7 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
     container.textContent = "";
 
     if(!photos.length){
-        const empty = document.createElement("div");
-        empty.className = "album-empty";
-
-        const icon = document.createElement("div");
-        icon.className = "album-empty-icon";
-        icon.textContent = "🖼️";
-        empty.appendChild(icon);
-
-        const title = document.createElement("div");
-        title.className = "album-empty-title";
-        title.textContent = "Aucune photo pour l'instant";
-        empty.appendChild(title);
-
-        const text = document.createElement("p");
-        text.className = "album-empty-text";
-        text.textContent = emptyMessage;
-        empty.appendChild(text);
-
-        container.appendChild(empty);
+        container.appendChild(buildAlbumEmptyState(emptyMessage));
         return;
     }
 
@@ -6329,6 +6338,51 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
     });
 }
 
+/* Vue grille compacte de l'Album — mêmes vignettes que renderPhotoGroups()
+   (.day-photo-thumb) mais toutes ensemble, triées par date décroissante,
+   sans le regroupement par jour/activité. Uniquement pour l'Album (pas
+   l'historique des voyages), donc pas de paramètre tripIdForCollapse. */
+function renderCompactPhotoGrid(container,photos,objectUrls,emptyMessage){
+
+    objectUrls.forEach(url=>URL.revokeObjectURL(url));
+    objectUrls.length = 0;
+    container.textContent = "";
+
+    if(!photos.length){
+        container.appendChild(buildAlbumEmptyState(emptyMessage));
+        return;
+    }
+
+    const sorted = photos.slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+
+    const grid = document.createElement("div");
+    grid.className = "album-compact-grid";
+
+    const urls = sorted.map(photo=>{
+        const url = URL.createObjectURL(photo.blob);
+        objectUrls.push(url);
+        return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob)};
+    });
+
+    sorted.forEach((photo,i)=>{
+        const { url, type } = urls[i];
+
+        const thumb = document.createElement("button");
+        thumb.type = "button";
+        thumb.className = "day-photo-thumb";
+
+        const { media, badge } = createMediaThumbElement(url,type);
+        thumb.appendChild(media);
+        if(badge) thumb.appendChild(badge);
+
+        thumb.addEventListener("click",()=>openPhotoLightbox(photo.id,url,urls));
+
+        grid.appendChild(thumb);
+    });
+
+    container.appendChild(grid);
+}
+
 async function renderAlbumView(){
 
     let photos;
@@ -6346,16 +6400,41 @@ async function renderAlbumView(){
         return;
     }
 
-    renderPhotoGroups(
-        albumContent,
-        photos,
-        planning,
-        albumObjectUrls,
-        "Ajoute une photo depuis une activité dans le Planning avec l'icône 📷 — elle apparaîtra ici, rangée par activité.",
-        formatDayDate,
-        currentTripId
-    );
+    const typeFilter = albumTypeFilter.value || null;
+    if(typeFilter){
+        photos = photos.filter(photo=>{
+            const activity = photo.activityId ? findActivityById(photo.day,photo.activityId,planning) : null;
+            return activity && activity.type===typeFilter;
+        });
+    }
+
+    const emptyMessage = typeFilter
+        ? "Aucune photo pour ce type d'activité."
+        : "Ajoute une photo depuis une activité dans le Planning avec l'icône 📷 — elle apparaîtra ici, rangée par activité.";
+
+    if(albumGridModeActive){
+        renderCompactPhotoGrid(albumContent,photos,albumObjectUrls,emptyMessage);
+    }else{
+        renderPhotoGroups(
+            albumContent,
+            photos,
+            planning,
+            albumObjectUrls,
+            emptyMessage,
+            formatDayDate,
+            currentTripId
+        );
+    }
 }
+
+albumTypeFilter.addEventListener("change",renderAlbumView);
+
+albumGridToggle.addEventListener("click",()=>{
+    albumGridModeActive = !albumGridModeActive;
+    albumGridToggle.classList.toggle("active",albumGridModeActive);
+    albumGridToggle.setAttribute("aria-pressed",String(albumGridModeActive));
+    renderAlbumView();
+});
 
 /* --- Historique des voyages --- */
 
