@@ -2,11 +2,16 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<!-- Redirection JS synchrone en premier (avant le meta-refresh) : plus
+     rapide que d'attendre le traitement du meta http-equiv, ce qui réduit
+     le flash visible au lancement — important dans une appli Capacitor où
+     ce fichier est l'écran de démarrage, pas juste une redirection SEO. -->
+<script>location.replace("Planning_v1.0.html");</script>
 <meta http-equiv="refresh" content="0; url=Planning_v1.0.html">
 <link rel="canonical" href="Planning_v1.0.html">
 <title>Planificateur de Vacances</title>
+<style>body{margin:0;background:#FCFDFE;}</style>
 </head>
 <body>
-<p>Redirection vers <a href="Planning_v1.0.html">Planning_v1.0.html</a>…</p>
 </body>
 </html>
