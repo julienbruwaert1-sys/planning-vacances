@@ -5207,3 +5207,56 @@ body.dark .ghibli-forest-spirit .eye{ background:#F2EFDD; }
 @media (prefers-reduced-motion: reduce){
     .ghibli-wild-guardian{ animation:none; }
 }
+
+/* Mini-suies : petites boules noires à deux yeux qui gigotent près du sol,
+   même zone "sûre" bas-droite que l'esprit des bois (au-dessus de la barre
+   de navigation), positions statiques (pas besoin de génération aléatoire
+   en JS pour seulement 3 points fixes). Masquées par défaut via
+   display:none, même raisonnement que les autres mascottes du thème. */
+.ghibli-soot{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    pointer-events:none;
+}
+
+body.theme-ghibli .ghibli-soot{
+    display:block;
+}
+
+.ghibli-soot span{
+    position:absolute;
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:#2E2A22;
+    animation:ghibliSootJiggle 1.8s ease-in-out infinite;
+}
+
+body.dark .ghibli-soot span{
+    background:#0B1F16;
+    box-shadow:0 0 0 1px rgba(244,226,122,.3);
+}
+
+.ghibli-soot span::before,
+.ghibli-soot span::after{
+    content:"";
+    position:absolute;
+    top:3px;
+    width:2px;
+    height:2px;
+    border-radius:50%;
+    background:#fff;
+}
+.ghibli-soot span::before{ left:2px; }
+.ghibli-soot span::after{ right:2px; }
+
+@keyframes ghibliSootJiggle{
+    0%,100%{ transform:translateY(0) scale(1); }
+    50%{ transform:translateY(-2px) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .ghibli-soot span{ animation:none; }
+}
