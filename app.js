@@ -1640,6 +1640,49 @@ function getField(row,names){
     return "";
 }
 
+/* Un import Excel/CSV s'ajoutait toujours silencieusement au voyage en
+   cours (photos, checklist, Tricount... jamais archivés), contrairement à
+   la sauvegarde JSON qui archive avant de restaurer (handleImportBackupFile)
+   et à "Nouveau voyage" (finalizeTripCreation) — d'où la confusion signalée.
+   On demande maintenant explicitement à chaque import de fichier. */
+const PENDING_IMPORT_ROWS_KEY = "pendingExcelImportRows";
+
+function promptImportRowsDestination(rows){
+    showConfirmModal(
+        `${rows.length} ligne(s) trouvée(s) dans le fichier. Remplacer le voyage actuel (il sera archivé dans l'historique) ou ajouter ces activités au voyage en cours ?`,
+        ()=>{ replaceTripWithImportedRows(rows); },
+        {
+            confirmLabel:"Remplacer le voyage actuel",
+            cancelLabel:"Ajouter à ce voyage",
+            onCancel:()=>{ importRows(rows); }
+        }
+    );
+}
+
+function replaceTripWithImportedRows(rows){
+    archiveCurrentTrip();
+
+    /* Le rechargement ci-dessous vide la mémoire JS (rows y compris) —
+       comme finalizeTripCreation(), c'est le seul moyen fiable de repartir
+       d'un état 100% propre (planning, checklist, Tricount, voyageur...)
+       sans réécrire à la main chaque variable/rendu du chargement initial.
+       Les lignes du fichier sont donc mises de côté pour être réimportées
+       juste après le rechargement (voir juste après importRows()). */
+    localStorage.setItem(PENDING_IMPORT_ROWS_KEY,JSON.stringify(rows));
+
+    currentTripId = generateId();
+    localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+    localStorage.removeItem(CHECKLIST_STORAGE_KEY);
+    localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
+    localStorage.removeItem(TRAVELER_INFO_KEY);
+    localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
+    localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
+    localStorage.removeItem("startDate");
+    localStorage.setItem("vacationPlanning",JSON.stringify({}));
+
+    location.reload();
+}
+
 function importRows(rows){
 
     let imported = 0;
@@ -1769,6 +1812,19 @@ function importRows(rows){
             : ""),
         {type: skipped>0 ? undefined : "success", duration:6000}
     );
+}
+
+const pendingImportRowsRaw = localStorage.getItem(PENDING_IMPORT_ROWS_KEY);
+if(pendingImportRowsRaw){
+    localStorage.removeItem(PENDING_IMPORT_ROWS_KEY);
+    try{
+        importRows(JSON.parse(pendingImportRowsRaw));
+    }catch(err){
+        showToast(
+            "Le voyage précédent a été archivé, mais l'import du fichier a échoué après le rechargement.",
+            {type:"error",duration:6000}
+        );
+    }
 }
 
 /* --- Import de calendrier .ics (Airbnb, etc.) ---
@@ -2211,7 +2267,7 @@ function handleImportFile(e){
                     {type:"error"}
                 );
             }else{
-                importRows(rows);
+                promptImportRowsDestination(rows);
             }
 
         }catch(err){
