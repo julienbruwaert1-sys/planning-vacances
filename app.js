@@ -9258,8 +9258,22 @@ syncJoinBtn.addEventListener("click",()=>{
             "Lier cet appareil remplacera son planning actuel par celui reçu de l'autre appareil — le planning actuel sera d'abord archivé dans l'historique des voyages, tu pourras le consulter (et le restaurer) plus tard. Continuer ?",
             ()=>{
                 archiveCurrentTrip();
+
+                /* Sans ça, les photos de l'ancien voyage (dans IndexedDB, jamais
+                   synchronisées) restaient rattachées à currentTripId et
+                   continuaient donc à s'afficher dans l'Album, mélangées au
+                   planning du voyage reçu — même logique que
+                   replaceTripWithImportedRows()/finalizeTripCreation() pour
+                   "Remplacer"/"Nouveau voyage". L'ancien voyage archivé garde
+                   son vrai id (buildCurrentTripSnapshot() l'a capturé avant ce
+                   changement), donc ses photos restent bien consultables depuis
+                   son entrée dans l'historique. */
+                currentTripId = generateId();
+                localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+
                 pairWithCode(code,{isNew:false});
                 applySyncData(data,true);
+                refreshOpenPhotoViews();
                 syncCodeInput.value = "";
                 showToast("Appareil lié avec succès — ton ancien planning a été archivé.",{type:"success"});
             }
