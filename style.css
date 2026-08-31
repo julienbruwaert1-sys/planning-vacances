@@ -3348,6 +3348,59 @@ body.dark .menu-hint{
     margin:6px 4px;
 }
 
+/* Réglages & données : #dataSettingsContent (avec ses .settings-tab-group)
+   est un seul jeu de noeuds partagé entre le popup ⋮ desktop
+   (#optionsMenuPanel, liste à plat, inchangée) et la page Profil mobile
+   (#dataSettingsSlot, à onglets) — updateProfileConsolidation() le déplace
+   d'un endroit à l'autre. Le style ci-dessous dépend donc du PARENT réel,
+   pas d'une classe que JS devrait mettre à jour à chaque changement de
+   contexte. */
+#optionsMenuPanel .settings-tab-group{
+    display:block;
+}
+
+#dataSettingsSlot .settings-tab-group{
+    display:none;
+    background:#FFFFFF;
+    border-radius:16px;
+    box-shadow:0 2px 8px rgba(51,64,74,.07);
+    padding:18px;
+    margin-bottom:14px;
+}
+
+#dataSettingsSlot .settings-tab-group.active-tab{
+    display:block;
+}
+
+#dataSettingsSlot .menu-divider,
+#dataSettingsSlot .menu-section-label{
+    display:none;
+}
+
+body.dark #dataSettingsSlot .settings-tab-group{
+    background:#121A2E;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+body.theme-noel #dataSettingsSlot .settings-tab-group{
+    background:#EDF5EE;
+}
+body.dark.theme-noel #dataSettingsSlot .settings-tab-group{
+    background:#132A22;
+}
+body.theme-ghibli #dataSettingsSlot .settings-tab-group{
+    background:#E7EFDA;
+}
+body.dark.theme-ghibli #dataSettingsSlot .settings-tab-group{
+    background:#2A3A2E;
+}
+body.theme-halloween #dataSettingsSlot .settings-tab-group{
+    background:#F3DCC0;
+}
+body.dark.theme-halloween #dataSettingsSlot .settings-tab-group{
+    background:#332440;
+}
+
 .icon-btn{
     position:relative;
     width:42px;

@@ -193,6 +193,7 @@
 <div id="optionsMenuPanel" class="options-menu-panel" role="menu" hidden>
 <div id="dataSettingsContent">
 
+<div class="settings-tab-group" data-tab="affichage">
 <div class="menu-section-label">Affichage</div>
 <button id="themeToggle" class="menu-item" type="button" role="menuitem" title="Mode sombre" aria-label="Basculer le mode sombre"><span class="menu-item-icon">🌙</span><span class="menu-item-label">Mode sombre</span></button>
 <button id="layoutToggle" class="menu-item" type="button" role="menuitem" title="Mode auto" aria-label="Changer le mode d'affichage"><span class="menu-item-icon">🔄</span><span class="menu-item-label">Affichage mode auto</span></button>
@@ -213,7 +214,9 @@
 </select>
 </div>
 <button id="hapticToggle" class="menu-item" type="button" role="menuitem" title="Retour haptique" aria-label="Activer/désactiver les vibrations de retour"><span class="menu-item-icon">📳</span><span class="menu-item-label">Retour haptique</span></button>
+</div>
 
+<div class="settings-tab-group" data-tab="donnees">
 <div class="menu-divider"></div>
 <div class="menu-section-label">Données</div>
 <button id="checkUpdateBtn" class="menu-item" type="button" role="menuitem" title="Vérifier les mises à jour" aria-label="Vérifier les mises à jour de l'application"><span class="menu-item-icon">⬇️</span><span class="menu-item-label">Vérifier les mises à jour</span></button>
@@ -233,7 +236,9 @@
 <button id="printBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF / Imprimer" aria-label="Exporter le planning en PDF"><span class="menu-item-icon">🖨️</span><span class="menu-item-label">Exporter en PDF</span></button>
 <button id="exportIcsBtn" class="menu-item" type="button" role="menuitem" title="Exporter vers le calendrier (.ics)" aria-label="Exporter le planning vers le calendrier"><span class="menu-item-icon">🗓️</span><span class="menu-item-label">Exporter vers le calendrier</span></button>
 <button id="exportDataBtn" class="menu-item" type="button" role="menuitem" title="Exporter mes données (sauvegarde JSON)" aria-label="Exporter mes données en JSON" hidden><span class="menu-item-icon">💾</span><span class="menu-item-label">Exporter mes données</span></button>
+</div>
 
+<div class="settings-tab-group" data-tab="voyage">
 <div class="menu-divider"></div>
 <div class="menu-section-label">Développement</div>
 <button id="switchServerBtn" class="menu-item" type="button" role="menuitem" title="Basculer entre Live Server (WiFi maison) et la version en ligne"><span class="menu-item-icon">🔀</span><span class="menu-item-label" id="switchServerLabel">Passer à Live Server</span></button>
@@ -244,6 +249,7 @@
 <div class="menu-divider"></div>
 <button id="resetPlanning" class="menu-item menu-item-danger" type="button" role="menuitem" title="Réinitialiser le planning" aria-label="Réinitialiser tout le planning"><span class="menu-item-icon">🗑️</span><span class="menu-item-label">Réinitialiser le planning</span></button>
 <button id="deleteTripBtn" class="menu-item menu-item-danger" type="button" role="menuitem" title="Supprimer le voyage" aria-label="Supprimer le voyage"><span class="menu-item-icon">❌</span><span class="menu-item-label">Supprimer le voyage</span></button>
+</div>
 
 </div>
 </div>
@@ -856,7 +862,14 @@ Masquer les éléments cochés
 <h2>⚙️ Réglages &amp; données</h2>
 </div>
 <div class="fullscreen-body">
-<div class="profile-section" id="dataSettingsSlot"></div>
+<div class="date-tabs" id="settingsTabs">
+<div class="date-tabs-group">
+<button class="date-tab active" type="button" data-tab="affichage">🎨 Affichage</button>
+<button class="date-tab" type="button" data-tab="donnees">📂 Données</button>
+<button class="date-tab" type="button" data-tab="voyage">🧳 Voyage</button>
+</div>
+</div>
+<div id="dataSettingsSlot"></div>
 </div>
 </div>
 

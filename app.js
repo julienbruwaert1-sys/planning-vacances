@@ -217,6 +217,29 @@ const syncPanel = document.getElementById("syncPanel");
 const desktopProfileMenuItem = document.getElementById("desktopProfileMenuItem");
 let profileConsolidated = null;
 
+/* Onglets de la page Réglages & données (mobile uniquement — CSS scopé par
+   #dataSettingsSlot vs #optionsMenuPanel décide de l'affichage réel, voir
+   style.css ; ici on gère juste quel groupe porte .active-tab, ce qui reste
+   correct quel que soit l'endroit où dataSettingsContent se trouve). */
+const settingsTabs = document.getElementById("settingsTabs");
+const settingsTabButtons = settingsTabs.querySelectorAll(".date-tab");
+const settingsTabGroups = dataSettingsContent.querySelectorAll(".settings-tab-group");
+
+function updateSettingsTabs(activeTab){
+    settingsTabGroups.forEach(group=>{
+        group.classList.toggle("active-tab",group.dataset.tab===activeTab);
+    });
+}
+
+settingsTabButtons.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        settingsTabButtons.forEach(b=>b.classList.toggle("active",b===btn));
+        updateSettingsTabs(btn.dataset.tab);
+    });
+});
+
+updateSettingsTabs("affichage");
+
 /* --- Menu options (coin) --- */
 
 const optionsMenuBtn = document.getElementById("optionsMenuBtn");
