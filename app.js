@@ -155,6 +155,17 @@ const bottomNavTabs = bottomNav.querySelectorAll(".bottom-nav-tab");
 const planningTabContent = document.getElementById("planningTabContent");
 const budgetTabContent = document.getElementById("budgetTabContent");
 const profileTabContent = document.getElementById("profileTabContent");
+/* Réservations/Album : de vrais onglets sur mobile depuis le 2026-08-31 (au
+   même titre que planning/budget/profile ci-dessus), pas des .fullscreen-view
+   ouvertes par-dessus le Planning comme avant — c'était la cause du bandeau
+   du bas qui ne s'allumait jamais sur ces deux-là et du liseré récurrent
+   (voir planning_only_ui_visibility_rule en mémoire). Gardent quand même la
+   classe .fullscreen-view/.profile-sub-view : encore utile sur desktop, où
+   elles restent ouvertes via le menu du coin (#desktopProfilePanel), pas via
+   le bandeau du bas — voir applyActiveMainTabDisplay()/le gestionnaire
+   .profile-back plus bas pour le détail des deux chemins. */
+const reservationsView = document.getElementById("reservationsView");
+const albumView = document.getElementById("albumView");
 const appTitle = document.getElementById("appTitle");
 const appTitleRow = document.querySelector(".app-title-row");
 let activeMainTab = "planning";
@@ -3660,23 +3671,18 @@ function isAnyFullscreenViewOpen(){
     return !!document.querySelector(".fullscreen-view:not([hidden])");
 }
 
-/* Réservations/Album sont des .fullscreen-view ouvertes PAR-DESSUS le
-   Planning (activeMainTab reste "planning", voir la valeur passée à
-   setActiveMainTab() dans leurs branches du gestionnaire du bandeau du bas)
-   — un simple btn.dataset.mainTab===activeMainTab laisserait donc
-   Planning "actif" (coloré) pendant qu'on regarde en fait Réservations ou
-   Album, et ces deux-là ne s'allumeraient jamais elles-mêmes. Cette
-   fonction est appelée à chaque ouverture/fermeture de vue plein écran
-   (voir updateCountdownBanner(), qui l'appelle) pour rattraper les deux
-   cas que activeMainTab seul ne peut pas distinguer. */
+/* Réservations/Album sont maintenant de vrais onglets (activeMainTab) sur
+   mobile, comme planning/budget/profile — un simple comparaison suffit
+   (elle ne l'aurait pas fait quand ces deux-là étaient des .fullscreen-view
+   ouvertes par-dessus le Planning sans changer activeMainTab ; voir
+   planning_only_ui_visibility_rule en mémoire pour cet historique). Appelée
+   depuis updateCountdownBanner(), déjà le point central appelé à chaque
+   navigation. Invisible de toute façon sur desktop (bottomNav y est
+   entièrement masqué), donc pas besoin d'y traiter le cas où
+   Réservations/Album y est ouverte via le menu du coin. */
 function updateBottomNavActiveState(){
-    const openOverlayTab =
-        (!document.getElementById("reservationsView").hidden && "reservations") ||
-        (!document.getElementById("albumView").hidden && "album") ||
-        null;
-    const highlightedTab = openOverlayTab || activeMainTab;
     bottomNavTabs.forEach(btn=>{
-        btn.classList.toggle("active",btn.dataset.mainTab===highlightedTab);
+        btn.classList.toggle("active",btn.dataset.mainTab===activeMainTab);
     });
 }
 
@@ -4451,8 +4457,12 @@ function applyActiveMainTabDisplay(tab){
     planningTabContent.hidden = tab!=="planning";
     budgetTabContent.hidden = tab!=="budget";
     profileTabContent.hidden = tab!=="profile";
+    reservationsView.hidden = tab!=="reservations";
+    albumView.hidden = tab!=="album";
     updateCountdownBanner();
     if(tab==="profile") renderProfileStats();
+    if(tab==="reservations") renderReservations();
+    if(tab==="album") renderAlbumView();
 }
 
 function setActiveMainTab(tab){
@@ -4558,23 +4568,6 @@ bottomNavTabs.forEach(btn=>{
         const tab = btn.dataset.mainTab;
 
         closeAllFullscreenViews();
-
-        if(tab==="reservations"){
-            renderReservations();
-            document.getElementById("reservationsView").hidden = false;
-            setActiveMainTab("planning");
-            localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"reservationsView");
-            return;
-        }
-
-        if(tab==="album"){
-            document.getElementById("albumView").hidden = false;
-            renderAlbumView();
-            setActiveMainTab("planning");
-            localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"albumView");
-            return;
-        }
-
         setActiveMainTab(tab);
     });
 });
@@ -5665,7 +5658,7 @@ function openDayPhotoPicker(day,activityId){
 
 function refreshOpenPhotoViews(){
     renderDayPhotos();
-    if(!document.getElementById("albumView").hidden) renderAlbumView();
+    if(!albumView.hidden) renderAlbumView();
     renderTricountExpenses();
 }
 
@@ -7407,9 +7400,21 @@ function filterProfileList(){
 
 profileSearchInput.addEventListener("input",filterProfileList);
 
+/* Réservations/Album sont dans .profile-sub-view (voir plus haut) pour
+   rester ouvrables depuis le menu du coin sur desktop, mais sur mobile ce
+   sont maintenant de vrais onglets (activeMainTab) — leur bouton "←" doit
+   donc repasser par setActiveMainTab("planning"), pas juste se cacher,
+   sinon activeMainTab resterait bloqué sur "reservations"/"album" alors que
+   la vue est masquée (Planning ne se réafficherait jamais). Sur desktop,
+   où ni le bandeau du bas ni activeMainTab ne pilotent ces deux vues,
+   l'ancien comportement (juste se cacher) reste correct et inchangé. */
 document.querySelectorAll(".profile-back").forEach(btn=>{
     btn.addEventListener("click",()=>{
         const view = btn.closest(".profile-sub-view");
+        if(!isDesktopContext() && (view===reservationsView || view===albumView)){
+            setActiveMainTab("planning");
+            return;
+        }
         view.hidden = true;
         if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
         localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
@@ -7429,8 +7434,14 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
         setActiveMainTab(savedTab);
     }
 
+    /* reservationsView/albumView exclues ici sur mobile : gérées par
+       LAST_MAIN_TAB_KEY ci-dessus maintenant, comme budget/profile — ce
+       bloc ne doit plus les rouvrir en vue plein écran par-dessus. Sur
+       desktop, où LAST_MAIN_TAB_KEY ne pilote pas ces deux vues, ce
+       chemin reste le seul mécanisme de restauration et doit continuer à
+       fonctionner tel quel. */
     const savedView = localStorage.getItem(LAST_FULLSCREEN_VIEW_KEY);
-    if(savedView){
+    if(savedView && (isDesktopContext() || (savedView!=="reservationsView" && savedView!=="albumView"))){
         const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
         if(trigger) trigger.click();
     }
@@ -7438,7 +7449,11 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
 
 document.addEventListener("keydown",(e)=>{
     if(e.key!=="Escape") return;
+    if(!isDesktopContext() && (activeMainTab==="reservations" || activeMainTab==="album")){
+        setActiveMainTab("planning");
+    }
     document.querySelectorAll(".profile-sub-view").forEach(view=>{
+        if(!isDesktopContext() && (view===reservationsView || view===albumView)) return;
         if(!view.hidden){
             view.hidden = true;
             if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
