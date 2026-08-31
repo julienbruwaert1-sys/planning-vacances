@@ -4348,6 +4348,7 @@ function openChecklistView(){
     checklistToggle.setAttribute("aria-expanded","true");
     checklistBackBtn.focus();
     updateCountdownBanner();
+    localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"checklistView");
 }
 
 function closeChecklistView(){
@@ -4355,6 +4356,7 @@ function closeChecklistView(){
     checklistToggle.setAttribute("aria-expanded","false");
     checklistToggle.focus();
     updateCountdownBanner();
+    localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
 }
 
 checklistToggle.addEventListener("click",openChecklistView);
@@ -4368,10 +4370,19 @@ document.addEventListener("keydown",(e)=>{
 
 renderChecklist();
 
-/* --- Bandeau de navigation (bas, mobile uniquement) --- */
+/* --- Bandeau de navigation (bas, mobile uniquement) ---
+   Se souvenir de la vue active (onglet + éventuelle vue plein écran
+   ouverte par-dessus) pour que rafraîchir la page ne ramène plus
+   systématiquement au Planning — écrit à chaque navigation plutôt que sur
+   beforeunload, cet évènement n'étant pas fiable sur mobile/PWA installée
+   (peut ne jamais se déclencher si l'appli est juste mise en arrière-plan
+   plutôt que vraiment rechargée). */
+const LAST_MAIN_TAB_KEY = "lastMainTab";
+const LAST_FULLSCREEN_VIEW_KEY = "lastFullscreenView";
 
 function setActiveMainTab(tab){
     activeMainTab = tab;
+    localStorage.setItem(LAST_MAIN_TAB_KEY,tab);
     bottomNavTabs.forEach(btn=>{
         btn.classList.toggle("active",btn.dataset.mainTab===tab);
     });
@@ -4456,6 +4467,7 @@ function closeAllFullscreenViews(){
     if(!cameraView.hidden) closeCameraView();
     if(!qrScanView.hidden) stopQrScan();
     if(wakeLockWanted) releaseMapWakeLock();
+    localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
 }
 
 bottomNavTabs.forEach(btn=>{
@@ -4471,6 +4483,7 @@ bottomNavTabs.forEach(btn=>{
             renderReservations();
             document.getElementById("reservationsView").hidden = false;
             setActiveMainTab("planning");
+            localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"reservationsView");
             return;
         }
 
@@ -4478,6 +4491,7 @@ bottomNavTabs.forEach(btn=>{
             document.getElementById("albumView").hidden = false;
             renderAlbumView();
             setActiveMainTab("planning");
+            localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"albumView");
             return;
         }
 
@@ -7201,6 +7215,7 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         const view = document.getElementById(row.dataset.profileView);
         if(!view) return;
         view.hidden = false;
+        localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,row.dataset.profileView);
         if(row.dataset.profileView==="reservationsView") renderReservations();
         if(row.dataset.profileView==="tripStatsView") renderProfileStats();
         if(row.dataset.profileView==="mapView") renderMapView();
@@ -7238,9 +7253,29 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
         const view = btn.closest(".profile-sub-view");
         view.hidden = true;
         if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
+        localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
         updateCountdownBanner();
     });
 });
+
+/* Restaure la vue active mémorisée (voir LAST_MAIN_TAB_KEY/
+   LAST_FULLSCREEN_VIEW_KEY plus haut) — doit s'exécuter après que tous
+   les gestionnaires de clic ci-dessus soient attachés, puisqu'elle
+   réutilise le déclencheur [data-profile-view] existant (.click()) au
+   lieu de dupliquer sa logique d'ouverture (render() associé compris). */
+(function restoreLastMainView(){
+
+    const savedTab = localStorage.getItem(LAST_MAIN_TAB_KEY);
+    if(savedTab && savedTab!=="planning"){
+        setActiveMainTab(savedTab);
+    }
+
+    const savedView = localStorage.getItem(LAST_FULLSCREEN_VIEW_KEY);
+    if(savedView){
+        const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
+        if(trigger) trigger.click();
+    }
+})();
 
 document.addEventListener("keydown",(e)=>{
     if(e.key!=="Escape") return;
@@ -7248,6 +7283,7 @@ document.addEventListener("keydown",(e)=>{
         if(!view.hidden){
             view.hidden = true;
             if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
+            localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
         }
     });
     updateCountdownBanner();
