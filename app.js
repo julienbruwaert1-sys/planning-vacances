@@ -6580,6 +6580,29 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
     });
 });
 
+const profileSearchInput = document.getElementById("profileSearchInput");
+const profileGroupedList = document.getElementById("profileGroupedList");
+const profileSearchEmpty = document.getElementById("profileSearchEmpty");
+
+function filterProfileList(){
+    const q = profileSearchInput.value.trim().toLowerCase();
+    let anyVisible = false;
+    profileGroupedList.querySelectorAll(".profile-cat-group").forEach(group=>{
+        let groupHasMatch = false;
+        group.querySelectorAll(".profile-row").forEach(row=>{
+            const label = row.querySelector(".profile-row-label").textContent.toLowerCase();
+            const match = !q || label.includes(q);
+            row.hidden = !match;
+            if(match) groupHasMatch = true;
+        });
+        group.hidden = !groupHasMatch;
+        if(groupHasMatch) anyVisible = true;
+    });
+    profileSearchEmpty.hidden = anyVisible;
+}
+
+profileSearchInput.addEventListener("input",filterProfileList);
+
 document.querySelectorAll(".profile-back").forEach(btn=>{
     btn.addEventListener("click",()=>{
         btn.closest(".profile-sub-view").hidden = true;

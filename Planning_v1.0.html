@@ -596,16 +596,48 @@ Masquer les éléments cochés
 
 <div class="mobile-tab-header"><button class="back-btn mobile-tab-back" type="button" aria-label="Retour au planning">←</button><span class="mobile-tab-header-icon">👤</span><h2>Profil</h2></div>
 
+<div class="profile-search-box">
+<span class="profile-search-icon">🔍</span>
+<input type="text" id="profileSearchInput" placeholder="Rechercher un réglage…" autocomplete="off">
+</div>
+
+<div id="profileGroupedList" class="profile-grouped-list">
+
+<div class="profile-cat-group">
+<div class="profile-cat-label">Ce voyage</div>
 <div class="profile-list">
-<button class="profile-row" type="button" data-profile-view="dataSettingsView"><span class="profile-row-icon">⚙️</span><span class="profile-row-label">Réglages &amp; données</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="dateSettingsView"><span class="profile-row-icon">🗓️</span><span class="profile-row-label">Dates &amp; devise</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
+</div>
+</div>
+
+<div class="profile-cat-group">
+<div class="profile-cat-label">Contenu du voyage</div>
+<div class="profile-list">
 <button class="profile-row" type="button" data-profile-view="checklistView"><span class="profile-row-icon">🎒</span><span class="profile-row-label">Checklist de voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="mapView"><span class="profile-row-icon">🗺️</span><span class="profile-row-label">Carte du voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripHistoryView"><span class="profile-row-icon">🗂️</span><span class="profile-row-label">Historique des voyages</span><span class="profile-row-chevron">›</span></button>
+</div>
+</div>
+
+<div class="profile-cat-group">
+<div class="profile-cat-label">Application</div>
+<div class="profile-list">
+<button class="profile-row" type="button" data-profile-view="dataSettingsView"><span class="profile-row-icon">⚙️</span><span class="profile-row-label">Réglages &amp; données</span><span class="profile-row-chevron">›</span></button>
+</div>
+</div>
+
+<div class="profile-cat-group">
+<div class="profile-cat-label">Aide</div>
+<div class="profile-list">
 <button class="profile-row" type="button" data-profile-view="helpSupportView"><span class="profile-row-icon">🆘</span><span class="profile-row-label">Aide et support</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="aboutView"><span class="profile-row-icon">ℹ️</span><span class="profile-row-label">À propos</span><span class="profile-row-chevron">›</span></button>
+</div>
+</div>
+
+<p id="profileSearchEmpty" class="profile-search-empty" hidden>Aucun résultat.</p>
+
 </div>
 
 <div class="profile-version">Version <span id="profileVersion"></span></div>
