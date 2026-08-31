@@ -2657,6 +2657,11 @@ const NOEL_SNOWFLAKE_CHARS = ["❄","❅","❆"];
 const GHIBLI_LEAF_COUNT = 18;
 const GHIBLI_LEAF_CHARS = ["🍃","🌿"];
 const GHIBLI_FIREFLY_COUNT = 12;
+const halloweenLeaves = document.getElementById("halloweenLeaves");
+const halloweenWisps = document.getElementById("halloweenWisps");
+const HALLOWEEN_LEAF_COUNT = 18;
+const HALLOWEEN_LEAF_CHARS = ["🍁","🍂"];
+const HALLOWEEN_WISP_COUNT = 10;
 
 /* Le conteneur reste vide (donc invisible) tant que le thème n'est pas
    actif — voir la note dans style.css sur .noel-snow. Chaque flocon a sa
@@ -2720,6 +2725,44 @@ function updateGhibliFireflies(){
     }
 }
 
+/* Même principe que les feuilles Ghibli, avec des feuilles d'automne. */
+function startHalloweenLeaves(){
+    if(halloweenLeaves.childElementCount) return;
+    for(let i=0;i<HALLOWEEN_LEAF_COUNT;i++){
+        const leaf = document.createElement("span");
+        leaf.textContent = HALLOWEEN_LEAF_CHARS[i%HALLOWEEN_LEAF_CHARS.length];
+        leaf.style.left = `${Math.random()*100}%`;
+        leaf.style.fontSize = `${10+Math.random()*8}px`;
+        leaf.style.setProperty("--drift",`${(Math.random()*60)-30}px`);
+        leaf.style.animationDuration = `${10+Math.random()*8}s`;
+        leaf.style.animationDelay = `${Math.random()*10}s`;
+        halloweenLeaves.appendChild(leaf);
+    }
+}
+
+function stopHalloweenLeaves(){
+    halloweenLeaves.textContent = "";
+}
+
+/* Feux follets : uniquement thème Halloween + mode sombre combinés, même
+   principe que les lucioles du thème Forêt enchantée. */
+function updateHalloweenWisps(){
+    const shouldShow = document.body.classList.contains("theme-halloween") && document.body.classList.contains("dark");
+    if(!shouldShow){
+        halloweenWisps.textContent = "";
+        return;
+    }
+    if(halloweenWisps.childElementCount) return;
+    for(let i=0;i<HALLOWEEN_WISP_COUNT;i++){
+        const wisp = document.createElement("span");
+        wisp.style.top = `${20+Math.random()*60}%`;
+        wisp.style.left = `${Math.random()*90+5}%`;
+        wisp.style.animationDuration = `${3+Math.random()*2}s`;
+        wisp.style.animationDelay = `${Math.random()*3}s`;
+        halloweenWisps.appendChild(wisp);
+    }
+}
+
 /* Emoji du titre et de l'icône "Ajouter une activité" : lus dans les
    fonctions qui les affectent (appTitleEmoji() est appelée à chaque endroit
    qui construit déjà le titre) plutôt que codés en dur "🌴"/"➕" à 4+
@@ -2727,12 +2770,14 @@ function updateGhibliFireflies(){
 function appTitleEmoji(){
     if(document.body.classList.contains("theme-noel")) return "⛄";
     if(document.body.classList.contains("theme-ghibli")) return "🌳";
+    if(document.body.classList.contains("theme-halloween")) return "🎃";
     return "🌴";
 }
 
 function currentThemeAddIcon(){
     if(document.body.classList.contains("theme-noel")) return "⛄";
     if(document.body.classList.contains("theme-ghibli")) return "🌳";
+    if(document.body.classList.contains("theme-halloween")) return "🎃";
     return "➕";
 }
 
@@ -2751,9 +2796,12 @@ function refreshThemeIcons(){
 function applySelectedTheme(choice){
     document.body.classList.toggle("theme-noel",choice==="noel");
     document.body.classList.toggle("theme-ghibli",choice==="ghibli");
+    document.body.classList.toggle("theme-halloween",choice==="halloween");
     if(choice==="noel") startNoelSnow(); else stopNoelSnow();
     if(choice==="ghibli") startGhibliLeaves(); else stopGhibliLeaves();
+    if(choice==="halloween") startHalloweenLeaves(); else stopHalloweenLeaves();
     updateGhibliFireflies();
+    updateHalloweenWisps();
 }
 
 appThemeSelect.value = localStorage.getItem(APP_THEME_KEY) || "default";
@@ -2779,6 +2827,7 @@ themeToggle.addEventListener("click",()=>{
 
     updateThemeButton();
     updateGhibliFireflies();
+    updateHalloweenWisps();
 });
 
 const welcomeThemeToggle = document.getElementById("welcomeThemeToggle");
@@ -2795,6 +2844,7 @@ welcomeThemeToggle.addEventListener("change",()=>{
 
     updateThemeButton();
     updateGhibliFireflies();
+    updateHalloweenWisps();
 });
 
 /* Même logique que appThemeSelect (menu Options) — reflète juste la valeur

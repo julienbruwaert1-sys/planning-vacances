@@ -5260,3 +5260,343 @@ body.dark .ghibli-soot span{
 @media (prefers-reduced-motion: reduce){
     .ghibli-soot span{ animation:none; }
 }
+
+/* ================= Thème saisonnier "Halloween" =================
+   Même structure et même liste de sélecteurs que les thèmes Noël/Forêt
+   enchantée ci-dessus (voir leurs commentaires pour le détail du
+   raisonnement) — palette citrouille/violet nocturne, mutuellement
+   exclusif avec theme-noel et theme-ghibli (un seul choisi à la fois). */
+
+body.theme-halloween a:focus-visible,
+body.theme-halloween button:focus-visible,
+body.theme-halloween input:focus-visible,
+body.theme-halloween select:focus-visible,
+body.theme-halloween .activity:focus-visible,
+body.theme-halloween .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#E27A3F;
+}
+
+body.theme-halloween .date-tab.active,
+body.theme-halloween .jump-today-btn,
+body.theme-halloween .countdown-banner,
+body.theme-halloween .help-report-icon-copy:hover,
+body.theme-halloween .profile-stat-value,
+body.theme-halloween .profile-link,
+body.theme-halloween .bottom-nav-tab.active,
+body.theme-halloween .activity-photo-btn,
+body.theme-halloween .checklist-chip,
+body.theme-halloween .tricount-link-badge,
+body.theme-halloween .tricount-receipt-btn,
+body.theme-halloween .tricount-add-participant-btn,
+body.theme-halloween .welcome-eyebrow{
+    color:#E27A3F;
+}
+
+body.theme-halloween .sync-direction-option.active,
+body.theme-halloween .help-notes-send-btn,
+body.theme-halloween .map-country-toggle.active,
+body.theme-halloween .map-poi-search-btn,
+body.theme-halloween .checklist-template-chip.active,
+body.theme-halloween .form-toggle-btn,
+body.theme-halloween button.add,
+body.theme-halloween .search-filter-btn.active,
+body.theme-halloween .tricount-currency-option.active{
+    background:#E27A3F;
+}
+
+body.theme-halloween .sync-direction-option.active,
+body.theme-halloween .map-country-toggle.active,
+body.theme-halloween .checklist-template-chip.active,
+body.theme-halloween .tricount-currency-option.active{
+    border-color:#E27A3F;
+}
+
+body.theme-halloween .checklist-hide-toggle input,
+body.theme-halloween .checklist-item input[type="checkbox"],
+body.theme-halloween .tricount-split-check input[type="checkbox"]{
+    accent-color:#E27A3F;
+}
+
+body.theme-halloween .checklist-progress-fill{
+    background:linear-gradient(90deg,#E27A3F,#B98AE0);
+}
+
+body.theme-halloween{
+    background:#F7EBD8;
+}
+
+body.dark.theme-halloween{
+    background:#241A28;
+}
+
+body.theme-halloween #welcomeView{
+    background:#F7EBD8;
+}
+
+body.dark.theme-halloween #welcomeView{
+    background:#241A28;
+}
+
+body.theme-halloween .fullscreen-view,
+body.theme-halloween .fullscreen-header,
+body.theme-halloween .mobile-tab-header{
+    background:#F7EBD8;
+}
+
+body.dark.theme-halloween .fullscreen-view,
+body.dark.theme-halloween .fullscreen-header,
+body.dark.theme-halloween .mobile-tab-header{
+    background:#241A28;
+}
+
+body.theme-halloween .profile-section{
+    background:#F3DCC0;
+}
+
+body.dark.theme-halloween .profile-section{
+    background:#332440;
+}
+
+body.theme-halloween .day-content,
+body.theme-halloween .converter-card,
+body.theme-halloween .profile-list{
+    background:#F3DCC0;
+}
+
+body.dark.theme-halloween .day-content,
+body.dark.theme-halloween .converter-card,
+body.dark.theme-halloween .profile-list{
+    background:#332440;
+}
+
+body.theme-halloween .weather-card{
+    background:linear-gradient(135deg,#F3DCC0,#FFF8EC);
+}
+
+body.dark.theme-halloween .weather-card{
+    background:linear-gradient(135deg,#332440,#241A28);
+}
+
+body.theme-halloween .activity{
+    background:#F3DCC0;
+}
+
+body.theme-halloween .activity:hover{
+    background:#EFCDA4;
+}
+
+body.dark.theme-halloween .activity{
+    background:#332440;
+}
+
+body.dark.theme-halloween .activity:hover{
+    background:#3E2C4E;
+}
+
+body.theme-halloween #activities::before{
+    background:#B98AE0;
+}
+
+body.dark.theme-halloween #activities::before{
+    background:#4A3A5A;
+}
+
+body.theme-halloween #activities .day-slot-head{
+    color:#5A3E28;
+}
+
+body.dark.theme-halloween #activities .day-slot-head{
+    color:#F2E6D8;
+}
+
+/* Remplace le point plein par une lune (☾), même logique que le flocon ❆
+   du thème Noël / la feuille ❧ du thème Forêt enchantée — remise à zéro de
+   background/border/width/height. */
+body.theme-halloween #activities .day-slot-head::before{
+    content:"☾";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#E27A3F;
+}
+
+body.dark.theme-halloween #activities .day-slot-head::before{
+    content:"☾";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#F7C873;
+}
+
+body.theme-halloween .date-tab.active,
+body.dark.theme-halloween .date-tab.active{
+    color:#E27A3F;
+}
+
+body.dark.theme-halloween .date-tab.active{
+    background:#332440;
+}
+
+body.dark.theme-halloween .bottom-nav-tab.active{
+    color:#F7C873;
+}
+
+body.dark.theme-halloween .activity-photo-btn{
+    color:#F7C873;
+}
+
+/* Citrouilles encadrant les titres de TOUTES les vues (Réservations, Album,
+   Carte, Historique, Checklist, sous-pages Profil, écran de création) —
+   même mécanisme que les thèmes Noël/Forêt enchantée. */
+body.theme-halloween .fullscreen-header h2::before,
+body.theme-halloween .welcome-title::before{
+    content:"🎃 ";
+}
+
+body.theme-halloween .fullscreen-header h2::after,
+body.theme-halloween .welcome-title::after{
+    content:" 🎃";
+}
+
+/* Bandeau mascotte "Citrouille" — masqué par défaut via display:none. */
+.halloween-mascot-banner{
+    display:none;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(135deg,#F3DCC0,#FFF8EC);
+    border-radius:14px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#5A3E28;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+body.theme-halloween .halloween-mascot-banner{
+    display:flex;
+}
+
+body.dark.theme-halloween .halloween-mascot-banner{
+    background:linear-gradient(135deg,#332440,#241A28);
+    color:#F2E6D8;
+}
+
+.halloween-mascot-emoji{
+    font-size:26px;
+    flex-shrink:0;
+    animation:halloweenMascotBob 2.6s ease-in-out infinite;
+}
+
+@keyframes halloweenMascotBob{
+    0%,100%{ transform:translateY(0) rotate(-3deg); }
+    50%{ transform:translateY(-3px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .halloween-mascot-emoji{ animation:none; }
+}
+
+/* Feuilles d'automne qui tombent — même principe que .noel-snow/.ghibli-leaves
+   (conteneur toujours présent mais vide tant que le thème n'est pas actif),
+   même z-index (3100). */
+.halloween-leaves{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.halloween-leaves span{
+    position:absolute;
+    top:-5%;
+    color:#E27A3F;
+    opacity:.6;
+    animation:halloweenLeafFall linear infinite;
+}
+
+body.dark .halloween-leaves span{
+    color:#B98AE0;
+    opacity:.5;
+}
+
+@keyframes halloweenLeafFall{
+    to{
+        transform:translateY(105vh) translateX(var(--drift,0px)) rotate(180deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .halloween-leaves span{
+        animation:none;
+        opacity:0;
+    }
+}
+
+/* Feux follets — uniquement au crépuscule (thème Halloween + mode sombre
+   combinés), même conteneur-toujours-présent-mais-vide que les lucioles du
+   thème Forêt enchantée. */
+.halloween-wisps{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.halloween-wisps span{
+    position:absolute;
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:#F7C873;
+    box-shadow:0 0 10px 3px rgba(247,200,115,.7);
+    animation:halloweenWispFloat ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .halloween-wisps span{
+        animation:none;
+        opacity:.4;
+    }
+}
+
+@keyframes halloweenWispFloat{
+    0%,100%{ transform:translateY(0); opacity:.2; }
+    50%{ transform:translateY(-10px); opacity:1; }
+}
+
+/* Mascotte fixe : petit esprit-citrouille, coin bas-droite au-dessus de la
+   barre de navigation — même zone "sûre" et même z-index (3100) que les
+   mascottes des autres thèmes. Masquée par défaut via display:none. */
+.halloween-pumpkin-spirit{
+    display:none;
+    position:fixed;
+    bottom:80px;
+    right:14px;
+    z-index:3100;
+    width:48px;
+    pointer-events:none;
+    opacity:.94;
+    animation:halloweenPumpkinBob 2.6s ease-in-out infinite;
+}
+
+body.theme-halloween .halloween-pumpkin-spirit{
+    display:block;
+}
+
+@keyframes halloweenPumpkinBob{
+    0%,100%{ transform:translateY(0) rotate(-4deg); }
+    50%{ transform:translateY(-5px) rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .halloween-pumpkin-spirit{ animation:none; }
+}
