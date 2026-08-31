@@ -64,6 +64,35 @@
    - <input type="file"> (importFile/importIcsFile/dayPhotoInput) : ouvre
      déjà le sélecteur natif Android dans une WebView Capacitor, rien à
      changer.
+   - Retour haptique (triggerHaptic, navigator.vibrate) : fonctionne déjà en
+     web/Android, mais jamais sur iOS (Safari/WKWebView n'a pas l'API
+     Vibration) — @capacitor/haptics couvrirait aussi iOS avec de vrais
+     motifs (impact léger/moyen/fort) au lieu d'un buzz minuté.
+   - Écran allumé pendant la navigation (mapWakeLockToggle, Screen Wake
+     Lock API) : fonctionne déjà dans une WebView Capacitor sans plugin —
+     @capacitor/keep-awake resterait un filet de secours si un test sur
+     appareil réel montrait le contraire.
+   - Export calendrier (exportIcsBtn, buildPlanningICS()) : génère un
+     fichier .ics que l'utilisateur doit ouvrir manuellement — un plugin
+     natif d'écriture calendrier (ex. @capacitor-community/calendar)
+     ajouterait directement les activités au calendrier du téléphone.
+   - Scanner de QR code (qrScanBtn, jsQR vendorisé) : décodage en JS pur
+     sur des frames de canvas, plus lent/moins fiable en conditions réelles
+     qu'un plugin natif basé ML Kit (ex. @capacitor-mlkit/barcode-scanning).
+   - Verrouillage biométrique / stockage sécurisé (voir le commentaire
+     détaillé près de TRAVELER_INFO_KEY) : aucun des deux n'a d'équivalent
+     web fonctionnel pour une appli sans backend — rien à coder avant la
+     conversion, seulement documenté sur place.
+   - Sauvegarde automatique sur le cloud du téléphone (voir le commentaire
+     détaillé près de exportDataBtn) : aucune API web n'écrit dans l'espace
+     de sauvegarde système — Android Auto Backup se configure côté natif
+     (AndroidManifest.xml) sans code JS, une vraie intégration Google
+     Drive serait un projet à part entière.
+   - Traduction par appareil photo : aucun point d'entrée dans le code
+     aujourd'hui (pas de fonctionnalité existante à faire évoluer). Demande
+     de l'OCR + traduction (ML Kit Translation côté natif, ou une API cloud
+     payante côté web) — pas raisonnable à préparer avant que la conversion
+     Android soit un projet concret avec un budget/une API cible choisie.
    - Nouveau JS/CSS/HTML : à chaque nouvelle fonction touchant caméra,
      téléchargement de fichier, impression, géolocalisation, presse-papier,
      partage, lien externe ou navigation (retour matériel), ajoute le même
@@ -748,6 +777,7 @@ function deleteActivity(section,index){
                 planning[dayAtDeletion][section]
                 .splice(index,1);
 
+                triggerHaptic(30);
                 savePlanning();
                 jumpToFirstDayWithType(activityTypeFilter);
                 createTabs();
@@ -1558,7 +1588,18 @@ priceCurrencySelect.addEventListener("change",()=>{
     if(activeMainTab==="profile") renderProfileStats();
 });
 
-/* --- Export / Import JSON (sauvegarde complète) --- */
+/* --- Export / Import JSON (sauvegarde complète) ---
+   CAPACITOR : cette sauvegarde reste 100% manuelle (l'utilisateur clique,
+   télécharge, doit penser à la refaire) — ce n'est pas la même chose
+   qu'une sauvegarde cloud automatique (Google Drive/iCloud), qui n'a pas
+   d'équivalent web : aucune API web standard n'écrit dans l'espace de
+   sauvegarde du système d'exploitation. Nécessiterait soit un plugin natif
+   (ex. Android Auto Backup, activable simplement dans AndroidManifest.xml
+   une fois l'app packagée, sans code JS supplémentaire), soit une vraie
+   intégration OAuth Google Drive (bien plus lourde, hors de portée d'une
+   appli 100% locale sans backend). À ne pas confondre avec la
+   synchronisation Firebase existante (voir [[firebase_sync]]) : elle
+   relie deux appareils entre eux, ce n'est pas une sauvegarde cloud. */
 
 const exportDataBtn = document.getElementById("exportDataBtn");
 
@@ -2050,6 +2091,117 @@ function importICSEvents(text){
     );
 }
 
+/* --- Export du planning vers le calendrier (.ics) ---
+   Symétrique de parseICS()/importICSEvents() ci-dessus : un VEVENT par
+   activité, une heure de fin par défaut d'1h faute de pouvoir analyser
+   fiablement le champ "Durée" (texte libre, ex. "2h", "45 min" — pas de
+   format assez régulier pour en déduire des minutes sans risquer de mal
+   l'interpréter).
+
+   CAPACITOR : ce fichier .ics doit être téléchargé puis ouvert
+   manuellement par l'utilisateur pour être importé dans son calendrier —
+   c'est la seule option côté web. Un plugin natif d'écriture calendrier
+   (ex. @capacitor-community/calendar) permettrait d'ajouter directement
+   chaque activité au calendrier du téléphone, sans ce détour. */
+
+function escapeICSText(text){
+    return String(text)
+        .replace(/\\/g,"\\\\")
+        .replace(/;/g,"\\;")
+        .replace(/,/g,"\\,")
+        .replace(/\n/g,"\\n");
+}
+
+function formatICSDateTime(dateObj){
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth()+1).padStart(2,"0");
+    const d = String(dateObj.getDate()).padStart(2,"0");
+    const hh = String(dateObj.getHours()).padStart(2,"0");
+    const mi = String(dateObj.getMinutes()).padStart(2,"0");
+    return `${y}${m}${d}T${hh}${mi}00`;
+}
+
+const ICS_DEFAULT_SLOT_HOURS = { matin:9, midi:12, apresMidi:15, soir:19 };
+
+function buildPlanningICS(){
+
+    const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Planification de Vacances//FR",
+        "CALSCALE:GREGORIAN"
+    ];
+
+    const sections = ["matin","midi","apresMidi","soir"];
+    let eventCount = 0;
+
+    Object.keys(planning)
+    .map(d=>parseInt(d,10))
+    .sort((a,b)=>a-b)
+    .forEach(day=>{
+
+        const dayDate = dateForDay(day);
+        if(!dayDate) return;
+
+        sections.forEach(slot=>{
+            (planning[day][slot] || []).forEach(activity=>{
+
+                const start = new Date(dayDate);
+                if(activity.time && /^\d{1,2}:\d{2}$/.test(activity.time)){
+                    const [h,mi] = activity.time.split(":").map(Number);
+                    start.setHours(h,mi,0,0);
+                }else{
+                    start.setHours(ICS_DEFAULT_SLOT_HOURS[slot] || 9,0,0,0);
+                }
+
+                const end = new Date(start);
+                end.setHours(end.getHours()+1);
+
+                eventCount++;
+
+                lines.push("BEGIN:VEVENT");
+                lines.push(`UID:${activity.id || `${day}-${slot}-${eventCount}`}@planification-vacances`);
+                lines.push(`DTSTAMP:${formatICSDateTime(new Date())}Z`);
+                lines.push(`DTSTART:${formatICSDateTime(start)}`);
+                lines.push(`DTEND:${formatICSDateTime(end)}`);
+                lines.push(`SUMMARY:${escapeICSText(`${icons[activity.type] || "📌"} ${activity.name}`)}`);
+                if(activity.address) lines.push(`LOCATION:${escapeICSText(activity.address)}`);
+                if(activity.reservationLink) lines.push(`URL:${escapeICSText(activity.reservationLink)}`);
+                if(activity.note) lines.push(`DESCRIPTION:${escapeICSText(activity.note)}`);
+                lines.push("END:VEVENT");
+            });
+        });
+    });
+
+    lines.push("END:VCALENDAR");
+    return { ics: lines.join("\r\n"), eventCount };
+}
+
+const exportIcsBtn = document.getElementById("exportIcsBtn");
+
+exportIcsBtn.addEventListener("click",()=>{
+
+    if(!startDate){
+        showToast(
+            "Ajoute une date de départ (Dates & devise) avant d'exporter vers le calendrier.",
+            {type:"error",duration:6000}
+        );
+        return;
+    }
+
+    const { ics, eventCount } = buildPlanningICS();
+
+    if(eventCount===0){
+        showToast("Aucune activité à exporter.",{type:"error"});
+        return;
+    }
+
+    const blob = new Blob([ics],{type:"text/calendar;charset=utf-8;"});
+    downloadBlobToGallery(blob,`planning_${tripName || "vacances"}.ics`.replace(/\s+/g,"_"));
+
+    showToast(`${eventCount} activité(s) exportée(s) vers le calendrier.`,{type:"success"});
+});
+
 const importIcsBtn = document.getElementById("importIcsBtn");
 const importIcsFile = document.getElementById("importIcsFile");
 
@@ -2180,18 +2332,10 @@ pasteImportCancelBtn.addEventListener("click",()=>{
     pasteImportModal.hidden = true;
 });
 
-pasteImportAnalyzeBtn.addEventListener("click",()=>{
-
-    const text = pasteImportTextarea.value.trim();
-
-    if(!text){
-        showToast("Colle d'abord le texte de ta confirmation.",{type:"error"});
-        return;
-    }
-
-    const parsed = parseReservationText(text);
-
-    pasteImportModal.hidden = true;
+/* Point d'entrée partagé pour tout flux qui produit du texte à analyser en
+   réservation — le collage de texte ci-dessous, et le scan de QR code
+   (voir plus bas) : même parsing, même pré-remplissage du formulaire. */
+function applyParsedReservationToForm(parsed){
 
     closeAllFullscreenViews();
     setActiveMainTab("planning");
@@ -2213,11 +2357,111 @@ pasteImportAnalyzeBtn.addEventListener("click",()=>{
 
     showToast(
         parsed.day
-            ? "Champs pré-remplis à partir du texte — vérifie avant d'ajouter."
+            ? "Champs pré-remplis — vérifie avant d'ajouter."
             : "Champs pré-remplis, mais la date n'a pas été reconnue — vérifie le jour et les champs avant d'ajouter.",
         {duration:5000}
     );
+}
+
+pasteImportAnalyzeBtn.addEventListener("click",()=>{
+
+    const text = pasteImportTextarea.value.trim();
+
+    if(!text){
+        showToast("Colle d'abord le texte de ta confirmation.",{type:"error"});
+        return;
+    }
+
+    const parsed = parseReservationText(text);
+    pasteImportModal.hidden = true;
+    applyParsedReservationToForm(parsed);
 });
+
+/* --- Scanner de QR code ---
+   jsQR vendorisé au curl (voir vendor/jsQR.js) plutôt que l'API web
+   BarcodeDetector, dont le support navigateur est trop inégal pour s'y
+   fier. Réutilise parseReservationText()/applyParsedReservationToForm() :
+   un QR scanné suit exactement le même chemin qu'un texte collé, la
+   plupart des QR de réservation encodant une URL ou un texte de
+   confirmation.
+   CAPACITOR : getUserMedia() ici est le même point d'attention que la vue
+   caméra maison plus bas (résolution plafonnée) — un plugin natif de scan
+   (ex. @capacitor-mlkit/barcode-scanning, basé sur ML Kit) serait plus
+   rapide et plus fiable en conditions réelles (angle, distance, reflets)
+   qu'une boucle de décodage JS sur des frames de canvas. */
+const qrScanBtn = document.getElementById("qrScanBtn");
+const qrScanView = document.getElementById("qrScanView");
+const qrScanPreview = document.getElementById("qrScanPreview");
+const qrScanCanvas = document.getElementById("qrScanCanvas");
+const qrScanCloseBtn = document.getElementById("qrScanCloseBtn");
+
+let qrScanStream = null;
+let qrScanLoopId = null;
+
+function stopQrScan(){
+    if(qrScanLoopId){
+        cancelAnimationFrame(qrScanLoopId);
+        qrScanLoopId = null;
+    }
+    if(qrScanStream){
+        qrScanStream.getTracks().forEach(track=>track.stop());
+        qrScanStream = null;
+    }
+    qrScanView.hidden = true;
+}
+
+function qrScanFrame(){
+
+    if(qrScanPreview.readyState===qrScanPreview.HAVE_ENOUGH_DATA){
+
+        qrScanCanvas.width = qrScanPreview.videoWidth;
+        qrScanCanvas.height = qrScanPreview.videoHeight;
+
+        // willReadFrequently : getImageData() est appelé à chaque frame,
+        // ce mode évite l'aller-retour GPU->CPU coûteux à chaque lecture.
+        const ctx = qrScanCanvas.getContext("2d",{willReadFrequently:true});
+        ctx.drawImage(qrScanPreview,0,0,qrScanCanvas.width,qrScanCanvas.height);
+
+        const imageData = ctx.getImageData(0,0,qrScanCanvas.width,qrScanCanvas.height);
+        const code = jsQR(imageData.data,imageData.width,imageData.height);
+
+        if(code && code.data){
+            triggerHaptic(20);
+            stopQrScan();
+            applyParsedReservationToForm(parseReservationText(code.data));
+            return;
+        }
+    }
+
+    qrScanLoopId = requestAnimationFrame(qrScanFrame);
+}
+
+async function startQrScan(){
+
+    if(typeof jsQR!=="function"){
+        showToast("Le module de scan n'a pas pu être chargé.",{type:"error"});
+        return;
+    }
+
+    try{
+        qrScanStream = await navigator.mediaDevices.getUserMedia({
+            video:{ facingMode:"environment" }
+        });
+        qrScanPreview.srcObject = qrScanStream;
+        qrScanView.hidden = false;
+        qrScanLoopId = requestAnimationFrame(qrScanFrame);
+    }catch(err){
+        console.error("Caméra inaccessible pour le scan QR :",err);
+        showToast("Impossible d'accéder à la caméra pour scanner un QR code.",{type:"error"});
+    }
+}
+
+qrScanBtn.addEventListener("click",()=>{
+    optionsMenuPanel.hidden = true;
+    startQrScan();
+});
+
+qrScanCloseBtn.addEventListener("click",stopQrScan);
 
 /* --- Bascule Live Server (WiFi maison) ↔ version en ligne ---
    Simple lien de navigation entre les deux origines (chacune a son propre
@@ -3074,6 +3318,43 @@ themeToggle.addEventListener("click",()=>{
     updateHalloweenWisps();
 });
 
+/* --- Retour haptique ---
+   CAPACITOR : navigator.vibrate() ne fonctionne que sur Android (Chrome/
+   WebView) — jamais sur iOS (Safari/WKWebView n'implémentent pas l'API
+   Vibration, avec ou sans Capacitor). @capacitor/haptics couvrirait aussi
+   iOS et donnerait des motifs plus riches (impact léger/moyen/fort,
+   notification succès/erreur) au lieu d'un simple buzz minuté. */
+const HAPTIC_ENABLED_KEY = "hapticEnabled";
+const hapticToggle = document.getElementById("hapticToggle");
+const hapticSupported = !!navigator.vibrate;
+
+let hapticEnabled = localStorage.getItem(HAPTIC_ENABLED_KEY)!==null
+    ? localStorage.getItem(HAPTIC_ENABLED_KEY)==="1"
+    : true;
+
+function updateHapticButton(){
+    hapticToggle.querySelector(".menu-item-icon").textContent = hapticEnabled ? "📳" : "🔕";
+    hapticToggle.querySelector(".menu-item-label").textContent =
+    hapticEnabled ? "Retour haptique activé" : "Retour haptique désactivé";
+}
+
+function triggerHaptic(pattern){
+    if(!hapticSupported || !hapticEnabled) return;
+    navigator.vibrate(pattern);
+}
+
+if(!hapticSupported){
+    hapticToggle.hidden = true;
+}else{
+    updateHapticButton();
+    hapticToggle.addEventListener("click",()=>{
+        hapticEnabled = !hapticEnabled;
+        localStorage.setItem(HAPTIC_ENABLED_KEY,hapticEnabled ? "1" : "0");
+        updateHapticButton();
+        if(hapticEnabled) triggerHaptic(15);
+    });
+}
+
 const welcomeThemeToggle = document.getElementById("welcomeThemeToggle");
 welcomeThemeToggle.checked = document.body.classList.contains("dark");
 
@@ -3912,6 +4193,7 @@ function renderChecklist(){
             checkbox.id = `checklist-item-${item.index}`;
             checkbox.addEventListener("change",()=>{
                 checklist[item.index].checked = checkbox.checked;
+                triggerHaptic(12);
                 saveChecklist();
                 renderChecklist();
             });
@@ -4138,6 +4420,8 @@ function closeAllFullscreenViews(){
         if(!view.hidden) view.hidden = true;
     });
     if(!cameraView.hidden) closeCameraView();
+    if(!qrScanView.hidden) stopQrScan();
+    if(wakeLockWanted) releaseMapWakeLock();
 }
 
 bottomNavTabs.forEach(btn=>{
@@ -4167,7 +4451,22 @@ bottomNavTabs.forEach(btn=>{
     });
 });
 
-/* --- Profil : infos voyageur (100% local, jamais synchronisé/exporté) --- */
+/* --- Profil : infos voyageur (100% local, jamais synchronisé/exporté) ---
+   CAPACITOR : passeport/contact d'urgence — les données les plus sensibles
+   de l'appli — vivent ici en clair dans localStorage, comme tout le reste.
+   Aucune des deux protections suivantes n'a d'équivalent web fonctionnel,
+   donc rien à coder tant que l'app n'est pas convertie :
+   - Stockage sécurisé : le web n'expose pas le Keystore Android/Keychain
+     iOS à JS — localStorage n'est jamais "sécurisé" au sens matériel,
+     seulement isolé par origine. @capacitor/preferences (ou un plugin de
+     stockage chiffré dédié) donnerait un vrai stockage protégé par le
+     système pour TRAVELER_INFO_KEY spécifiquement.
+   - Verrouillage biométrique : WebAuthn (empreinte/visage via
+     l'authentificateur de la plateforme) existe côté web, mais suppose
+     normalement un serveur pour vérifier le challenge — inadapté à une
+     appli 100% locale sans backend. Un vrai verrou d'appli (empreinte/
+     visage avant d'ouvrir Infos voyageur, ou l'appli entière) demande un
+     plugin natif (ex. @capacitor-community/biometric-auth). */
 
 const TRAVELER_INFO_KEY = "travelerInfo";
 const travelerNameInput = document.getElementById("travelerName");
@@ -5588,6 +5887,7 @@ function capturePhotoFromCamera(){
         showToast("Caméra pas encore prête, réessaie dans un instant.",{type:"error"});
         return;
     }
+    triggerHaptic(20);
     cameraCanvas.width = cameraPreview.videoWidth;
     cameraCanvas.height = cameraPreview.videoHeight;
     cameraCanvas.getContext("2d").drawImage(cameraPreview,0,0);
@@ -6624,6 +6924,65 @@ async function downloadMapAreaOffline(){
 
 mapDownloadAreaBtn.addEventListener("click",downloadMapAreaOffline);
 
+/* --- Écran toujours allumé pendant la navigation sur la carte ---
+   CAPACITOR : l'API web Screen Wake Lock (utilisée ici) fonctionne déjà
+   dans une WebView Capacitor sans plugin — @capacitor/keep-awake ne
+   serait utile que si ça s'avère faux sur un vrai appareil/émulateur. */
+const mapWakeLockToggle = document.getElementById("mapWakeLockToggle");
+const wakeLockSupported = "wakeLock" in navigator;
+let wakeLockSentinel = null;
+let wakeLockWanted = false;
+
+async function requestMapWakeLock(){
+    if(!wakeLockSupported) return;
+    try{
+        wakeLockSentinel = await navigator.wakeLock.request("screen");
+        wakeLockSentinel.addEventListener("release",()=>{
+            wakeLockSentinel = null;
+        });
+    }catch(err){
+        console.error("Écran allumé : impossible d'obtenir le verrou :",err);
+    }
+}
+
+function releaseMapWakeLock(){
+    wakeLockWanted = false;
+    if(mapWakeLockToggle){
+        mapWakeLockToggle.classList.remove("active");
+        mapWakeLockToggle.setAttribute("aria-pressed","false");
+    }
+    if(wakeLockSentinel){
+        wakeLockSentinel.release();
+        wakeLockSentinel = null;
+    }
+}
+
+if(wakeLockSupported){
+
+    mapWakeLockToggle.hidden = false;
+
+    mapWakeLockToggle.addEventListener("click",async ()=>{
+        wakeLockWanted = !wakeLockWanted;
+        mapWakeLockToggle.classList.toggle("active",wakeLockWanted);
+        mapWakeLockToggle.setAttribute("aria-pressed",String(wakeLockWanted));
+        if(wakeLockWanted){
+            await requestMapWakeLock();
+        }else if(wakeLockSentinel){
+            wakeLockSentinel.release();
+            wakeLockSentinel = null;
+        }
+    });
+
+    /* Le navigateur relâche automatiquement le verrou quand l'onglet passe
+       en arrière-plan (changement d'appli, écran éteint) — on le redemande
+       au retour si l'utilisateur le voulait toujours actif. */
+    document.addEventListener("visibilitychange",()=>{
+        if(wakeLockWanted && document.visibilityState==="visible" && !wakeLockSentinel){
+            requestMapWakeLock();
+        }
+    });
+}
+
 /* --- Recherche libre sur la zone visible ("pharmacie", "supermarché",
    nom d'un lieu…) via Nominatim, restreinte à la zone affichée (viewbox
    + bounded=1). Chargée à la demande uniquement (bouton "Rechercher ici"),
@@ -6838,7 +7197,9 @@ profileSearchInput.addEventListener("input",filterProfileList);
 
 document.querySelectorAll(".profile-back").forEach(btn=>{
     btn.addEventListener("click",()=>{
-        btn.closest(".profile-sub-view").hidden = true;
+        const view = btn.closest(".profile-sub-view");
+        view.hidden = true;
+        if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
         updateCountdownBanner();
     });
 });

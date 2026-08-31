@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v238";
+const CACHE_NAME = "planning-v239";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -86,7 +86,8 @@ const APP_SHELL = [
     "./vendor/leaflet.css",
     "./vendor/leaflet.markercluster.js",
     "./vendor/MarkerCluster.css",
-    "./vendor/MarkerCluster.Default.css"
+    "./vendor/MarkerCluster.Default.css",
+    "./vendor/jsQR.js"
 ];
 
 const RUNTIME_CACHE_HOSTS = [
