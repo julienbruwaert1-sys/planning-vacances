@@ -20,7 +20,56 @@
    - IndexedDB et le Service Worker n'ont besoin d'aucun changement : une
      WebView Capacitor tourne sur une vraie origine (capacitor://localhost),
      donc les deux fonctionnent nativement (contrairement à file:// en dev,
-     voir la note sur indexedDB.open() qui bloque sous file://). */
+     voir la note sur indexedDB.open() qui bloque sous file://).
+   - Service Worker : décidé de continuer à l'enregistrer sans condition même
+     en natif (pas de if(!isNativeApp())). Son cache d'app-shell devient
+     redondant (les fichiers sont déjà embarqués), mais son AUTRE rôle —
+     staleWhileRevalidate pour Google Fonts, cacheFirstTiles pour les tuiles
+     OpenStreetMap — reste utile même en natif, et la redondance de l'autre
+     partie est un coût négligeable. Pas de branche à écrire ici.
+   - Liens externes (window.open) : Maps/itinéraire, réservations
+     (renderReservations + le popover d'activité), secours "toilettes
+     publiques" (nearbyToiletsBtn) — voir le commentaire "CAPACITOR" à
+     chaque site d'appel. @capacitor/browser (Browser.open()) est le
+     remplacement standard : window.open() n'a pas de comportement garanti
+     dans une WebView Capacitor (navigue parfois la WebView elle-même au
+     lieu d'ouvrir un onglet/navigateur externe, ce qui ferait perdre l'état
+     de l'appli).
+   - Impression / export PDF (printBtn, window.print()) : les WebView
+     Android n'implémentent pas window.print() par défaut. Un plugin natif
+     d'impression (ex. @capacitor-community/print) serait nécessaire.
+   - Géolocalisation (navigator.geolocation — toilettes à proximité, météo,
+     "ma position" sur la carte) : l'API web standard fonctionne dans une
+     WebView Capacitor, mais la boîte de dialogue de permission Android est
+     connue pour être peu fiable si on ne passe pas par un vrai plugin natif.
+     @capacitor/geolocation gère la demande de permission runtime Android
+     correctement — à évaluer une fois testable sur un vrai appareil/
+     émulateur (pas de branche isNativeApp() en attendant, changer
+     directement navigator.geolocation.getCurrentPosition en Geolocation
+     .getCurrentPosition() le jour venu).
+   - Bouton retour matériel Android : rien ne l'intercepte aujourd'hui (pas
+     d'écouteur popstate/history) — dans une appli empaquetée, appuyer sur
+     retour fermerait direct l'appli depuis n'importe quel écran plutôt que
+     de fermer la vue plein écran ouverte (Réservations, Album, Carte,
+     Historique, Checklist, Dates & devise, Aide, À propos, la vue caméra…)
+     ou le menu ouvert. À câbler avec @capacitor/app
+     (App.addListener('backButton', ...)) en réutilisant la logique déjà
+     là (closeAllFullscreenViews(), les boutons .profile-back/.back-btn,
+     closeOptionsMenu()) plutôt qu'en écrire une nouvelle.
+   - navigator.clipboard (copyTextToClipboard, ex. code de synchro) :
+     fonctionne tel quel dans une WebView Capacitor (contexte sécurisé,
+     capacitor://localhost) — pas de changement prévu, @capacitor/clipboard
+     resterait un filet de secours seulement si ça se révèle peu fiable en
+     usage réel.
+   - <input type="file"> (importFile/importIcsFile/dayPhotoInput) : ouvre
+     déjà le sélecteur natif Android dans une WebView Capacitor, rien à
+     changer.
+   - Nouveau JS/CSS/HTML : à chaque nouvelle fonction touchant caméra,
+     téléchargement de fichier, impression, géolocalisation, presse-papier,
+     partage, lien externe ou navigation (retour matériel), ajoute le même
+     genre de commentaire "CAPACITOR" au point concerné plutôt que d'attendre
+     la prochaine session de préparation Android — voir
+     [[feedback_capacitor_prep_habit]] dans la mémoire. */
 function isNativeApp(){
     return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
@@ -1198,6 +1247,8 @@ dragged = null;
                 mapItem.textContent = "📍 Ouvrir dans Maps";
                 mapItem.addEventListener("click",()=>{
                     closeActivityMenus();
+                    // CAPACITOR : lien externe — voir la note "Liens externes"
+                    // en haut du fichier (@capacitor/browser).
                     window.open(
                         "https://www.google.com/maps/search/?api=1&query="
                         + encodeURIComponent(activity.address.trim()),
@@ -1215,6 +1266,8 @@ dragged = null;
                 reservationItem.addEventListener("click",()=>{
                     closeActivityMenus();
                     if(/^https?:\/\//i.test(activity.reservationLink)){
+                        // CAPACITOR : lien externe — voir "Liens externes" en
+                        // haut du fichier (@capacitor/browser).
                         window.open(activity.reservationLink,"_blank","noopener,noreferrer");
                     }else{
                         showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
@@ -1480,6 +1533,8 @@ function buildPrintView(){
 
 printBtn.addEventListener("click",()=>{
     buildPrintView();
+    // CAPACITOR : window.print() n'existe pas dans une WebView Android —
+    // voir la note "Impression / export PDF" en haut du fichier.
     window.print();
 });
 
@@ -1532,13 +1587,10 @@ exportDataBtn.addEventListener("click",()=>{
         {type:"application/json"}
     );
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download =
-    `planning_vacances_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Réutilise downloadBlobToGallery() (déjà repérée pour le remplacement
+    // Capacitor, voir plus bas) plutôt que de dupliquer le même
+    // téléchargement — étend la préparation Android à cet export gratuitement.
+    downloadBlobToGallery(blob,`planning_vacances_${new Date().toISOString().slice(0,10)}.json`);
 
     showToast("Sauvegarde exportée.",{type:"success"});
 });
@@ -2332,12 +2384,7 @@ templateBtn.addEventListener("click",()=>{
         {type:"text/csv;charset=utf-8;"}
     );
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "modele_planning.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlobToGallery(blob,"modele_planning.csv");
 });
 
 const layoutToggle =
@@ -3510,6 +3557,9 @@ searchToggleBtn.addEventListener("click",(e)=>{
 
 const nearbyToiletsBtn = document.getElementById("nearbyToiletsBtn");
 
+// CAPACITOR : combine les deux points de vigilance du haut du fichier —
+// navigator.geolocation (permission Android peu fiable hors plugin natif) et
+// window.open pour un lien externe (@capacitor/browser).
 function openNearbyToilets(){
 
     const fallbackUrl =
@@ -4173,6 +4223,8 @@ helpNotesInput.addEventListener("input",()=>{
     pushToSync();
 });
 
+// CAPACITOR : navigator.clipboard — voir la note en haut du fichier,
+// devrait fonctionner tel quel dans une WebView Capacitor.
 async function copyTextToClipboard(text){
     try{
         await navigator.clipboard.writeText(text);
@@ -4469,6 +4521,8 @@ function renderReservations(){
 
             item.addEventListener("click",()=>{
                 if(/^https?:\/\//i.test(activity.reservationLink)){
+                    // CAPACITOR : lien externe — voir "Liens externes" en
+                    // haut du fichier (@capacitor/browser).
                     window.open(activity.reservationLink,"_blank","noopener,noreferrer");
                 }else{
                     showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
@@ -4793,6 +4847,8 @@ async function reverseGeocodeCity(lat,lon){
 
 let geolocationForWeatherFailed = false;
 
+// CAPACITOR : navigator.geolocation — voir "Géolocalisation" en haut du
+// fichier (@capacitor/geolocation pour une permission Android fiable).
 function requestUserLocationForWeather(){
 
     if(!navigator.geolocation || geolocationRequestPending || geolocationForWeatherFailed) return;
@@ -6296,6 +6352,8 @@ let mapUserLocationLayer = null;
 let mapPoiLayer = null;
 let mapRouteLayer = null;
 
+// CAPACITOR : navigator.geolocation — voir "Géolocalisation" en haut du
+// fichier (@capacitor/geolocation pour une permission Android fiable).
 function showUserLocationOnMap(){
 
     if(!navigator.geolocation || !mapUserLocationLayer) return;
