@@ -2636,15 +2636,24 @@ importFile.addEventListener("change",(e)=>{
 
 templateBtn.addEventListener("click",()=>{
 
+    /* Une colonne par champ que importRows() sait vraiment lire (voir ses
+       appels à getField() juste au-dessus) — le modèle avait pris du
+       retard : Heure_conseillee/Duree/Note/Lien_reservation/Jour_titre
+       existent depuis un moment côté import (l'import .ics/texte les
+       remplit déjà) mais n'apparaissaient jamais dans ce fichier
+       d'exemple, donc personne ne savait qu'on pouvait les remplir à la
+       main. Jour_titre ne compte qu'une fois par jour (la première ligne
+       non vide gagne, voir importRows()) — inutile de la répéter sur
+       chaque ligne du même jour. */
     const csv =
-    "Jour;Créneau;Nom;Type;Adresse;Prix;Trajet\n"
-    + "1;matin;Visite Tour Eiffel;Visite;"
-    + "Champ de Mars, Paris;28;15\n"
-    + "1;midi;Déjeuner Café de Paris;Restaurant;"
-    + "Champs-Élysées, Paris;35;10\n"
-    + "1;soir;Hôtel du Centre;Logement;;120;\n"
-    + "2;apresMidi;Musée du Louvre;Musée;"
-    + "Rue de Rivoli, Paris;22;20\n";
+    "Jour;Créneau;Nom;Type;Adresse;Prix;Trajet;Heure_conseillee;Duree;Note;Lien_reservation;Jour_titre\n"
+    + "1;matin;Visite Tour Eiffel;Visite;Champ de Mars, Paris;28;15;09:00;2h;"
+    + "Réserver le créneau à l'avance;https://tickets.toureiffel.paris;Arrivée à Paris\n"
+    + "1;midi;Déjeuner Café de Paris;Restaurant;Champs-Élysées, Paris;35;10;12:30;1h30;;;\n"
+    + "1;soir;Hôtel du Centre;Logement;;120;;20:00;;Check-in à partir de 15h;"
+    + "https://booking.com/hotel-du-centre;\n"
+    + "2;apresMidi;Musée du Louvre;Musée;Rue de Rivoli, Paris;22;20;14:00;3h;"
+    + "Fermé le mardi;https://www.louvre.fr/billets;Journée musées\n";
 
     const blob = new Blob(
         ["\uFEFF"+csv],
@@ -4476,9 +4485,13 @@ bottomNavTabs.forEach(btn=>{
     });
 });
 
-/* --- Profil : infos voyageur (100% local, jamais synchronisé/exporté) ---
+/* --- Profil : infos voyageur ---
    CAPACITOR : passeport/contact d'urgence — les données les plus sensibles
    de l'appli — vivent ici en clair dans localStorage, comme tout le reste.
+   Contrairement à ce que le texte affiché disait à l'origine, ces champs
+   SONT synchronisés (collectSyncData/applySyncData) et exportés (sauvegarde
+   JSON) — texte corrigé pour refléter le comportement réel plutôt que
+   l'inverse (voir [[settings_page_reorg]]/mémoire pour le contexte).
    Aucune des deux protections suivantes n'a d'équivalent web fonctionnel,
    donc rien à coder tant que l'app n'est pas convertie :
    - Stockage sécurisé : le web n'expose pas le Keystore Android/Keychain
@@ -8357,6 +8370,34 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const syncDb = firebase.database();
 
+/* --- Robustesse hors-ligne ---
+   ".info/connected" est un chemin spécial du SDK Realtime Database :
+   reflète l'état réel de connexion au serveur (pas juste navigator.onLine,
+   qui ne détecte qu'une coupure réseau totale, pas un serveur injoignable
+   ou une appli en veille). Le SDK met déjà en file d'attente les écritures
+   faites hors-ligne et les rejoue tout seul à la reconnexion — inutile de
+   coder une logique de nouvelle tentative ; il suffit de refléter l'état
+   correctement pour que l'utilisateur ne pense pas que "rien ne se passe". */
+let firebaseConnected = true;
+
+syncDb.ref(".info/connected").on("value",(snap)=>{
+    firebaseConnected = snap.val()===true;
+    updateSyncConnectionStatus();
+});
+
+function updateSyncConnectionStatus(){
+    if(!syncCode || !syncStatus) return;
+    if(!firebaseConnected){
+        syncStatus.textContent = "🔴 Hors ligne — en attente de connexion";
+        syncStatus.classList.add("offline");
+    }else{
+        syncStatus.classList.remove("offline");
+        if(syncStatus.textContent.startsWith("🔴")){
+            syncStatus.textContent = "🟢 Connecté";
+        }
+    }
+}
+
 const SYNC_CODE_KEY = "syncCode";
 const SYNC_DEVICE_ID_KEY = "syncDeviceId";
 const SYNC_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -8381,6 +8422,8 @@ const syncCodeDisplay = document.getElementById("syncCodeDisplay");
 const syncStatus = document.getElementById("syncStatus");
 const syncHistoryInfo = document.getElementById("syncHistoryInfo");
 const syncUnlinkBtn = document.getElementById("syncUnlinkBtn");
+const syncRegenerateBtn = document.getElementById("syncRegenerateBtn");
+const syncSectionMetaList = document.getElementById("syncSectionMetaList");
 
 const SYNC_HISTORY_KEY = "syncHistory";
 
@@ -8403,6 +8446,55 @@ function recordSyncHistory(deviceId,updatedAt){
     renderSyncHistory();
 }
 
+/* --- "Qui a changé quoi" : suivi par section, pas juste globalement ---
+   Chaque section (groupe de champs de collectSyncData()) porte son propre
+   {deviceId, updatedAt} dans sectionMeta, écrit à chaque push partiel
+   (voir pushToSync()) et fusionné ici à chaque réception. Persisté pour
+   que le panneau ait quelque chose à montrer dès l'ouverture, avant tout
+   nouvel échange. */
+const SYNC_SECTION_GROUPS = [
+    { label:"Planning", keys:["planning"] },
+    { label:"Checklist", keys:["checklist","checklistTemplates"] },
+    { label:"Budget & devises", keys:["tricountParticipants","tricountExpenses","baseCurrency","priceCurrencySymbol","targetCurrency"] },
+    { label:"Dates & voyage", keys:["dayCount","startDate","tripName","tripCountry","tripTimezone"] },
+    { label:"Infos voyageur", keys:["travelerInfo"] },
+    { label:"Aide", keys:["helpNotes","helpReports"] }
+];
+const SYNC_ALL_KEYS = SYNC_SECTION_GROUPS.flatMap(g=>g.keys);
+
+const SYNC_SECTION_META_KEY = "syncSectionMeta";
+let knownSectionMeta = JSON.parse(localStorage.getItem(SYNC_SECTION_META_KEY) || "{}");
+
+function saveKnownSectionMeta(){
+    localStorage.setItem(SYNC_SECTION_META_KEY,JSON.stringify(knownSectionMeta));
+}
+
+function renderSyncSectionMeta(){
+    if(!syncSectionMetaList) return;
+    syncSectionMetaList.innerHTML = "";
+    SYNC_SECTION_GROUPS.forEach(group=>{
+        let latest = null;
+        group.keys.forEach(k=>{
+            const m = knownSectionMeta[k];
+            if(m && (!latest || m.updatedAt>latest.updatedAt)) latest = m;
+        });
+        if(!latest) return;
+        const row = document.createElement("div");
+        row.className = "sync-section-meta-row";
+        const who = latest.deviceId===syncDeviceId ? "cet appareil" : "un autre appareil";
+        const when = new Date(latest.updatedAt).toLocaleString("fr-FR",{
+            day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"
+        });
+        const label = document.createElement("span");
+        label.textContent = group.label;
+        const value = document.createElement("b");
+        value.textContent = `${who} · ${when}`;
+        row.appendChild(label);
+        row.appendChild(value);
+        syncSectionMetaList.appendChild(row);
+    });
+}
+
 function generateSyncCode(){
     let code = "";
     const randomValues = crypto.getRandomValues(new Uint32Array(10));
@@ -8418,6 +8510,8 @@ function updateSyncPanelView(){
         syncPaired.hidden = false;
         syncCodeDisplay.textContent = syncCode;
         renderSyncHistory();
+        renderSyncSectionMeta();
+        updateSyncConnectionStatus();
     }else{
         syncUnpaired.hidden = false;
         syncPaired.hidden = true;
@@ -8447,6 +8541,35 @@ function collectSyncData(){
     };
 }
 
+/* Instantané (désérialisé) du dernier envoi RÉUSSI de CET appareil — sert
+   uniquement à détecter quelles sections ont changé depuis, jamais mis à
+   jour par une réception distante. Doit être une copie profonde : payload
+   contient des références directes vers planning/checklist/... (les vraies
+   variables vivantes de l'appli), donc une simple affectation
+   (lastPushedPayload = payload) pointerait vers les MÊMES objets — toute
+   mutation ultérieure de planning se répercuterait aussi dans
+   lastPushedPayload, et computeChangedSections() ne verrait jamais de
+   différence. */
+let lastPushedPayload = null;
+
+function computeChangedSections(payload){
+    if(!lastPushedPayload) return SYNC_ALL_KEYS.slice();
+    return SYNC_ALL_KEYS.filter(k=>JSON.stringify(payload[k])!==JSON.stringify(lastPushedPayload[k]));
+}
+
+/* Instantané complet prêt pour un .set() (pas un .update() partiel) —
+   utilisé quand tout le document doit être (re)créé d'un coup : la
+   direction "mine" en rejoignant un code, et la régénération de code. */
+function buildFullSyncSnapshot(){
+    const payload = collectSyncData();
+    const sectionMeta = {};
+    SYNC_ALL_KEYS.forEach(k=>{
+        sectionMeta[k] = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+    });
+    payload.sectionMeta = sectionMeta;
+    return payload;
+}
+
 function pushToSync(){
 
     if(!syncRef || applyingRemoteUpdate) return;
@@ -8454,8 +8577,32 @@ function pushToSync(){
     clearTimeout(syncPushTimer);
 
     syncPushTimer = setTimeout(()=>{
+
         const payload = collectSyncData();
-        syncRef.set(payload).then(()=>{
+        const changed = computeChangedSections(payload);
+
+        if(changed.length===0) return;
+
+        /* .update() (pas .set()) : seules les clés listées ici sont
+           écrites — tout ce qu'un AUTRE appareil a écrit entre-temps sur
+           les sections non listées reste intact, contrairement à
+           l'ancien .set() du document entier qui écrasait tout à chaque
+           sauvegarde, même les sections que cet appareil n'avait pas
+           touchées. Les chemins "sectionMeta/x" fonctionnent comme des
+           chemins imbriqués normaux pour .update(). */
+        const update = { updatedAt: payload.updatedAt, deviceId: payload.deviceId };
+        changed.forEach(k=>{
+            update[k] = payload[k];
+            update["sectionMeta/"+k] = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+        });
+
+        syncRef.update(update).then(()=>{
+            lastPushedPayload = JSON.parse(JSON.stringify(payload));
+            changed.forEach(k=>{
+                knownSectionMeta[k] = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+            });
+            saveKnownSectionMeta();
+            renderSyncSectionMeta();
             recordSyncHistory(payload.deviceId,payload.updatedAt);
         }).catch(err=>{
             console.error("Erreur de synchronisation :",err);
@@ -8574,76 +8721,110 @@ document.getElementById("newTripBtn").addEventListener("click",()=>{
     );
 });
 
-function applySyncData(data){
+function applySyncData(data,isInitialLoad){
 
     if(!data) return;
 
-    applyingRemoteUpdate = true;
+    /* Rétrocompatibilité : un document sans sectionMeta (écrit par un
+       appareil qui n'aurait pas encore chargé cette version du code)
+       retombe sur l'ancien filtre global — évite une boucle d'écho tant
+       que tous les appareils n'ont pas rechargé. Dès que sectionMeta
+       existe, le filtre se fait section par section ci-dessous, ce qui
+       permet à un appareil d'appliquer le changement de checklist d'un
+       autre même si SA PROPRE dernière écriture a mis à jour le planning
+       (donc deviceId global = lui-même). */
+    const hasSectionMeta = data.sectionMeta && typeof data.sectionMeta==="object";
+    if(!hasSectionMeta && data.deviceId===syncDeviceId) return;
 
-    if(data.planning){
+    function sectionIsSelf(key){
+        if(!hasSectionMeta) return false;
+        const meta = data.sectionMeta[key];
+        return !!(meta && meta.deviceId===syncDeviceId);
+    }
+
+    if(hasSectionMeta){
+        Object.assign(knownSectionMeta,data.sectionMeta);
+        saveKnownSectionMeta();
+    }
+
+    applyingRemoteUpdate = true;
+    let anyRemoteChangeApplied = false;
+
+    if(data.planning && !sectionIsSelf("planning")){
         Object.keys(planning).forEach(key=>delete planning[key]);
         mergePlanningData(planning,data.planning);
         sanitizePlanningSlots();
         savePlanning();
+        anyRemoteChangeApplied = true;
     }
 
-    if(Array.isArray(data.checklist)){
+    if(Array.isArray(data.checklist) && !sectionIsSelf("checklist")){
         checklist = data.checklist;
         saveChecklist();
+        anyRemoteChangeApplied = true;
     }
 
-    if(Array.isArray(data.tricountParticipants)){
+    if(Array.isArray(data.tricountParticipants) && !sectionIsSelf("tricountParticipants")){
         tricountParticipants = data.tricountParticipants;
         localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(tricountParticipants));
+        anyRemoteChangeApplied = true;
     }
 
-    if(Array.isArray(data.tricountExpenses)){
+    if(Array.isArray(data.tricountExpenses) && !sectionIsSelf("tricountExpenses")){
         tricountExpenses = data.tricountExpenses;
         localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(tricountExpenses));
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.dayCount){
+    if(data.dayCount && !sectionIsSelf("dayCount")){
         dayCount = data.dayCount;
         localStorage.setItem("dayCount",dayCount);
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.startDate!==undefined){
+    if(data.startDate!==undefined && !sectionIsSelf("startDate")){
         startDate = data.startDate;
         startDateInput.value = startDate;
         localStorage.setItem("startDate",startDate);
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.tripName!==undefined && data.tripName!==tripName){
+    if(data.tripName!==undefined && data.tripName!==tripName && !sectionIsSelf("tripName")){
         tripName = data.tripName;
         localStorage.setItem(TRIP_NAME_KEY,tripName);
         if(tripName) appTitle.textContent = appTitleEmoji()+" "+tripName;
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.tripCountry!==undefined && data.tripCountry!==tripCountry){
+    if(data.tripCountry!==undefined && data.tripCountry!==tripCountry && !sectionIsSelf("tripCountry")){
         tripCountry = data.tripCountry;
         localStorage.setItem(TRIP_COUNTRY_KEY,tripCountry);
         tripCountrySelect.value = tripCountry;
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.tripTimezone!==undefined){
+    if(data.tripTimezone!==undefined && !sectionIsSelf("tripTimezone")){
         localStorage.setItem(TRIP_TIMEZONE_KEY,data.tripTimezone);
         tripTimezoneSelect.value = data.tripTimezone;
+        anyRemoteChangeApplied = true;
     }
 
     let currencyChanged = false;
 
-    if(data.baseCurrency && CURRENCIES[data.baseCurrency] && data.baseCurrency!==baseCurrency){
+    if(data.baseCurrency && CURRENCIES[data.baseCurrency] && data.baseCurrency!==baseCurrency && !sectionIsSelf("baseCurrency")){
         baseCurrency = data.baseCurrency;
         localStorage.setItem("baseCurrency",baseCurrency);
         converterBaseCurrencySelect.value = baseCurrency;
         currencyChanged = true;
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.targetCurrency && CURRENCIES[data.targetCurrency] && data.targetCurrency!==targetCurrency){
+    if(data.targetCurrency && CURRENCIES[data.targetCurrency] && data.targetCurrency!==targetCurrency && !sectionIsSelf("targetCurrency")){
         targetCurrency = data.targetCurrency;
         localStorage.setItem("targetCurrency",targetCurrency);
         targetCurrencySelect.value = targetCurrency;
         currencyChanged = true;
+        anyRemoteChangeApplied = true;
     }
 
     if(currencyChanged){
@@ -8652,31 +8833,36 @@ function applySyncData(data){
         fetchExchangeRate();
     }
 
-    if(data.priceCurrencySymbol!==undefined && data.priceCurrencySymbol!==priceCurrencySymbol){
+    if(data.priceCurrencySymbol!==undefined && data.priceCurrencySymbol!==priceCurrencySymbol && !sectionIsSelf("priceCurrencySymbol")){
         priceCurrencySymbol = data.priceCurrencySymbol;
         localStorage.setItem("priceCurrencySymbol",priceCurrencySymbol);
         priceCurrencySelect.value = priceCurrencySymbol;
         activityPriceInput.placeholder = `Prix (${priceCurrencySymbol})`;
         activityPriceSuffix.textContent = `Prix (${priceCurrencySymbol})`;
+        anyRemoteChangeApplied = true;
     }
 
-    if(Array.isArray(data.checklistTemplates)){
+    if(Array.isArray(data.checklistTemplates) && !sectionIsSelf("checklistTemplates")){
         localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(data.checklistTemplates));
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.travelerInfo && typeof data.travelerInfo==="object"){
+    if(data.travelerInfo && typeof data.travelerInfo==="object" && !sectionIsSelf("travelerInfo")){
         localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(data.travelerInfo));
+        anyRemoteChangeApplied = true;
     }
 
-    if(data.helpNotes!==undefined){
+    if(data.helpNotes!==undefined && !sectionIsSelf("helpNotes")){
         helpNotesInput.value = data.helpNotes;
         localStorage.setItem(HELP_NOTES_KEY,data.helpNotes);
+        anyRemoteChangeApplied = true;
     }
 
-    if(Array.isArray(data.helpReports)){
+    if(Array.isArray(data.helpReports) && !sectionIsSelf("helpReports")){
         helpReportsHistory = data.helpReports;
         localStorage.setItem(HELP_REPORTS_KEY,JSON.stringify(helpReportsHistory));
         renderHelpReportsHistory();
+        anyRemoteChangeApplied = true;
     }
 
     ensureDaysExist();
@@ -8689,13 +8875,24 @@ function applySyncData(data){
     updateCountdownBanner();
     updateDatePlacement();
     refreshEndDateDisplay();
+    renderSyncSectionMeta();
 
     applyingRemoteUpdate = false;
 
-    syncStatus.textContent =
-    `🟢 Synchronisé — ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+    if(anyRemoteChangeApplied){
 
-    recordSyncHistory(data.deviceId,data.updatedAt);
+        syncStatus.textContent =
+        `🟢 Synchronisé — ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+
+        recordSyncHistory(data.deviceId,data.updatedAt);
+
+        /* Pas de notification pour la toute première réception après un
+           appairage/chargement de page : c'est attendu, pas une
+           "nouveauté" que l'utilisateur doit remarquer. */
+        if(!isInitialLoad){
+            showToast("Mis à jour depuis un autre appareil.",{duration:3500});
+        }
+    }
 }
 
 function startSyncListener(){
@@ -8704,12 +8901,22 @@ function startSyncListener(){
 
     syncRef = syncDb.ref("trips/"+syncCode);
 
+    /* .on("value") déclenche immédiatement avec l'état déjà en base au
+       moment de l'attache — ce premier événement n'est pas un "nouveau"
+       changement distant (juste "voilà ce qu'il y a"), donc pas de
+       notification pour lui ; seuls les suivants le sont vraiment. Le
+       filtre d'écho (est-ce moi qui ai écrit ça ?) se fait maintenant
+       section par section DANS applySyncData(), plus ici globalement —
+       voir le commentaire dans applySyncData(). */
+    let firstSnapshot = true;
+
     syncRef.on("value",(snapshot)=>{
 
         const data = snapshot.val();
-        if(!data || data.deviceId===syncDeviceId) return;
+        if(!data) return;
 
-        applySyncData(data);
+        applySyncData(data,firstSnapshot);
+        firstSnapshot = false;
 
     },(err)=>{
         console.error("Erreur de connexion à la synchronisation :",err);
@@ -8847,13 +9054,17 @@ syncJoinBtn.addEventListener("click",()=>{
                 "Lier cet appareil enverra le planning de cet appareil vers l'autre — le planning actuellement sur l'autre appareil sera remplacé. Continuer ?",
                 ()=>{
 
-                    const localSnapshot = JSON.parse(JSON.stringify(collectSyncData()));
+                    const localSnapshot = buildFullSyncSnapshot();
 
                     syncJoinBtn.disabled = true;
 
                     syncDb.ref("trips/"+code).set(localSnapshot).then(()=>{
                         syncJoinBtn.disabled = false;
                         pairWithCode(code,{isNew:false});
+                        lastPushedPayload = JSON.parse(JSON.stringify(localSnapshot));
+                        knownSectionMeta = JSON.parse(JSON.stringify(localSnapshot.sectionMeta));
+                        saveKnownSectionMeta();
+                        renderSyncSectionMeta();
                         recordSyncHistory(localSnapshot.deviceId,localSnapshot.updatedAt);
                         syncCodeInput.value = "";
                         showToast("Appareil lié — ton planning a été envoyé à l'autre appareil.",{type:"success"});
@@ -8872,7 +9083,7 @@ syncJoinBtn.addEventListener("click",()=>{
             ()=>{
                 archiveCurrentTrip();
                 pairWithCode(code,{isNew:false});
-                applySyncData(data);
+                applySyncData(data,true);
                 syncCodeInput.value = "";
                 showToast("Appareil lié avec succès — ton ancien planning a été archivé.",{type:"success"});
             }
@@ -8884,13 +9095,58 @@ syncJoinBtn.addEventListener("click",()=>{
     });
 });
 
-syncUnlinkBtn.addEventListener("click",()=>{
+function clearSyncState(){
     if(syncRef) syncRef.off();
     syncRef = null;
     syncCode = "";
     localStorage.removeItem(SYNC_CODE_KEY);
+    lastPushedPayload = null;
+    knownSectionMeta = {};
+    saveKnownSectionMeta();
+}
+
+syncUnlinkBtn.addEventListener("click",()=>{
+    clearSyncState();
     updateSyncPanelView();
     showToast("Synchronisation désactivée sur cet appareil.");
+});
+
+/* Pas de véritable révocation ciblée possible sans authentification par
+   appareil (Firebase Auth + règles de sécurité côté console — hors de
+   portée du code client seul, voir la discussion avec l'utilisateur). Le
+   plus proche qu'on puisse faire depuis ici : migrer les données vers un
+   nouveau code, ce qui coupe TOUS les appareils utilisant l'ancien (pas
+   un seul en particulier) — ils devront se relier avec le nouveau code
+   partagé à la main. */
+syncRegenerateBtn.addEventListener("click",()=>{
+    showConfirmModal(
+        "Régénérer le code coupera la synchronisation pour TOUS les appareils utilisant le code actuel — ils devront se relier avec le nouveau. Continuer ?",
+        ()=>{
+            const newCode = generateSyncCode();
+            const snapshot = buildFullSyncSnapshot();
+
+            syncRegenerateBtn.disabled = true;
+
+            syncDb.ref("trips/"+newCode).set(snapshot).then(()=>{
+                syncRegenerateBtn.disabled = false;
+
+                if(syncRef) syncRef.off();
+                syncCode = newCode;
+                localStorage.setItem(SYNC_CODE_KEY,syncCode);
+                lastPushedPayload = JSON.parse(JSON.stringify(snapshot));
+                knownSectionMeta = JSON.parse(JSON.stringify(snapshot.sectionMeta));
+                saveKnownSectionMeta();
+
+                startSyncListener();
+                updateSyncPanelView();
+
+                showToast("Nouveau code généré — les appareils précédemment liés ne sont plus synchronisés.",{type:"success",duration:5000});
+            }).catch(()=>{
+                syncRegenerateBtn.disabled = false;
+                showToast("Impossible de régénérer le code.",{type:"error"});
+            });
+        }
+    );
 });
 
 updateSyncPanelView();

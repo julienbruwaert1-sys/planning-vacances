@@ -269,7 +269,7 @@
 <div id="syncPanelContent">
 
 <div id="syncUnpaired">
-<p class="sync-desc">Relie cet appareil à un autre pour synchroniser automatiquement le planning.</p>
+<p class="sync-desc">Relie cet appareil à un ou plusieurs autres pour synchroniser automatiquement le planning.</p>
 <button id="syncGenerateBtn" class="add" type="button">Générer un nouveau code</button>
 <div class="sync-or">ou</div>
 <div class="sync-join-row">
@@ -283,10 +283,12 @@
 </div>
 
 <div id="syncPaired" hidden>
-<p class="sync-desc">Code à saisir sur ton autre appareil :</p>
+<p class="sync-desc">Code à saisir sur tes autres appareils :</p>
 <div id="syncCodeDisplay" class="sync-code-display"></div>
 <p id="syncStatus" class="sync-status">En attente…</p>
 <p id="syncHistoryInfo" class="sync-status sync-history-info"></p>
+<div id="syncSectionMetaList" class="sync-section-meta-list"></div>
+<button id="syncRegenerateBtn" class="checklist-remove" type="button">Régénérer le code (déconnecte les autres appareils)</button>
 <button id="syncUnlinkBtn" class="checklist-remove" type="button">Se déconnecter de la synchronisation</button>
 </div>
 
@@ -735,7 +737,7 @@ Masquer les éléments cochés
 <label for="travelerEmergency">Contact d'urgence</label>
 <input type="text" id="travelerEmergency" placeholder="Nom et téléphone">
 </div>
-<p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
+<p class="profile-hint">Synchronisées entre tes appareils si la synchronisation (☁️) est active, et incluses dans les sauvegardes JSON exportées — jamais partagées ailleurs.</p>
 </div>
 
 <div class="profile-section">
@@ -752,7 +754,7 @@ Masquer les éléments cochés
 <label for="travelerInsurance">Assurance voyage</label>
 <input type="text" id="travelerInsurance" placeholder="Assureur, n° de contrat…">
 </div>
-<p class="profile-hint">Ces infos restent uniquement sur cet appareil (jamais synchronisées ni exportées).</p>
+<p class="profile-hint">Synchronisées entre tes appareils si la synchronisation (☁️) est active, et incluses dans les sauvegardes JSON exportées — jamais partagées ailleurs.</p>
 </div>
 </div>
 </div>
