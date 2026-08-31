@@ -7207,7 +7207,10 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
 document.addEventListener("keydown",(e)=>{
     if(e.key!=="Escape") return;
     document.querySelectorAll(".profile-sub-view").forEach(view=>{
-        if(!view.hidden) view.hidden = true;
+        if(!view.hidden){
+            view.hidden = true;
+            if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
+        }
     });
     updateCountdownBanner();
 });

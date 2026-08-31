@@ -141,10 +141,23 @@ body.dark .modal-box{
     font-size:17px;
     margin:0 0 10px;
     color:#33404A;
+    /* Neutralise le h3{} générique (bandeau rouge plein, voir le piège CSS
+       "élément nu" déjà documenté) : ce titre est un simple texte, pas un
+       bandeau. */
+    background:none;
+    padding:0;
+    border-radius:0;
 }
 
 body.dark .paste-import-title{
+    /* body.dark h3{} (spécificité 0,1,2) bat .paste-import-title seule
+       (0,1,0) sur background/padding/border-radius — il faut les neutraliser
+       ICI aussi, avec .dark dans le sélecteur (0,2,1), comme déjà documenté
+       pour #activities .day-slot-head un peu plus bas dans ce fichier. */
     color:#EAF0FB;
+    background:none;
+    padding:0;
+    border-radius:0;
 }
 
 .paste-import-textarea{
@@ -691,7 +704,10 @@ body.dark .mobile-tab-header h2{
     flex:1;
     border:none;
     background:none;
-    outline:none;
+    /* Pas d'outline:none ici : ça neutralisait le focus-visible global
+       (2px solid, voir en haut du fichier) sur ce champ précis — même
+       spécificité, cette règle gagnait juste parce qu'elle est plus bas
+       dans le fichier. Repéré en vérif, pas en relecture initiale. */
     font-family:'Inter',Arial,sans-serif;
     font-size:13.5px;
     color:#33404A;
