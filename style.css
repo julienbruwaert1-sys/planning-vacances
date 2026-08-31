@@ -180,6 +180,69 @@ body.dark .paste-import-textarea{
     border-color:#33364A;
 }
 
+.attachments-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height:260px;
+    overflow-y:auto;
+    margin-bottom:14px;
+}
+
+.attachment-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    background:#F1F7FB;
+    border-radius:10px;
+    padding:9px 12px;
+}
+
+.attachment-open-btn{
+    flex:1;
+    min-width:0;
+    color:#33404A;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13.5px;
+    text-decoration:none;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.attachment-remove{
+    background:none;
+    border:none;
+    color:#9AAAB4;
+    cursor:pointer;
+    font-size:13px;
+    flex-shrink:0;
+}
+
+.attachments-empty{
+    font-size:12.5px;
+    color:#9AAAB4;
+    text-align:center;
+    margin:0 0 14px;
+}
+
+body.dark .attachment-row{
+    background:#182238;
+}
+
+body.dark .attachment-open-btn{
+    color:#EAF0FB;
+}
+
+body.dark .attachment-remove{
+    color:#7C8BAE;
+}
+
+body.dark .attachments-empty{
+    color:#7C8BAE;
+}
+
 .modal-preview-image{
     display:block;
     width:96px;

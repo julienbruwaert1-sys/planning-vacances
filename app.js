@@ -1380,6 +1380,16 @@ dragged = null;
             });
             popover.appendChild(photoItem);
 
+            const attachmentsItem = document.createElement("button");
+            attachmentsItem.type = "button";
+            attachmentsItem.className = "activity-popover-item";
+            attachmentsItem.textContent = "📎 Documents";
+            attachmentsItem.addEventListener("click",()=>{
+                closeActivityMenus();
+                openAttachmentsModal(currentDay,activity);
+            });
+            popover.appendChild(attachmentsItem);
+
             const tricountItem = document.createElement("button");
             tricountItem.type = "button";
             tricountItem.className = "activity-popover-item";
@@ -1457,10 +1467,28 @@ document.getElementById("resetPlanning");
 
 function resetPlanning(){
 
+    /* Capturé avant l'ouverture du modal (pas relu après clearSyncState()
+       dans le callback, où syncCode serait déjà vidé) : sert à la fois au
+       texte du modal et au message de fin. */
+    const wasSynced = !!syncCode;
+
     showConfirmModal(
         "Veux-tu vraiment supprimer tout le planning ? "
+        + (wasSynced
+            ? "La synchronisation avec l'autre appareil sera d'abord coupée, pour ne pas effacer aussi son planning à lui. "
+            : "")
         + "Cette action est irréversible.",
         ()=>{
+
+            /* Couper la synchronisation AVANT de vider le planning : sinon
+               savePlanning() ci-dessous pousse un planning vide vers
+               l'autre appareil via pushToSync(), qui l'efface aussi chez
+               lui — une réinitialisation locale ne doit jamais devenir une
+               réinitialisation à distance. */
+            if(wasSynced){
+                clearSyncState();
+                updateSyncPanelView();
+            }
 
             Object.keys(planning).forEach(day=>{
                 planning[day] = {
@@ -1475,7 +1503,12 @@ function resetPlanning(){
             savePlanning();
             renderActivities();
 
-            showToast("Planning réinitialisé.",{type:"success"});
+            showToast(
+                wasSynced
+                    ? "Planning réinitialisé — synchronisation coupée sur cet appareil."
+                    : "Planning réinitialisé.",
+                {type:"success"}
+            );
         }
     );
 }
@@ -1496,10 +1529,12 @@ deleteTripBtn.addEventListener("click",()=>{
         + ". Cette action est irréversible.",
         ()=>{
 
-            if(syncRef) syncRef.off();
-            syncRef = null;
-            syncCode = "";
-            localStorage.removeItem(SYNC_CODE_KEY);
+            /* Coupe la synchronisation avant de vider quoi que ce soit :
+               même raison que resetPlanning() juste au-dessus — une
+               suppression locale ne doit jamais devenir une suppression à
+               distance. clearSyncState() (pas juste syncRef.off()) pour un
+               nettoyage complet — sectionMeta/lastPushedPayload inclus. */
+            if(syncCode) clearSyncState();
 
             localStorage.removeItem("vacationPlanning");
             localStorage.removeItem(TRIP_NAME_KEY);
@@ -5492,12 +5527,20 @@ async function getDayPhotos(day){
         req.onsuccess = ()=>resolve(req.result);
         req.onerror = ()=>reject(req.error);
     });
-    return dayPhotos.filter(photo=>photo.tripId===currentTripId);
+    /* kind==="attachment" exclu : les documents d'activité (PDF, billets...)
+       vivent dans le même store IndexedDB (voir plus bas, comme les reçus
+       Tricount) mais n'ont rien à faire dans la pellicule photo du jour. */
+    return dayPhotos.filter(photo=>photo.tripId===currentTripId && photo.kind!=="attachment");
 }
 
 async function getTripPhotos(tripId){
     const all = await getAllPhotos();
-    return all.filter(photo=>photo.tripId===tripId);
+    /* !photo.expenseId : exclut aussi les reçus Tricount, qui vivent dans
+       ce même store (day:null, activityId:null) et se seraient sinon
+       retrouvés dans l'Album sous "Jour 0" (Number(null)===0) — jamais
+       remarqué jusqu'ici faute de reçu existant au moment du test, corrigé
+       au passage en ajoutant kind==="attachment" pour les documents. */
+    return all.filter(photo=>photo.tripId===tripId && photo.kind!=="attachment" && !photo.expenseId);
 }
 
 async function getAllPhotos(){
@@ -5576,10 +5619,15 @@ async function getAllExpensePhotos(){
     return all.filter(photo=>photo.expenseId && photo.tripId===currentTripId);
 }
 
+/* getAllPhotos() + filtre manuel, pas getTripPhotos(tripId) : celle-ci
+   exclut désormais exprès les reçus Tricount et les documents d'activité
+   (kind:"attachment") pour ne pas polluer l'Album — mais une suppression
+   de voyage doit au contraire tout effacer, ces deux types inclus. */
 async function deleteTripPhotos(tripId){
-    const photos = await getTripPhotos(tripId);
-    for(const photo of photos){
-        await deleteDayPhoto(photo.id);
+    const all = await getAllPhotos();
+    const records = all.filter(r=>r.tripId===tripId);
+    for(const record of records){
+        await deleteDayPhoto(record.id);
     }
 }
 
@@ -5591,6 +5639,41 @@ async function deleteDayPhoto(id){
         tx.oncomplete = ()=>resolve();
         tx.onerror = ()=>reject(tx.error);
     });
+}
+
+/* --- Documents d'activité (PDF, billets, réservations...) ---
+   Même store IndexedDB que les photos (kind:"attachment" les distingue,
+   voir getDayPhotos()/getTripPhotos() plus haut) — pas synchronisées entre
+   appareils, exactement comme les photos : un fichier choisi sur le
+   téléphone n'a pas de sens à réapparaître comme "présent" sur un autre
+   appareil qui ne l'a pas réellement. fileName conservé (contrairement aux
+   photos, où le nom n'a jamais d'importance) pour l'afficher dans la liste
+   et le retrouver après un window.open() de l'URL objet. */
+async function addActivityAttachment(day,activityId,file){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+        tx.objectStore(PHOTO_STORE_NAME).add({
+            day, activityId, tripId:currentTripId,
+            kind:"attachment", fileName:file.name || "document",
+            blob:file, timestamp:Date.now()
+        });
+        tx.oncomplete = ()=>resolve();
+        tx.onerror = ()=>reject(tx.error);
+    });
+}
+
+async function getActivityAttachments(day,activityId){
+    const db = await openPhotoDB();
+    const dayRecords = await new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
+        const req = tx.objectStore(PHOTO_STORE_NAME).index("day").getAll(IDBKeyRange.only(day));
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+    });
+    return dayRecords.filter(r=>
+        r.tripId===currentTripId && r.kind==="attachment" && r.activityId===activityId
+    );
 }
 
 /* Photos prises avant l'introduction de currentTripId (voyage multiple) :
@@ -6165,6 +6248,124 @@ async function renderDayPhotos(){
         dayPhotoGallery.appendChild(thumb);
     });
 }
+
+/* --- Documents d'activité (billets, réservations, PDF...) ---
+   Volontairement pas de badge synchrone sur la carte d'activité comme pour
+   reservationLink (🔗) : le nombre de documents vit en IndexedDB (async,
+   local à l'appareil), alors que renderActivities() reconstruit toutes les
+   cartes de façon synchrone à chaque rendu — l'accès se fait uniquement
+   via "📎 Documents" dans le menu ⋮, qui ouvre cette modale et va chercher
+   la vraie liste à ce moment-là seulement. */
+const attachmentsModal = document.getElementById("attachmentsModal");
+const attachmentsModalTitle = document.getElementById("attachmentsModalTitle");
+const attachmentsList = document.getElementById("attachmentsList");
+const attachmentFileInput = document.getElementById("attachmentFileInput");
+const attachmentAddBtn = document.getElementById("attachmentAddBtn");
+const attachmentsModalCloseBtn = document.getElementById("attachmentsModalCloseBtn");
+
+let attachmentsModalDay = null;
+let attachmentsModalActivityId = null;
+let attachmentsObjectUrls = [];
+
+async function renderAttachmentsList(){
+
+    attachmentsObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    attachmentsObjectUrls.length = 0;
+    attachmentsList.textContent = "";
+
+    let attachments;
+    try{
+        attachments = await getActivityAttachments(attachmentsModalDay,attachmentsModalActivityId);
+    }catch(err){
+        console.error("Documents indisponibles :",err);
+        const msg = document.createElement("p");
+        msg.className = "attachments-empty";
+        msg.textContent = "Impossible de charger les documents sur cet appareil.";
+        attachmentsList.appendChild(msg);
+        return;
+    }
+
+    if(!attachments.length){
+        const msg = document.createElement("p");
+        msg.className = "attachments-empty";
+        msg.textContent = "Aucun document ajouté pour l'instant.";
+        attachmentsList.appendChild(msg);
+        return;
+    }
+
+    attachments.forEach(att=>{
+
+        const url = URL.createObjectURL(att.blob);
+        attachmentsObjectUrls.push(url);
+
+        const row = document.createElement("div");
+        row.className = "attachment-row";
+
+        const openLink = document.createElement("a");
+        openLink.className = "attachment-open-btn";
+        openLink.href = url;
+        openLink.target = "_blank";
+        openLink.rel = "noopener noreferrer";
+        openLink.textContent = `📎 ${att.fileName}`;
+        row.appendChild(openLink);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "attachment-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.setAttribute("aria-label",`Supprimer ${att.fileName}`);
+        removeBtn.addEventListener("click",()=>{
+            showConfirmModal(
+                `Supprimer « ${att.fileName} » ?`,
+                async ()=>{
+                    await deleteDayPhoto(att.id);
+                    renderAttachmentsList();
+                }
+            );
+        });
+        row.appendChild(removeBtn);
+
+        attachmentsList.appendChild(row);
+    });
+}
+
+function openAttachmentsModal(day,activity){
+    attachmentsModalDay = day;
+    attachmentsModalActivityId = activity.id;
+    attachmentsModalTitle.textContent = `📎 Documents — ${activity.name}`;
+    attachmentsModal.hidden = false;
+    renderAttachmentsList();
+}
+
+function closeAttachmentsModal(){
+    attachmentsModal.hidden = true;
+    attachmentsObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    attachmentsObjectUrls.length = 0;
+    attachmentsModalDay = null;
+    attachmentsModalActivityId = null;
+}
+
+attachmentsModalCloseBtn.addEventListener("click",closeAttachmentsModal);
+
+attachmentAddBtn.addEventListener("click",()=>{
+    attachmentFileInput.click();
+});
+
+attachmentFileInput.addEventListener("change",async ()=>{
+
+    const file = attachmentFileInput.files[0];
+    attachmentFileInput.value = "";
+    if(!file || attachmentsModalDay===null) return;
+
+    try{
+        await addActivityAttachment(attachmentsModalDay,attachmentsModalActivityId,file);
+        showToast("Document ajouté.",{type:"success"});
+        renderAttachmentsList();
+    }catch(err){
+        console.error("Impossible d'ajouter le document :",err);
+        showToast("Impossible d'ajouter le document sur cet appareil.",{type:"error"});
+    }
+});
 
 /* --- Album photos (toutes les journées, rangées par activité) --- */
 

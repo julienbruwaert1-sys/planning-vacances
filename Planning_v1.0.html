@@ -143,6 +143,19 @@
 </div>
 </div>
 
+<div id="attachmentsModal" class="modal-overlay" hidden>
+<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="attachmentsModalTitle">
+<h3 id="attachmentsModalTitle" class="paste-import-title">📎 Documents</h3>
+<p>Billet, réservation, confirmation… ajoute un fichier pour l'avoir sous la main directement dans cette activité, sans passer par un lien externe.</p>
+<div id="attachmentsList" class="attachments-list"></div>
+<input type="file" id="attachmentFileInput" hidden>
+<button id="attachmentAddBtn" class="add" type="button">＋ Ajouter un fichier</button>
+<div class="modal-actions">
+<button id="attachmentsModalCloseBtn" class="modal-btn modal-btn-cancel" type="button">Fermer</button>
+</div>
+</div>
+</div>
+
 <div id="photoLightbox" class="photo-lightbox" hidden>
 <button id="photoLightboxClose" class="photo-lightbox-close" type="button" aria-label="Fermer la photo">✕</button>
 <span id="photoLightboxCounter" class="photo-lightbox-counter" hidden></span>
