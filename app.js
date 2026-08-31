@@ -5325,6 +5325,14 @@ function isWithinBbox(lat,lon,bbox){
    Nécessite une date de départ (pour associer "Jour N" à une date réelle) ;
    sans elle, la carte reste masquée plutôt que d'afficher une donnée fausse. */
 
+/* Un seul store partagé (WEATHER_CACHE_KEY) pour la météo à un jour
+   (fetchAndShowWeather(), clé "lat,lon_YYYY-MM-DD") ET les prévisions à 7
+   jours (fetchMultiDayWeather(), clé "lat,lon_forecast7") — sans collision
+   possible tant que le suffixe d'un type ne peut pas ressembler à une date
+   ISO. Toute NOUVELLE clé ajoutée ici (ex. un futur "forecast14") doit
+   suivre la même règle : un suffixe qui ne peut jamais matcher
+   YYYY-MM-DD, sinon un type de cache pourrait silencieusement écraser
+   l'autre. */
 const WEATHER_CACHE_KEY = "weatherCache";
 const WEATHER_CACHE_TTL_MS = 3*60*60*1000;
 
@@ -7871,6 +7879,14 @@ const APP_VERSION = "1.0.0";
 document.getElementById("profileVersion").textContent = APP_VERSION;
 document.getElementById("profileVersionAbout").textContent = APP_VERSION;
 
+/* Malgré le nom de la section ci-dessus, [data-profile-view] n'est plus
+   réservé à des .profile-row du Profil : dayWeatherCard (carte météo du
+   Planning) porte aussi cet attribut pour réutiliser ce déclenchement
+   générique (ouverture/fermeture/restauration après rafraîchissement)
+   plutôt que d'en écrire un second. Ne pas ajouter ici de logique qui
+   suppose que "row" est forcément un .profile-row (classe CSS, contexte
+   .profile-cat-group, etc.) sans vérifier — ça casserait silencieusement
+   pour ce déclencheur-là. */
 document.querySelectorAll("[data-profile-view]").forEach(row=>{
     row.addEventListener("click",()=>{
         closeAllFullscreenViews();

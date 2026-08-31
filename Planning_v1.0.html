@@ -451,6 +451,10 @@
 <select id="daySelect"></select>
 </div>
 <div class="day-content">
+<!-- Interactive depuis l'ajout de la vue "Météo des prochains jours" (voir
+     app.js, renderWeatherForecast()) : role/tabindex/data-profile-view sont
+     nécessaires, pas des attributs décoratifs — les retirer redésactiverait
+     silencieusement le tapotement ET le clavier sur cette carte. -->
 <div id="dayWeatherCard" class="weather-card" hidden role="button" tabindex="0" aria-label="Voir les prévisions des prochains jours" data-profile-view="weatherForecastView">
 <span id="weatherIcon" class="weather-icon-big"></span>
 <div class="weather-details">
