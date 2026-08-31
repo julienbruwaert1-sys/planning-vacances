@@ -3517,14 +3517,16 @@ function isDesktopContext(){
     return window.innerWidth > 600;
 }
 
+/* Onglets toujours visibles (mobile et desktop) depuis l'ajout de
+   Destination — avant, ils n'apparaissaient que sur desktop et tout
+   s'empilait sans onglet sur mobile, ce qui masquait la vue à onglets
+   validée en mockup (variante 2) sur téléphone, là où elle compte le plus. */
 function updateDateTabs(){
 
-    const desktop = isDesktopContext();
-
-    dateTabs.hidden = !desktop;
+    dateTabs.hidden = false;
 
     dateWrapRows.forEach(row=>{
-        row.hidden = desktop && row.dataset.tab!==activeDateTab;
+        row.hidden = row.dataset.tab!==activeDateTab;
     });
 }
 
