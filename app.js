@@ -2619,16 +2619,23 @@ function qrScanFrame(){
             triggerHaptic(20);
             stopQrScan();
 
-            /* SYNC_QR_PREFIX (déclaré plus bas avec le reste de la
-               synchronisation, mais lu ici sans risque de TDZ : ce code ne
-               s'exécute que sur un vrai scan, forcément après le chargement
-               complet du script) distingue un QR généré par
-               renderInlineSyncQr() d'un vrai texte de réservation scanné —
-               réutilise syncCodeInput/syncJoinBtn tels quels (même logique
-               de liaison, écran de confirmation inclus) plutôt que de la
-               dupliquer. */
-            if(code.data.startsWith(SYNC_QR_PREFIX)){
-                syncCodeInput.value = code.data.slice(SYNC_QR_PREFIX.length).trim().toUpperCase();
+            /* Le QR de synchronisation encode maintenant une vraie URL
+               (?sync=CODE, voir renderInlineSyncQr() plus bas) — pour que la
+               caméra native du téléphone sache aussi quoi en faire (avant,
+               un préfixe "planvac-sync:" arbitraire faisait échouer le scan
+               natif avec "aucune application ne peut utiliser ce code").
+               new URL() lève sur du texte de réservation normal (pas une
+               URL) : capturé, on retombe simplement sur le parsing habituel.
+               syncCodeInput/syncJoinBtn référencés ici sans risque de TDZ :
+               ce code ne s'exécute que sur un vrai scan, forcément après le
+               chargement complet du script. */
+            let scannedSyncCode = null;
+            try{
+                scannedSyncCode = new URL(code.data).searchParams.get("sync");
+            }catch(err){}
+
+            if(scannedSyncCode){
+                syncCodeInput.value = scannedSyncCode.trim().toUpperCase();
                 syncJoinBtn.click();
                 return;
             }
@@ -9153,12 +9160,6 @@ const syncSectionMetaList = document.getElementById("syncSectionMetaList");
 const syncQrContainer = document.getElementById("syncQrContainer");
 const syncHistoryRow = document.getElementById("syncHistoryRow");
 
-/* Préfixe distinctif (pas juste le code nu) : permet à qrScanFrame() plus
-   haut de reconnaître un QR de synchronisation et de le router vers la
-   liaison plutôt que vers le parsing de réservation habituel, sans
-   ambiguïté possible avec un vrai texte de réservation scanné. */
-const SYNC_QR_PREFIX = "planvac-sync:";
-
 /* Rendu une seule fois par code (pas à chaque updateSyncPanelView(), qui est
    appelé très souvent) : syncQrRenderedFor garde trace du dernier code déjà
    dessiné, et se remet naturellement à jour quand syncCode change (régénéré
@@ -9170,8 +9171,17 @@ function renderInlineSyncQr(){
     if(syncQrRenderedFor===syncCode) return;
     syncQrContainer.textContent = "";
     if(typeof QRCode!=="function") return;
+
+    /* Une vraie URL (pas un texte arbitraire préfixé) : la caméra native du
+       téléphone sait l'ouvrir directement, au lieu d'afficher "aucune
+       application ne peut utiliser ce code" faute de savoir quoi faire d'un
+       schéma inconnu. location.origin+pathname s'adapte tout seul, que
+       l'appli tourne sur GitHub Pages ou sur le Live Server local. Le
+       chargement de la page lit ce paramètre plus bas (juste après
+       updateSyncPanelView() initial) et déclenche la même liaison que
+       qrScanFrame(). */
     new QRCode(syncQrContainer,{
-        text: SYNC_QR_PREFIX+syncCode,
+        text: location.origin+location.pathname+"?sync="+syncCode,
         width:180,
         height:180,
         colorDark:"#33404A",
@@ -9932,6 +9942,20 @@ updateSyncPanelView();
 
 if(syncCode){
     startSyncListener();
+}
+
+/* Arrivée depuis un lien de QR de synchronisation (renderInlineSyncQr() plus
+   haut) ouvert par la caméra native du téléphone ou une autre appli — donc
+   PAS via qrScanFrame(), qui gère le cas "scanné avec le scanner interne de
+   l'appli". Même flux de liaison que ce dernier (remplir syncCodeInput,
+   cliquer syncJoinBtn) pour ne pas dupliquer la logique. Le paramètre est
+   retiré de l'URL tout de suite après, sinon un simple rechargement de page
+   relancerait la liaison à chaque fois. */
+const urlSyncCode = new URLSearchParams(location.search).get("sync");
+if(urlSyncCode){
+    history.replaceState(null,"",location.pathname);
+    syncCodeInput.value = urlSyncCode.trim().toUpperCase();
+    syncJoinBtn.click();
 }
 
 /* --- Service Worker (installation & fonctionnement hors-ligne) --- */
