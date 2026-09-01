@@ -484,44 +484,6 @@ body.dark .date-field label{
     min-width:0;
 }
 
-.sync-direction-choice{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    margin-top:8px;
-}
-
-.sync-direction-option{
-    padding:8px 10px;
-    border-radius:10px;
-    border:1px solid rgba(51,64,74,.15);
-    background:#F1F7FB;
-    color:#33404A;
-    font-family:'Inter',Arial,sans-serif;
-    font-size:12px;
-    font-weight:600;
-    text-align:left;
-    cursor:pointer;
-}
-
-.sync-direction-option.active{
-    background:#D2503B;
-    color:#FFFFFF;
-    border-color:#D2503B;
-}
-
-body.dark .sync-direction-option{
-    background:#182238;
-    color:#EAF0FB;
-    border-color:rgba(234,240,251,.15);
-}
-
-body.dark .sync-direction-option.active{
-    background:#3D7CFF;
-    color:#FFFFFF;
-    border-color:#3D7CFF;
-}
-
 .sync-code-row{
     display:flex;
     align-items:center;
@@ -5638,7 +5600,6 @@ body.theme-noel .welcome-eyebrow{
     color:#B3261E;
 }
 
-body.theme-noel .sync-direction-option.active,
 body.theme-noel .help-notes-send-btn,
 body.theme-noel .map-country-toggle.active,
 body.theme-noel .map-poi-search-btn,
@@ -5650,7 +5611,6 @@ body.theme-noel .tricount-currency-option.active{
     background:#B3261E;
 }
 
-body.theme-noel .sync-direction-option.active,
 body.theme-noel .map-country-toggle.active,
 body.theme-noel .checklist-template-chip.active,
 body.theme-noel .tricount-currency-option.active{
@@ -5983,7 +5943,6 @@ body.theme-ghibli .welcome-eyebrow{
     color:#5B7B4F;
 }
 
-body.theme-ghibli .sync-direction-option.active,
 body.theme-ghibli .help-notes-send-btn,
 body.theme-ghibli .map-country-toggle.active,
 body.theme-ghibli .map-poi-search-btn,
@@ -5995,7 +5954,6 @@ body.theme-ghibli .tricount-currency-option.active{
     background:#5B7B4F;
 }
 
-body.theme-ghibli .sync-direction-option.active,
 body.theme-ghibli .map-country-toggle.active,
 body.theme-ghibli .checklist-template-chip.active,
 body.theme-ghibli .tricount-currency-option.active{
@@ -6462,7 +6420,6 @@ body.theme-halloween .welcome-eyebrow{
     color:#E27A3F;
 }
 
-body.theme-halloween .sync-direction-option.active,
 body.theme-halloween .help-notes-send-btn,
 body.theme-halloween .map-country-toggle.active,
 body.theme-halloween .map-poi-search-btn,
@@ -6474,7 +6431,6 @@ body.theme-halloween .tricount-currency-option.active{
     background:#E27A3F;
 }
 
-body.theme-halloween .sync-direction-option.active,
 body.theme-halloween .map-country-toggle.active,
 body.theme-halloween .checklist-template-chip.active,
 body.theme-halloween .tricount-currency-option.active{

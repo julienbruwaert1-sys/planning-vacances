@@ -487,7 +487,12 @@ const icons = {
     Restaurant:"🍽️",
     Musée:"🏛️",
     Bar:"🍹",
-    Visite:"📍",
+    /* 🚶 pas 📍 (2026-09-02) : 📍 sert déjà partout ailleurs à indiquer
+       "cette activité a une adresse" (suffixe de carte, popups carte,
+       "Ouvrir dans Maps"...) — le garder aussi comme icône du TYPE Visite
+       affichait deux 📍 identiques côte à côte sur la même carte dès
+       qu'une visite avait une adresse renseignée, illisible. */
+    Visite:"🚶",
     Randonnée:"🥾",
     Shopping:"🛍️",
     Logement:"🏨",
@@ -10861,28 +10866,13 @@ syncGenerateBtn.addEventListener("click",()=>{
     showToast("Code de synchronisation généré.",{type:"success"});
 });
 
-/* Choix du sens de la liaison — par défaut "theirs" (comportement historique :
-   ce planning est remplacé par celui de l'autre appareil), sélectionnable
-   sur "mine" pour l'inverse (envoyer ce planning et remplacer celui de
-   l'autre). Voir syncJoinBtn plus bas pour pourquoi "mine" pousse les
-   données AVANT de démarrer l'écoute Firebase (startSyncListener), plutôt
-   que d'utiliser pushToSync() : son .on("value") se déclenche une première
-   fois avec les données déjà présentes sous ce code, qui appartiennent à
-   l'autre appareil — sans cette précaution, applySyncData() écraserait le
-   planning qu'on vient justement de choisir de garder. */
-let syncJoinDirection = "theirs";
-
-document.querySelectorAll(".sync-direction-option").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-        syncJoinDirection = btn.dataset.direction;
-        document.querySelectorAll(".sync-direction-option").forEach(b=>{
-            const active = b===btn;
-            b.classList.toggle("active",active);
-            b.setAttribute("aria-pressed",String(active));
-        });
-    });
-});
-
+/* Choix "recevoir/envoyer" supprimé (demande explicite 2026-09-02) : lier
+   un appareil à un code existant (QR scanné ou code à 10 caractères tapé)
+   ne fait plus qu'une seule chose, sans ambiguïté possible — cet appareil
+   REÇOIT toujours le planning de celui qui a généré le code. Pour repartir
+   dans l'autre sens (partager CE planning), l'appareil qui a les données à
+   garder doit être celui qui génère le code (syncGenerateBtn), pas celui
+   qui le rejoint. */
 syncJoinBtn.addEventListener("click",()=>{
 
     const code = syncCodeInput.value.trim().toUpperCase();
@@ -10896,27 +10886,6 @@ syncJoinBtn.addEventListener("click",()=>{
 
         if(!data){
             showToast("Aucune donnée trouvée pour ce code.",{type:"error"});
-            return;
-        }
-
-        if(syncJoinDirection==="mine"){
-
-            showConfirmModal(
-                "Lier cet appareil enverra le planning de cet appareil vers l'autre — le planning actuellement sur l'autre appareil sera remplacé. Continuer ?",
-                ()=>{
-                    syncJoinBtn.disabled = true;
-                    pushFullSnapshotToRemote(code).then(()=>{
-                        syncJoinBtn.disabled = false;
-                        pairWithCode(code,{isNew:false});
-                        syncCodeInput.value = "";
-                        showToast("Appareil lié — ton planning a été envoyé à l'autre appareil.",{type:"success"});
-                    }).catch(()=>{
-                        syncJoinBtn.disabled = false;
-                        showToast("Impossible d'envoyer le planning à l'autre appareil.",{type:"error"});
-                    });
-                }
-            );
-
             return;
         }
 
