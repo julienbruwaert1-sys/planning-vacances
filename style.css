@@ -5728,13 +5728,15 @@ body.dark.theme-noel .profile-section{
    vue déjà themé, pas couvertes par lui. */
 body.theme-noel .day-content,
 body.theme-noel .converter-card,
-body.theme-noel .profile-list{
+body.theme-noel .profile-list,
+body.theme-noel .map-day-sheet{
     background:#EDF5EE;
 }
 
 body.dark.theme-noel .day-content,
 body.dark.theme-noel .converter-card,
-body.dark.theme-noel .profile-list{
+body.dark.theme-noel .profile-list,
+body.dark.theme-noel .map-day-sheet{
     background:#132A22;
 }
 
@@ -5748,7 +5750,8 @@ body.dark.theme-noel .weather-summary-card{
     background:linear-gradient(135deg,#132A22,#0B1A15);
 }
 
-body.theme-noel .activity{
+body.theme-noel .activity,
+body.theme-noel .map-day-sheet-row-item{
     background:#EDF5EE;
 }
 
@@ -5756,7 +5759,8 @@ body.theme-noel .activity:hover{
     background:#FBEDEC;
 }
 
-body.dark.theme-noel .activity{
+body.dark.theme-noel .activity,
+body.dark.theme-noel .map-day-sheet-row-item{
     background:#132A22;
 }
 
@@ -6046,13 +6050,15 @@ body.dark.theme-ghibli .profile-section{
 
 body.theme-ghibli .day-content,
 body.theme-ghibli .converter-card,
-body.theme-ghibli .profile-list{
+body.theme-ghibli .profile-list,
+body.theme-ghibli .map-day-sheet{
     background:#E7EFDA;
 }
 
 body.dark.theme-ghibli .day-content,
 body.dark.theme-ghibli .converter-card,
-body.dark.theme-ghibli .profile-list{
+body.dark.theme-ghibli .profile-list,
+body.dark.theme-ghibli .map-day-sheet{
     background:#2A3A2E;
 }
 
@@ -6066,7 +6072,8 @@ body.dark.theme-ghibli .weather-summary-card{
     background:linear-gradient(135deg,#2A3A2E,#1A241D);
 }
 
-body.theme-ghibli .activity{
+body.theme-ghibli .activity,
+body.theme-ghibli .map-day-sheet-row-item{
     background:#E7EFDA;
 }
 
@@ -6074,7 +6081,8 @@ body.theme-ghibli .activity:hover{
     background:#DCE9C7;
 }
 
-body.dark.theme-ghibli .activity{
+body.dark.theme-ghibli .activity,
+body.dark.theme-ghibli .map-day-sheet-row-item{
     background:#2A3A2E;
 }
 
@@ -6521,13 +6529,15 @@ body.dark.theme-halloween .profile-section{
 
 body.theme-halloween .day-content,
 body.theme-halloween .converter-card,
-body.theme-halloween .profile-list{
+body.theme-halloween .profile-list,
+body.theme-halloween .map-day-sheet{
     background:#F3DCC0;
 }
 
 body.dark.theme-halloween .day-content,
 body.dark.theme-halloween .converter-card,
-body.dark.theme-halloween .profile-list{
+body.dark.theme-halloween .profile-list,
+body.dark.theme-halloween .map-day-sheet{
     background:#332440;
 }
 
@@ -6541,7 +6551,8 @@ body.dark.theme-halloween .weather-summary-card{
     background:linear-gradient(135deg,#332440,#241A28);
 }
 
-body.theme-halloween .activity{
+body.theme-halloween .activity,
+body.theme-halloween .map-day-sheet-row-item{
     background:#F3DCC0;
 }
 
@@ -6549,7 +6560,8 @@ body.theme-halloween .activity:hover{
     background:#EFCDA4;
 }
 
-body.dark.theme-halloween .activity{
+body.dark.theme-halloween .activity,
+body.dark.theme-halloween .map-day-sheet-row-item{
     background:#332440;
 }
 

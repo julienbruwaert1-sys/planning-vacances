@@ -1639,8 +1639,8 @@ deleteTripBtn.addEventListener("click",()=>{
 
     showConfirmModal(
         "Supprimer le voyage ? Le nom, les dates, le pays, le planning, la "
-        + "checklist, les infos voyageur, le budget partagé et les "
-        + "documents/photos seront supprimés"
+        + "checklist, le budget partagé et les documents/photos seront "
+        + "supprimés"
         + (syncCode ? " et la synchronisation avec l'autre appareil sera coupée" : "")
         + ". Cette action est irréversible.",
         async ()=>{
