@@ -7916,7 +7916,6 @@ mapPoiSearchInput.addEventListener("keydown",e=>{
 const APP_VERSION = "1.0.0";
 
 document.getElementById("profileVersion").textContent = APP_VERSION;
-document.getElementById("profileVersionAbout").textContent = APP_VERSION;
 
 /* Malgré le nom de la section ci-dessus, [data-profile-view] n'est plus
    réservé à des .profile-row du Profil : dayWeatherCard (carte météo du
@@ -9669,6 +9668,14 @@ function updateSyncPanelView(){
         syncUnpaired.hidden = false;
         syncPaired.hidden = true;
         syncPanel.classList.remove("wide");
+        /* Explicite plutôt que de compter uniquement sur syncPaired.hidden
+           pour masquer ses descendants en cascade : remet à zéro l'état
+           propre à syncManualActions, qui n'est sinon réinitialisé que
+           depuis la branche "appairé" (updateSyncAutoModeUI()) et jamais
+           ici — pas de bug observé en pratique (l'ancêtre masqué suffit),
+           mais évite toute dépendance implicite si la structure change un
+           jour. */
+        syncManualActions.hidden = true;
     }
 }
 

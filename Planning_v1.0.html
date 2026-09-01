@@ -230,11 +230,6 @@
 </div>
 
 <div class="settings-tab-group" data-tab="donnees">
-<div class="menu-divider"></div>
-<div class="menu-section-label">Données</div>
-<button id="checkUpdateBtn" class="menu-item" type="button" role="menuitem" title="Vérifier les mises à jour" aria-label="Vérifier les mises à jour de l'application"><span class="menu-item-icon">⬇️</span><span class="menu-item-label">Vérifier les mises à jour</span></button>
-
-<div class="menu-divider"></div>
 <div class="menu-section-label">Importer</div>
 <button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json,.ics" hidden>
@@ -291,8 +286,8 @@
 <button id="syncJoinBtn" class="add" type="button">Lier</button>
 </div>
 <div class="sync-direction-choice" role="radiogroup" aria-label="Planning à conserver lors de la liaison">
-<button type="button" class="sync-direction-option active" data-direction="theirs" aria-pressed="true">📥 Récupérer le planning de l'autre appareil</button>
-<button type="button" class="sync-direction-option" data-direction="mine" aria-pressed="false">📤 Envoyer le planning de cet appareil</button>
+<button type="button" class="sync-direction-option active" data-direction="theirs" aria-pressed="true">📥 En me liant, recevoir son planning</button>
+<button type="button" class="sync-direction-option" data-direction="mine" aria-pressed="false">📤 En me liant, envoyer le mien</button>
 </div>
 </div>
 
@@ -975,9 +970,8 @@ Masquer les éléments cochés
 <h2>ℹ️ À propos</h2>
 </div>
 <div class="fullscreen-body">
-<div class="profile-section">
-<p class="profile-about">Planificateur de Vacances — application personnelle, 100% locale et utilisable hors-ligne.</p>
-<p class="profile-version-about">Version <span id="profileVersionAbout"></span></p>
+<div class="profile-list">
+<button id="checkUpdateBtn" class="profile-row" type="button"><span class="profile-row-icon">⬇️</span><span class="profile-row-label">Vérifier les mises à jour</span><span class="profile-row-chevron">›</span></button>
 </div>
 <div class="profile-section">
 <div class="profile-field">
