@@ -9170,6 +9170,17 @@ const SYNC_CODE_KEY = "syncCode";
 const SYNC_DEVICE_ID_KEY = "syncDeviceId";
 const SYNC_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
+/* Appairer (QR/code) et synchroniser le planning en continu sont maintenant
+   deux choses séparées (mockup B validé) : par défaut activée (comportement
+   historique inchangé pour qui est déjà appairé), désactivable pour ne
+   transférer le planning qu'à la demande via syncPullBtn/syncPushBtn. Voir
+   startSyncListener() plus bas — c'est ELLE qui décide si le listener
+   Firebase continu (syncRef) s'attache ou non ; pushToSync() n'a rien à
+   savoir de ce réglage, il no-op déjà tout seul quand syncRef est null. */
+const SYNC_AUTO_KEY = "syncAutoEnabled";
+let syncAutoEnabled = localStorage.getItem(SYNC_AUTO_KEY);
+syncAutoEnabled = syncAutoEnabled===null ? true : syncAutoEnabled==="1";
+
 let syncDeviceId = localStorage.getItem(SYNC_DEVICE_ID_KEY);
 if(!syncDeviceId){
     syncDeviceId = Array.from(crypto.getRandomValues(new Uint8Array(8)))
@@ -9207,6 +9218,10 @@ const syncConflictBackup = document.getElementById("syncConflictBackup");
 const syncConflictBackupWhen = document.getElementById("syncConflictBackupWhen");
 const syncConflictRestoreBtn = document.getElementById("syncConflictRestoreBtn");
 const syncConflictDismissBtn = document.getElementById("syncConflictDismissBtn");
+const syncAutoToggle = document.getElementById("syncAutoToggle");
+const syncManualActions = document.getElementById("syncManualActions");
+const syncPullBtn = document.getElementById("syncPullBtn");
+const syncPushBtn = document.getElementById("syncPushBtn");
 
 deviceNameInput.value = syncDeviceName;
 
@@ -9649,6 +9664,7 @@ function updateSyncPanelView(){
         renderSyncConflictBackupRow();
         updateSyncPendingIndicator();
         updateSyncConnectionStatus();
+        updateSyncAutoModeUI();
     }else{
         syncUnpaired.hidden = false;
         syncPaired.hidden = true;
@@ -9658,6 +9674,13 @@ function updateSyncPanelView(){
 
 function collectSyncData(){
     return {
+        /* Identifiant du voyage EN COURS sur cet appareil (currentTripId,
+           déjà utilisé par l'historique des voyages) — pas juste les champs
+           du voyage. Sert à applySyncData() à distinguer "mise à jour du
+           voyage déjà partagé" de "un autre appareil a ouvert un voyage
+           différent", pour archiver automatiquement au bon moment plutôt
+           que de silencieusement mélanger deux voyages différents. */
+        tripId: currentTripId,
         planning,
         checklist,
         tricountParticipants,
@@ -9736,6 +9759,48 @@ function buildFullSyncSnapshot(){
     });
     payload.sectionMeta = sectionMeta;
     return payload;
+}
+
+/* Envoi complet (.set(), pas un .update() partiel) vers un code donné —
+   utilisé pour la toute première publication d'un nouveau code, le bouton
+   "Envoyer" manuel (mockup B), et la direction "mine" de la liaison
+   initiale. Centralisé ici pour que les trois endroits restent identiques
+   au lieu de trois copies qui divergent au fil du temps. */
+function pushFullSnapshotToRemote(code){
+    const snapshot = buildFullSyncSnapshot();
+    return syncDb.ref("trips/"+code).set(snapshot).then(()=>{
+        lastPushedPayload = JSON.parse(JSON.stringify(snapshot));
+        knownSectionMeta = JSON.parse(JSON.stringify(snapshot.sectionMeta));
+        saveKnownSectionMeta();
+        renderSyncSectionMeta();
+        recordSyncHistory(snapshot.deviceId,snapshot.updatedAt);
+    });
+}
+
+/* Simple lecture ponctuelle (.once()) — utilisée par le bouton "Récupérer"
+   manuel et la liaison initiale (direction "theirs"), qui ont chacun besoin
+   de VOIR la donnée avant de décider (appareil non trouvé, ou confirmation
+   d'écrasement) plutôt que de la laisser s'appliquer toute seule comme le
+   fait le listener continu de startSyncListener(). */
+function pullSnapshotFromRemote(code){
+    return syncDb.ref("trips/"+code).once("value").then(snapshot=>snapshot.val());
+}
+
+/* Adopte un voyage reçu d'un autre appareil dont l'identité (tripId) diffère
+   du voyage EN COURS sur cet appareil : archive d'abord ce dernier dans
+   l'historique (exactement comme "Nouveau voyage"/restaurer un voyage
+   archivé le font déjà), puis bascule l'identité locale sur le voyage reçu.
+   Centralise ce que la liaison initiale faisait déjà en ligne, maintenant
+   aussi déclenché par applySyncData() elle-même (sync continue OU
+   Récupérer manuel) — voir [[sync_reliability_hardening]]. */
+function adoptRemoteTrip(remoteTripId){
+    archiveCurrentTrip();
+    currentTripId = remoteTripId || generateId();
+    localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+    lastPushedPayload = null;
+    knownSectionMeta = {};
+    saveKnownSectionMeta();
+    refreshOpenPhotoViews();
 }
 
 function pushToSync(){
@@ -9917,6 +9982,27 @@ document.getElementById("newTripBtn").addEventListener("click",()=>{
 function applySyncData(data,isInitialLoad){
 
     if(!data) return;
+
+    /* Un AUTRE appareil a ouvert un voyage différent (Nouveau voyage,
+       restaurer depuis l'historique...) et l'a envoyé — pas juste une mise
+       à jour du voyage déjà partagé (auquel cas data.tripId===currentTripId
+       et rien ne se passe ici). Le voyage EN COURS sur CET appareil est
+       d'abord archivé, comme le fait déjà la liaison initiale — voir
+       adoptRemoteTrip(). tripSwapped évite le toast générique "Mis à jour"
+       plus bas en plus de celui-ci (redondant). Pas de toast du tout si
+       isInitialLoad : la toute première réception après un appairage/un
+       Récupérer manuel a déjà sa propre confirmation/son propre toast. */
+    let tripSwapped = false;
+    if(data.tripId && data.tripId!==currentTripId){
+        adoptRemoteTrip(data.tripId);
+        tripSwapped = true;
+        if(!isInitialLoad){
+            showToast(
+                "📦 Un voyage différent a été reçu d'un autre appareil — ton voyage précédent a été archivé dans l'historique.",
+                {type:"success",duration:7000}
+            );
+        }
+    }
 
     /* Rétrocompatibilité : un document sans sectionMeta (écrit par un
        appareil qui n'aurait pas encore chargé cette version du code)
@@ -10145,8 +10231,10 @@ function applySyncData(data,isInitialLoad){
 
         /* Pas de notification pour la toute première réception après un
            appairage/chargement de page : c'est attendu, pas une
-           "nouveauté" que l'utilisateur doit remarquer. */
-        if(!isInitialLoad){
+           "nouveauté" que l'utilisateur doit remarquer. Pas non plus si un
+           voyage différent vient d'être adopté (tripSwapped) : son propre
+           toast dédié a déjà été montré plus haut, celui-ci ferait doublon. */
+        if(!isInitialLoad && !tripSwapped){
             if(conflictBackup){
                 showToast(
                     "⚠️ Cette donnée a aussi été modifiée sur l'autre appareil — tes changements récents ont peut-être été remplacés.",
@@ -10164,12 +10252,23 @@ function applySyncData(data,isInitialLoad){
     }
 }
 
+/* La présence (savoir quels appareils sont là) et l'écoute continue du
+   PLANNING (savoir ce qu'ils ont modifié) sont maintenant deux choses
+   séparées — la présence reste toujours active dès qu'on est appairé, mais
+   le listener Firebase continu ne s'attache que si syncAutoEnabled. En
+   mode manuel, pushToSync() (appelé par savePlanning()/saveChecklist() à
+   chaque modif) no-op tout seul puisque syncRef reste null — aucun endroit
+   à part startSyncListener() n'a besoin de connaître ce réglage. */
 function startSyncListener(){
+    updateDevicePresence();
+    if(syncAutoEnabled) attachPlanningListener();
+}
+
+function attachPlanningListener(){
 
     if(syncRef) syncRef.off();
 
     syncRef = syncDb.ref("trips/"+syncCode);
-    updateDevicePresence();
 
     /* .on("value") déclenche immédiatement avec l'état déjà en base au
        moment de l'attache — ce premier événement n'est pas un "nouveau"
@@ -10194,6 +10293,13 @@ function startSyncListener(){
     });
 }
 
+function detachPlanningListener(){
+    if(syncRef){
+        syncRef.off();
+        syncRef = null;
+    }
+}
+
 function pairWithCode(code,options){
 
     syncCode = code;
@@ -10203,7 +10309,10 @@ function pairWithCode(code,options){
     updateSyncPanelView();
 
     if(options && options.isNew){
-        pushToSync();
+        /* Publication complète, indépendante de syncAutoEnabled : il faut
+           bien que trips/{code} existe pour que l'autre appareil puisse
+           un jour le lire, que la sync auto soit activée ici ou non. */
+        pushFullSnapshotToRemote(syncCode);
         syncStatus.textContent = "🟢 Code généré, en attente de l'autre appareil";
     }
 }
@@ -10307,11 +10416,9 @@ syncJoinBtn.addEventListener("click",()=>{
 
     syncJoinBtn.disabled = true;
 
-    syncDb.ref("trips/"+code).once("value").then(snapshot=>{
+    pullSnapshotFromRemote(code).then(data=>{
 
         syncJoinBtn.disabled = false;
-
-        const data = snapshot.val();
 
         if(!data){
             showToast("Aucune donnée trouvée pour ce code.",{type:"error"});
@@ -10323,19 +10430,10 @@ syncJoinBtn.addEventListener("click",()=>{
             showConfirmModal(
                 "Lier cet appareil enverra le planning de cet appareil vers l'autre — le planning actuellement sur l'autre appareil sera remplacé. Continuer ?",
                 ()=>{
-
-                    const localSnapshot = buildFullSyncSnapshot();
-
                     syncJoinBtn.disabled = true;
-
-                    syncDb.ref("trips/"+code).set(localSnapshot).then(()=>{
+                    pushFullSnapshotToRemote(code).then(()=>{
                         syncJoinBtn.disabled = false;
                         pairWithCode(code,{isNew:false});
-                        lastPushedPayload = JSON.parse(JSON.stringify(localSnapshot));
-                        knownSectionMeta = JSON.parse(JSON.stringify(localSnapshot.sectionMeta));
-                        saveKnownSectionMeta();
-                        renderSyncSectionMeta();
-                        recordSyncHistory(localSnapshot.deviceId,localSnapshot.updatedAt);
                         syncCodeInput.value = "";
                         showToast("Appareil lié — ton planning a été envoyé à l'autre appareil.",{type:"success"});
                     }).catch(()=>{
@@ -10351,23 +10449,9 @@ syncJoinBtn.addEventListener("click",()=>{
         showConfirmModal(
             "Lier cet appareil remplacera son planning actuel par celui reçu de l'autre appareil — le planning actuel sera d'abord archivé dans l'historique des voyages, tu pourras le consulter (et le restaurer) plus tard. Continuer ?",
             ()=>{
-                archiveCurrentTrip();
-
-                /* Sans ça, les photos de l'ancien voyage (dans IndexedDB, jamais
-                   synchronisées) restaient rattachées à currentTripId et
-                   continuaient donc à s'afficher dans l'Album, mélangées au
-                   planning du voyage reçu — même logique que
-                   replaceTripWithImportedRows()/finalizeTripCreation() pour
-                   "Remplacer"/"Nouveau voyage". L'ancien voyage archivé garde
-                   son vrai id (buildCurrentTripSnapshot() l'a capturé avant ce
-                   changement), donc ses photos restent bien consultables depuis
-                   son entrée dans l'historique. */
-                currentTripId = generateId();
-                localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
-
+                adoptRemoteTrip(data.tripId);
                 pairWithCode(code,{isNew:false});
                 applySyncData(data,true);
-                refreshOpenPhotoViews();
                 syncCodeInput.value = "";
                 showToast("Appareil lié avec succès — ton ancien planning a été archivé.",{type:"success"});
             }
@@ -10379,9 +10463,80 @@ syncJoinBtn.addEventListener("click",()=>{
     });
 });
 
+/* --- Récupérer / Envoyer manuellement, tant qu'on est déjà appairé (mockup
+   B) --- Mêmes briques que la liaison initiale ci-dessus
+   (pullSnapshotFromRemote/pushFullSnapshotToRemote/adoptRemoteTrip), utiles
+   à tout moment après le pairage, pas juste une fois au début — et
+   indispensables quand la synchronisation automatique est désactivée. */
+
+syncPullBtn.addEventListener("click",()=>{
+
+    syncPullBtn.disabled = true;
+
+    pullSnapshotFromRemote(syncCode).then(data=>{
+
+        syncPullBtn.disabled = false;
+
+        if(!data){
+            showToast("Aucune donnée trouvée pour ce code.",{type:"error"});
+            return;
+        }
+
+        const isDifferentTrip = data.tripId && data.tripId!==currentTripId;
+
+        showConfirmModal(
+            isDifferentTrip
+                ? "Récupérer le planning de l'autre appareil remplacera celui de cet appareil — le voyage actuel sera d'abord archivé dans l'historique, tu pourras le consulter (et le restaurer) plus tard. Continuer ?"
+                : "Récupérer le planning de l'autre appareil mettra cet appareil à jour avec ses dernières modifications. Continuer ?",
+            ()=>{
+                applySyncData(data,true);
+                showToast("Planning récupéré depuis l'autre appareil.",{type:"success"});
+            }
+        );
+
+    }).catch(()=>{
+        syncPullBtn.disabled = false;
+        showToast("Impossible de contacter le service de synchronisation.",{type:"error"});
+    });
+});
+
+syncPushBtn.addEventListener("click",()=>{
+    showConfirmModal(
+        "Envoyer le planning de cet appareil remplacera celui actuellement sur l'autre appareil — s'il diffère, son voyage actuel y sera d'abord archivé dans son historique dès qu'il rouvrira l'appli. Continuer ?",
+        ()=>{
+            syncPushBtn.disabled = true;
+            pushFullSnapshotToRemote(syncCode).then(()=>{
+                syncPushBtn.disabled = false;
+                showToast("Planning envoyé à l'autre appareil.",{type:"success"});
+            }).catch(()=>{
+                syncPushBtn.disabled = false;
+                showToast("Impossible d'envoyer le planning à l'autre appareil.",{type:"error"});
+            });
+        }
+    );
+});
+
+function updateSyncAutoModeUI(){
+    if(!syncAutoToggle) return;
+    syncAutoToggle.checked = syncAutoEnabled;
+    syncManualActions.hidden = syncAutoEnabled;
+}
+
+syncAutoToggle.addEventListener("change",()=>{
+    syncAutoEnabled = syncAutoToggle.checked;
+    localStorage.setItem(SYNC_AUTO_KEY,syncAutoEnabled ? "1" : "0");
+    updateSyncAutoModeUI();
+    if(syncAutoEnabled){
+        attachPlanningListener();
+        showToast("Synchronisation automatique activée.",{type:"success"});
+    }else{
+        detachPlanningListener();
+        showToast("Synchronisation automatique désactivée — utilise Récupérer/Envoyer pour mettre à jour manuellement.",{duration:5500});
+    }
+});
+
 function clearSyncState(){
-    if(syncRef) syncRef.off();
-    syncRef = null;
+    detachPlanningListener();
     removeOwnPresence(syncCode);
     detachDevicesPresenceListener();
     syncCode = "";
@@ -10409,15 +10564,15 @@ syncRegenerateBtn.addEventListener("click",()=>{
         "Régénérer le code coupera la synchronisation pour TOUS les appareils utilisant le code actuel — ils devront se relier avec le nouveau. Continuer ?",
         ()=>{
             const newCode = generateSyncCode();
-            const snapshot = buildFullSyncSnapshot();
+            const oldCode = syncCode;
 
             syncRegenerateBtn.disabled = true;
 
-            syncDb.ref("trips/"+newCode).set(snapshot).then(()=>{
+            pushFullSnapshotToRemote(newCode).then(()=>{
                 syncRegenerateBtn.disabled = false;
 
-                if(syncRef) syncRef.off();
-                removeOwnPresence(syncCode);
+                detachPlanningListener();
+                removeOwnPresence(oldCode);
 
                 /* Marque l'ancien code comme abandonné SANS supprimer ses
                    données : un appareil encore relié avec ce code (qui n'a
@@ -10426,7 +10581,7 @@ syncRegenerateBtn.addEventListener("click",()=>{
                    repère pour un nettoyage manuel futur (console Firebase),
                    pas une suppression automatique — voir
                    [[sync_reliability_hardening]] pour le raisonnement. */
-                syncDb.ref("trips/"+syncCode+"/abandoned").set({
+                syncDb.ref("trips/"+oldCode+"/abandoned").set({
                     at: firebase.database.ServerValue.TIMESTAMP,
                     reason: "regenerated",
                     supersededBy: newCode
@@ -10434,9 +10589,6 @@ syncRegenerateBtn.addEventListener("click",()=>{
 
                 syncCode = newCode;
                 localStorage.setItem(SYNC_CODE_KEY,syncCode);
-                lastPushedPayload = JSON.parse(JSON.stringify(snapshot));
-                knownSectionMeta = JSON.parse(JSON.stringify(snapshot.sectionMeta));
-                saveKnownSectionMeta();
 
                 startSyncListener();
                 updateSyncPanelView();

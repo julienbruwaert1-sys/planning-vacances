@@ -776,6 +776,93 @@ body.dark .sync-conflict-dismiss-btn{
     color:#E2A93A;
 }
 
+/* --- Bascule sync auto / manuelle (mockup B validé) --- */
+
+.sync-auto-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:#F1F7FB;
+    border-radius:10px;
+    padding:9px 12px;
+    margin-bottom:8px;
+    cursor:pointer;
+}
+
+.sync-auto-toggle span{
+    font-size:12px;
+    font-weight:600;
+    color:#33404A;
+}
+
+.sync-auto-switch{
+    appearance:none;
+    -webkit-appearance:none;
+    width:36px;
+    height:20px;
+    border-radius:999px;
+    background:#D8E3EA;
+    position:relative;
+    cursor:pointer;
+    flex:none;
+    margin:0;
+    transition:background .15s;
+}
+
+.sync-auto-switch::after{
+    content:"";
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:#FFFFFF;
+    box-shadow:0 1px 2px rgba(51,64,74,.3);
+    transition:left .15s;
+}
+
+.sync-auto-switch:checked{
+    background:#2F8F5B;
+}
+
+.sync-auto-switch:checked::after{
+    left:18px;
+}
+
+.sync-auto-switch:focus-visible{
+    outline:2px solid #D2503B;
+    outline-offset:2px;
+}
+
+.sync-manual-actions{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:8px;
+}
+
+.sync-manual-actions[hidden]{
+    display:none;
+}
+
+body.dark .sync-auto-toggle{
+    background:#182238;
+}
+
+body.dark .sync-auto-toggle span{
+    color:#EAF0FB;
+}
+
+body.dark .sync-auto-switch{
+    background:#2A3550;
+}
+
+body.dark .sync-auto-switch:checked{
+    background:#6fd68c;
+}
+
 /* --- Appareils synchronisés (#devicesView, ouvert depuis .sync-status) --- */
 
 .devices-summary{
