@@ -279,8 +279,28 @@ const isFirstLaunch =
    pas besoin de lire le code lui-même. */
 const arrivingViaSyncLink = new URLSearchParams(location.search).has("sync");
 
+/* Lecture directe de la clé littérale (pas via TRIP_HISTORY_KEY/
+   loadTripHistory(), déclarés bien plus bas dans la section "Historique
+   des voyages" — les appeler ici lèverait un ReferenceError, même TDZ
+   qu'arrivingViaSyncLink juste au-dessus). Sert uniquement à savoir si
+   "Plus tard"/"Annuler" ont un sens ici : sans AUCUN voyage nulle part (ni
+   en cours, ni archivé), les cacher évite une impasse — surtout que le
+   raccourci ➕ pour revenir créer un voyage plus tard a été retiré (voir
+   plus bas, ex-createTripShortcutBtn). */
+let hasAnyTripHistory = false;
+try{
+    const rawHistory = JSON.parse(localStorage.getItem("tripHistory"));
+    hasAnyTripHistory = Array.isArray(rawHistory) && rawHistory.length>0;
+}catch(err){
+    hasAnyTripHistory = false;
+}
+
 if(isFirstLaunch && !arrivingViaSyncLink){
     document.getElementById("welcomeView").hidden = false;
+    if(!localStorage.getItem(TRIP_CREATED_KEY) && !hasAnyTripHistory){
+        document.getElementById("welcomeLaterBtn").hidden = true;
+        document.getElementById("welcomeCancelBtn").hidden = true;
+    }
 }else{
     if(!tripName){
         tripName = "Mon voyage";
@@ -311,9 +331,6 @@ if(!currentTripId){
 if(tripName){
     appTitle.textContent = appTitleEmoji()+" "+tripName;
 }
-
-document.getElementById("createTripMenuItem").hidden =
-    localStorage.getItem(TRIP_CREATED_KEY)==="1";
 
 const optionsMenuItem = document.getElementById("optionsMenuItem");
 const syncMenuItem = document.getElementById("syncMenuItem");
@@ -1626,10 +1643,11 @@ deleteTripBtn.addEventListener("click",()=>{
 
     showConfirmModal(
         "Supprimer le voyage ? Le nom, les dates, le pays, le planning, la "
-        + "checklist et les infos voyageur seront supprimés"
+        + "checklist, les infos voyageur, le budget partagé et les "
+        + "documents/photos seront supprimés"
         + (syncCode ? " et la synchronisation avec l'autre appareil sera coupée" : "")
         + ". Cette action est irréversible.",
-        ()=>{
+        async ()=>{
 
             /* Coupe la synchronisation avant de vider quoi que ce soit :
                même raison que resetPlanning() juste au-dessus — une
@@ -1648,6 +1666,27 @@ deleteTripBtn.addEventListener("click",()=>{
             localStorage.removeItem(CHECKLIST_STORAGE_KEY);
             localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
             localStorage.removeItem(TRAVELER_INFO_KEY);
+            /* Manquaient ici (audit d'isolation entre voyages, 2026-09-01) :
+               Tricount et devises n'existaient pas encore quand ce
+               gestionnaire a été écrit, jamais mis à jour depuis — sans ça,
+               "Supprimer le voyage" laissait le budget partagé et la devise
+               de l'ancien voyage bien vivants pour le suivant. */
+            localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
+            localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
+            localStorage.removeItem("baseCurrency");
+            localStorage.removeItem("targetCurrency");
+            localStorage.removeItem(TRIP_TIMEZONE_KEY);
+
+            /* Contrairement à restoreTrip()/finalizeTripCreation(), ce
+               voyage n'est jamais archivé (suppression volontaire, pas un
+               remplacement) — ses photos/documents IndexedDB deviendraient
+               donc orphelins pour toujours (jamais rattachés à une entrée
+               d'historique consultable) si on ne les supprime pas ici. */
+            try{
+                await deleteTripPhotos(currentTripId);
+            }catch(err){
+                console.error("Impossible de supprimer les photos/documents du voyage :",err);
+            }
 
             location.reload();
         }
@@ -2016,6 +2055,17 @@ function replaceTripWithImportedRows(rows){
     localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
     localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
     localStorage.removeItem("startDate");
+    /* Manquait ici (audit d'isolation entre voyages, 2026-09-01) : sans ça,
+       la devise et le fuseau horaire de l'ANCIEN voyage restaient actifs
+       après un import "Remplacer" — pas juste un réglage résiduel affiché
+       à tort, mais un vrai risque de contamination des données :
+       importRows() tague chaque activité importée avec priceCurrency =
+       baseCurrency AU MOMENT DE L'IMPORT (après ce rechargement), donc une
+       devise pas remise à zéro ici se serait propagée dans les nouvelles
+       activités elles-mêmes, pas juste dans un réglage d'affichage. */
+    localStorage.removeItem("baseCurrency");
+    localStorage.removeItem("targetCurrency");
+    localStorage.removeItem(TRIP_TIMEZONE_KEY);
     localStorage.setItem("vacationPlanning",JSON.stringify({}));
 
     location.reload();
@@ -3315,12 +3365,7 @@ document.getElementById("welcomeLaterBtn").addEventListener("click",()=>{
     welcomeParticipants = [];
     renderWelcomeParticipants();
 
-    document.getElementById("createTripMenuItem").hidden = false;
     document.getElementById("welcomeView").hidden = true;
-});
-
-document.getElementById("createTripShortcutBtn").addEventListener("click",()=>{
-    document.getElementById("welcomeView").hidden = false;
 });
 
 const APP_ICON_KEY = "appIconChoice";
@@ -6948,8 +6993,16 @@ function openAttachmentsModal(day,activity){
 
 function closeAttachmentsModal(){
     attachmentsModal.hidden = true;
-    attachmentsObjectUrls.forEach(url=>URL.revokeObjectURL(url));
-    attachmentsObjectUrls.length = 0;
+    /* Garde-fou : ne devrait normalement plus se produire une fois le
+       z-index corrigé (le visualiseur couvre entièrement cette modale tant
+       qu'il est ouvert, "Fermer" n'est alors plus cliquable) — mais si
+       jamais cette fonction est appelée pendant que le visualiseur affiche
+       encore un document sourcé depuis ces mêmes URL objet, les révoquer
+       ici casserait son image/PDF en cours d'affichage. */
+    if(attachmentLightbox.hidden){
+        attachmentsObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+        attachmentsObjectUrls.length = 0;
+    }
     attachmentsModalDay = null;
     attachmentsModalActivityId = null;
 }
@@ -7495,6 +7548,10 @@ function restoreTrip(trip){
     localStorage.setItem(TRIP_COUNTRY_KEY,trip.country || "");
     localStorage.setItem("baseCurrency",trip.baseCurrency || "GBP");
     localStorage.setItem("targetCurrency",trip.targetCurrency || "");
+    /* Absent des voyages déjà archivés avant ce correctif (trip.tripTimezone
+       alors undefined) : "" retombe simplement sur le comportement neutre
+       déjà en place pour un voyage sans fuseau choisi, pas une régression. */
+    localStorage.setItem(TRIP_TIMEZONE_KEY,trip.tripTimezone || "");
     localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(trip.checklist || []));
     localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(trip.tricountParticipants || []));
     localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(trip.tricountExpenses || []));
@@ -10182,6 +10239,7 @@ function buildCurrentTripSnapshot(){
         dayCount,
         baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
         targetCurrency: localStorage.getItem("targetCurrency") || "",
+        tripTimezone: localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
         planning,
         checklist,
         tricountParticipants,
