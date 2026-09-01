@@ -671,12 +671,17 @@ function renderTabs(){
     const customTitle =
     planning[currentDay] && planning[currentDay].title;
 
-    const dateLabel = typeof formatDayDate==="function"
-        ? formatDayDate(currentDay)
+    /* Mockup C validé : "Jour X" disparaît d'ici au profit de la date
+       courte ("mar. 1 sept.") dès qu'une date de départ existe — le menu
+       déroulant juste au-dessus garde "Jour X" séparément (voir
+       formatDayDateShort()). Sans date de départ, il n'y a pas de vraie
+       date à afficher : on retombe sur "Jour X" comme avant, seul cas où
+       ce titre le montre encore. */
+    const dateLabel = typeof formatDayDateShort==="function"
+        ? formatDayDateShort(currentDay)
         : "";
 
-    let heading = `Jour ${currentDay}`;
-    if(dateLabel) heading += ` — ${dateLabel}`;
+    let heading = dateLabel || `Jour ${currentDay}`;
     if(customTitle) heading += ` — ${customTitle}`;
 
     document.getElementById("dayTitle").textContent = heading;
@@ -1250,6 +1255,7 @@ dragged = null;
             let addressReservationSuffix = "";
             if(activity.address && activity.address.trim()) addressReservationSuffix += " 📍";
             if(activity.reservationLink) addressReservationSuffix += " 🔗";
+            if(activityHasAttachments(currentDay,activity.id)) addressReservationSuffix += " 📎";
 
             const strong = document.createElement("strong");
             strong.textContent =
@@ -3849,6 +3855,25 @@ function formatDayDate(dayNumber){
         weekday:"long",
         day:"numeric",
         month:"long"
+    });
+}
+
+/* Réservé au titre du jour au-dessus des activités (renderTabs()) — mockup
+   C validé. Ne remplace PAS formatDayDate() partout : le menu déroulant de
+   sélection du jour, la vue Réservations et l'export PDF gardent le format
+   long existant sur demande explicite ("laisse le jour 1 pour le titre du
+   jour dans le menu déroulant"), donc une fonction séparée plutôt qu'un
+   paramètre optionnel sur formatDayDate() qui aurait risqué d'être oublié à
+   l'un des autres appels. */
+function formatDayDateShort(dayNumber){
+
+    const d = dateForDay(dayNumber);
+    if(!d) return "";
+
+    return d.toLocaleDateString("fr-FR",{
+        weekday:"short",
+        day:"numeric",
+        month:"short"
     });
 }
 
