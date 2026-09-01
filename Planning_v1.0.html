@@ -156,17 +156,6 @@
 </div>
 </div>
 
-<div id="qrCodeModal" class="modal-overlay" hidden>
-<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="qrCodeModalTitle">
-<h3 id="qrCodeModalTitle" class="paste-import-title">🔳 Scanner pour se synchroniser</h3>
-<p>Sur l'autre appareil : menu ⋮ → « Scanner un QR code », puis vise cet écran.</p>
-<div id="qrCodeContainer" class="qr-code-container"></div>
-<div class="modal-actions">
-<button id="qrCodeModalCloseBtn" class="modal-btn modal-btn-cancel" type="button">Fermer</button>
-</div>
-</div>
-</div>
-
 <div id="photoLightbox" class="photo-lightbox" hidden>
 <button id="photoLightboxClose" class="photo-lightbox-close" type="button" aria-label="Fermer la photo">✕</button>
 <span id="photoLightboxCounter" class="photo-lightbox-counter" hidden></span>
@@ -310,10 +299,13 @@
 <p class="sync-desc">Code à saisir sur tes autres appareils :</p>
 <div class="sync-code-row">
 <div id="syncCodeDisplay" class="sync-code-display"></div>
-<button id="syncQrBtn" class="map-country-toggle" type="button">🔳 QR code</button>
 </div>
+<div id="syncQrContainer" class="qr-inline-wrap"></div>
 <p id="syncStatus" class="sync-status">En attente…</p>
-<p id="syncHistoryInfo" class="sync-status sync-history-info"></p>
+<div id="syncHistoryRow" class="sync-history-row" hidden>
+<span id="syncHistoryInfo" class="sync-history-text"></span>
+<span class="sync-history-chevron">›</span>
+</div>
 <div id="syncSectionMetaList" class="sync-section-meta-list"></div>
 <button id="syncRegenerateBtn" class="checklist-remove" type="button">Régénérer le code (déconnecte les autres appareils)</button>
 <button id="syncUnlinkBtn" class="checklist-remove" type="button">Se déconnecter de la synchronisation</button>

@@ -2623,7 +2623,7 @@ function qrScanFrame(){
                synchronisation, mais lu ici sans risque de TDZ : ce code ne
                s'exécute que sur un vrai scan, forcément après le chargement
                complet du script) distingue un QR généré par
-               showSyncQrCode() d'un vrai texte de réservation scanné —
+               renderInlineSyncQr() d'un vrai texte de réservation scanné —
                réutilise syncCodeInput/syncJoinBtn tels quels (même logique
                de liaison, écran de confirmation inclus) plutôt que de la
                dupliquer. */
@@ -9150,10 +9150,8 @@ const syncHistoryInfo = document.getElementById("syncHistoryInfo");
 const syncUnlinkBtn = document.getElementById("syncUnlinkBtn");
 const syncRegenerateBtn = document.getElementById("syncRegenerateBtn");
 const syncSectionMetaList = document.getElementById("syncSectionMetaList");
-const syncQrBtn = document.getElementById("syncQrBtn");
-const qrCodeModal = document.getElementById("qrCodeModal");
-const qrCodeContainer = document.getElementById("qrCodeContainer");
-const qrCodeModalCloseBtn = document.getElementById("qrCodeModalCloseBtn");
+const syncQrContainer = document.getElementById("syncQrContainer");
+const syncHistoryRow = document.getElementById("syncHistoryRow");
 
 /* Préfixe distinctif (pas juste le code nu) : permet à qrScanFrame() plus
    haut de reconnaître un QR de synchronisation et de le router vers la
@@ -9161,32 +9159,30 @@ const qrCodeModalCloseBtn = document.getElementById("qrCodeModalCloseBtn");
    ambiguïté possible avec un vrai texte de réservation scanné. */
 const SYNC_QR_PREFIX = "planvac-sync:";
 
-function showSyncQrCode(){
+/* Rendu une seule fois par code (pas à chaque updateSyncPanelView(), qui est
+   appelé très souvent) : syncQrRenderedFor garde trace du dernier code déjà
+   dessiné, et se remet naturellement à jour quand syncCode change (régénéré
+   ou nouvelle liaison) puisque la comparaison échoue alors. */
+let syncQrRenderedFor = null;
 
-    if(!syncCode) return;
-
-    qrCodeContainer.textContent = "";
-
-    if(typeof QRCode!=="function"){
-        showToast("Le module QR code n'a pas pu être chargé.",{type:"error"});
-        return;
-    }
-
-    new QRCode(qrCodeContainer,{
+function renderInlineSyncQr(){
+    if(!syncCode || !syncQrContainer) return;
+    if(syncQrRenderedFor===syncCode) return;
+    syncQrContainer.textContent = "";
+    if(typeof QRCode!=="function") return;
+    new QRCode(syncQrContainer,{
         text: SYNC_QR_PREFIX+syncCode,
-        width:200,
-        height:200,
+        width:180,
+        height:180,
         colorDark:"#33404A",
         colorLight:"#FFFFFF"
     });
-
-    qrCodeModal.hidden = false;
+    syncQrRenderedFor = syncCode;
 }
 
-syncQrBtn.addEventListener("click",showSyncQrCode);
-
-qrCodeModalCloseBtn.addEventListener("click",()=>{
-    qrCodeModal.hidden = true;
+syncHistoryRow.addEventListener("click",()=>{
+    syncHistoryRow.classList.toggle("open");
+    syncSectionMetaList.classList.toggle("open");
 });
 
 /* Enregistré seulement une fois syncCode/syncStatus déclarés plus haut :
@@ -9205,6 +9201,7 @@ function renderSyncHistory(){
     const history = JSON.parse(localStorage.getItem(SYNC_HISTORY_KEY) || "null");
     if(!history){
         syncHistoryInfo.textContent = "";
+        syncHistoryRow.hidden = true;
         return;
     }
     const who = history.deviceId===syncDeviceId ? "cet appareil" : "un autre appareil";
@@ -9213,6 +9210,7 @@ function renderSyncHistory(){
         hour:"2-digit",minute:"2-digit"
     });
     syncHistoryInfo.textContent = `🕓 Dernière modification par ${who} — ${when}`;
+    syncHistoryRow.hidden = false;
 }
 
 function recordSyncHistory(deviceId,updatedAt){
@@ -9282,13 +9280,16 @@ function updateSyncPanelView(){
     if(syncCode){
         syncUnpaired.hidden = true;
         syncPaired.hidden = false;
+        syncPanel.classList.add("wide");
         syncCodeDisplay.textContent = syncCode;
+        renderInlineSyncQr();
         renderSyncHistory();
         renderSyncSectionMeta();
         updateSyncConnectionStatus();
     }else{
         syncUnpaired.hidden = false;
         syncPaired.hidden = true;
+        syncPanel.classList.remove("wide");
     }
 }
 
