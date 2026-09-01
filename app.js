@@ -1788,6 +1788,34 @@ updateActivityPriceCurrencyToggle();
    relie deux appareils entre eux, ce n'est pas une sauvegarde cloud. */
 
 const exportDataBtn = document.getElementById("exportDataBtn");
+const backupReminderHint = document.getElementById("backupReminderHint");
+
+/* Seule vraie copie de secours HORS de cet appareil et de Firebase (perte
+   du téléphone, compte Firebase supprimé...) — voir
+   [[sync_reliability_hardening]]. Purement passif (pas de notification
+   intrusive) : juste rendu visible ici, à côté du bouton, plutôt que
+   silencieux comme avant. */
+const LAST_BACKUP_KEY = "lastBackupExportAt";
+const BACKUP_REMINDER_WARNING_DAYS = 30;
+
+function updateBackupReminderHint(){
+    if(!backupReminderHint) return;
+    const last = parseInt(localStorage.getItem(LAST_BACKUP_KEY),10);
+    if(!last){
+        backupReminderHint.textContent = "Aucune sauvegarde effectuée pour l'instant.";
+        backupReminderHint.classList.remove("menu-hint-warning");
+        return;
+    }
+    const days = Math.floor((Date.now()-last)/(24*60*60*1000));
+    const when = days<=0 ? "aujourd'hui" : days===1 ? "il y a 1 jour" : `il y a ${days} jours`;
+    const isStale = days>=BACKUP_REMINDER_WARNING_DAYS;
+    backupReminderHint.textContent = isStale
+        ? `⚠️ Dernière sauvegarde ${when} — pense à en refaire une.`
+        : `Dernière sauvegarde : ${when}.`;
+    backupReminderHint.classList.toggle("menu-hint-warning",isStale);
+}
+
+updateBackupReminderHint();
 
 exportDataBtn.addEventListener("click",()=>{
 
@@ -1817,6 +1845,9 @@ exportDataBtn.addEventListener("click",()=>{
     // Capacitor, voir plus bas) plutôt que de dupliquer le même
     // téléchargement — étend la préparation Android à cet export gratuitement.
     downloadBlobToGallery(blob,`planning_vacances_${new Date().toISOString().slice(0,10)}.json`);
+
+    localStorage.setItem(LAST_BACKUP_KEY,Date.now());
+    updateBackupReminderHint();
 
     showToast("Sauvegarde exportée.",{type:"success"});
 });
@@ -9171,6 +9202,11 @@ const deviceNameSaveBtn = document.getElementById("deviceNameSaveBtn");
 const devicesView = document.getElementById("devicesView");
 const devicesSummary = document.getElementById("devicesSummary");
 const devicesList = document.getElementById("devicesList");
+const syncPendingInfo = document.getElementById("syncPendingInfo");
+const syncConflictBackup = document.getElementById("syncConflictBackup");
+const syncConflictBackupWhen = document.getElementById("syncConflictBackupWhen");
+const syncConflictRestoreBtn = document.getElementById("syncConflictRestoreBtn");
+const syncConflictDismissBtn = document.getElementById("syncConflictDismissBtn");
 
 deviceNameInput.value = syncDeviceName;
 
@@ -9453,6 +9489,19 @@ function renderSyncSectionMeta(){
     SYNC_SECTION_GROUPS.forEach(group=>{
         let latest = null;
         group.keys.forEach(k=>{
+            /* "planning" est un objet {jour: {deviceId,updatedAt}} depuis le
+               passage à une synchro par jour (voir pushToSync()/
+               applySyncData()), pas un {deviceId,updatedAt} plat comme les
+               autres clés — on prend le jour le plus récent. */
+            if(k==="planning"){
+                const perDay = knownSectionMeta.planning;
+                if(perDay && typeof perDay==="object"){
+                    Object.values(perDay).forEach(m=>{
+                        if(m && (!latest || m.updatedAt>latest.updatedAt)) latest = m;
+                    });
+                }
+                return;
+            }
             const m = knownSectionMeta[k];
             if(m && (!latest || m.updatedAt>latest.updatedAt)) latest = m;
         });
@@ -9482,6 +9531,112 @@ function generateSyncCode(){
     return code;
 }
 
+/* --- Écritures en attente d'envoi (visibilité, pas juste "ça marche tout
+   seul") --- Le SDK Firebase met en file les écritures faites hors ligne et
+   les rejoue à la reconnexion (voir le commentaire près de firebaseConnected
+   plus haut), mais l'utilisateur n'a aujourd'hui aucun signe qu'il y a
+   quelque chose "en attente" pendant ce temps. pendingSyncWrites compte les
+   .update() lancés mais pas encore confirmés par le serveur — incrémenté
+   juste avant syncRef.update(), décrémenté dans .then() ET .catch() (voir
+   pushToSync()) : reste donc élevé tant qu'on est hors ligne, puisque la
+   promesse d'un .update() ne se résout qu'une fois l'écriture accusée par
+   le serveur, jamais de façon optimiste. */
+let pendingSyncWrites = 0;
+
+function updateSyncPendingIndicator(){
+    if(!syncPendingInfo) return;
+    if(pendingSyncWrites<=0){
+        syncPendingInfo.hidden = true;
+        return;
+    }
+    syncPendingInfo.textContent = pendingSyncWrites===1
+        ? "📤 1 modification en attente d'envoi…"
+        : `📤 ${pendingSyncWrites} modifications en attente d'envoi…`;
+    syncPendingInfo.hidden = false;
+}
+
+/* --- Filet de sécurité en cas de conflit de synchronisation ---
+   Voir applySyncData() : quand une donnée distante s'apprête à écraser une
+   section où CET appareil a un changement local pas encore envoyé (donc un
+   vrai conflit, pas juste une mise à jour normale), la valeur locale
+   d'avant écrasement est sauvegardée ici avant d'être remplacée — un seul
+   niveau de backup (pas un historique), pour rester simple. */
+const SYNC_CONFLICT_BACKUP_KEY = "syncConflictBackup";
+
+function renderSyncConflictBackupRow(){
+    if(!syncConflictBackup) return;
+    const backup = JSON.parse(localStorage.getItem(SYNC_CONFLICT_BACKUP_KEY) || "null");
+    if(!backup){
+        syncConflictBackup.hidden = true;
+        return;
+    }
+    syncConflictBackupWhen.textContent = new Date(backup.timestamp).toLocaleString("fr-FR",{
+        day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"
+    });
+    syncConflictBackup.hidden = false;
+}
+
+function restoreSyncConflictBackup(){
+
+    const backup = JSON.parse(localStorage.getItem(SYNC_CONFLICT_BACKUP_KEY) || "null");
+    if(!backup) return;
+
+    let restoredAnything = false;
+
+    if(backup.planning){
+        Object.keys(backup.planning).forEach(day=>{
+            if(UNSAFE_OBJECT_KEYS.includes(day)) return;
+            planning[day] = backup.planning[day];
+        });
+        sanitizePlanningSlots();
+        restoredAnything = true;
+    }
+
+    if(backup.checklist!==undefined){
+        checklist = backup.checklist;
+        restoredAnything = true;
+    }
+
+    if(backup.tricountParticipants!==undefined){
+        tricountParticipants = backup.tricountParticipants;
+        localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(tricountParticipants));
+        restoredAnything = true;
+    }
+
+    if(backup.tricountExpenses!==undefined){
+        tricountExpenses = backup.tricountExpenses;
+        localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(tricountExpenses));
+        restoredAnything = true;
+    }
+
+    if(!restoredAnything) return;
+
+    localStorage.removeItem(SYNC_CONFLICT_BACKUP_KEY);
+    renderSyncConflictBackupRow();
+
+    localStorage.setItem("vacationPlanning",JSON.stringify(planning));
+    localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(checklist));
+
+    createTabs();
+    renderActivities();
+    renderChecklist();
+    renderTricount();
+
+    /* Repousse la version restaurée pour qu'elle l'emporte à nouveau côté
+       Firebase — sans ça, elle ne resterait que locale et un prochain
+       événement distant pourrait l'écraser une seconde fois. */
+    pushToSync();
+
+    showToast("Tes changements ont été restaurés.",{type:"success"});
+}
+
+syncConflictRestoreBtn.addEventListener("click",restoreSyncConflictBackup);
+
+syncConflictDismissBtn.addEventListener("click",()=>{
+    localStorage.removeItem(SYNC_CONFLICT_BACKUP_KEY);
+    renderSyncConflictBackupRow();
+});
+
 function updateSyncPanelView(){
     if(syncCode){
         syncUnpaired.hidden = true;
@@ -9491,6 +9646,8 @@ function updateSyncPanelView(){
         renderInlineSyncQr();
         renderSyncHistory();
         renderSyncSectionMeta();
+        renderSyncConflictBackupRow();
+        updateSyncPendingIndicator();
         updateSyncConnectionStatus();
     }else{
         syncUnpaired.hidden = false;
@@ -9532,9 +9689,32 @@ function collectSyncData(){
    différence. */
 let lastPushedPayload = null;
 
+const UNSAFE_OBJECT_KEYS = ["__proto__","constructor","prototype"];
+
+/* "planning" est exclu de la comparaison à plat : un jour ajouté/modifié
+   pendant qu'un AUTRE jour a aussi changé ailleurs ne doit pas être compté
+   comme "toute la section a changé" — voir computeChangedPlanningDays() et
+   le commentaire dans pushToSync(). */
 function computeChangedSections(payload){
     if(!lastPushedPayload) return SYNC_ALL_KEYS.slice();
-    return SYNC_ALL_KEYS.filter(k=>JSON.stringify(payload[k])!==JSON.stringify(lastPushedPayload[k]));
+    return SYNC_ALL_KEYS.filter(k=>{
+        if(k==="planning") return computeChangedPlanningDays(payload).length>0;
+        return JSON.stringify(payload[k])!==JSON.stringify(lastPushedPayload[k]);
+    });
+}
+
+/* Jours dont le contenu diffère du dernier envoi réussi de CET appareil
+   (ajoutés, modifiés OU supprimés — un jour présent avant et absent
+   maintenant compte aussi, pour que sa suppression soit propagée). Sert à
+   la fois à pushToSync() (quels chemins Firebase écrire) et au filet de
+   sécurité anti-conflit dans applySyncData(). */
+function computeChangedPlanningDays(payload){
+    const prevPlanning = (lastPushedPayload && lastPushedPayload.planning) || {};
+    const nextPlanning = payload.planning || {};
+    const days = new Set([...Object.keys(prevPlanning),...Object.keys(nextPlanning)]);
+    return Array.from(days).filter(day=>
+        JSON.stringify(nextPlanning[day])!==JSON.stringify(prevPlanning[day])
+    );
 }
 
 /* Instantané complet prêt pour un .set() (pas un .update() partiel) —
@@ -9542,9 +9722,17 @@ function computeChangedSections(payload){
    direction "mine" en rejoignant un code, et la régénération de code. */
 function buildFullSyncSnapshot(){
     const payload = collectSyncData();
+    const meta = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
     const sectionMeta = {};
     SYNC_ALL_KEYS.forEach(k=>{
-        sectionMeta[k] = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+        if(k==="planning"){
+            sectionMeta.planning = {};
+            Object.keys(payload.planning || {}).forEach(day=>{
+                sectionMeta.planning[day] = meta;
+            });
+            return;
+        }
+        sectionMeta[k] = meta;
     });
     payload.sectionMeta = sectionMeta;
     return payload;
@@ -9563,6 +9751,24 @@ function pushToSync(){
 
         if(changed.length===0) return;
 
+        const meta = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+        const update = { updatedAt: payload.updatedAt, deviceId: payload.deviceId };
+
+        /* "planning" écrit un chemin Firebase PAR JOUR ("planning/Jour 3"),
+           pas un seul "planning" global comme les autres sections : ainsi,
+           si deux appareils hors ligne modifient chacun un jour différent,
+           Firebase fusionne nativement les deux écritures à la reconnexion
+           au lieu que la seconde n'écrase tout le planning de la première
+           (y compris les jours qu'elle n'avait pas touchés). Un jour
+           supprimé s'écrit comme null, ce que .update() traite comme une
+           suppression de ce chemin. */
+        const changedPlanningDays = changed.includes("planning") ? computeChangedPlanningDays(payload) : [];
+        changedPlanningDays.forEach(day=>{
+            if(UNSAFE_OBJECT_KEYS.includes(day)) return;
+            update["planning/"+day] = (payload.planning && payload.planning[day]!==undefined) ? payload.planning[day] : null;
+            update["sectionMeta/planning/"+day] = meta;
+        });
+
         /* .update() (pas .set()) : seules les clés listées ici sont
            écrites — tout ce qu'un AUTRE appareil a écrit entre-temps sur
            les sections non listées reste intact, contrairement à
@@ -9570,33 +9776,41 @@ function pushToSync(){
            sauvegarde, même les sections que cet appareil n'avait pas
            touchées. Les chemins "sectionMeta/x" fonctionnent comme des
            chemins imbriqués normaux pour .update(). */
-        const update = { updatedAt: payload.updatedAt, deviceId: payload.deviceId };
         changed.forEach(k=>{
+            if(k==="planning") return;
             update[k] = payload[k];
-            update["sectionMeta/"+k] = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+            update["sectionMeta/"+k] = meta;
         });
 
+        pendingSyncWrites++;
+        updateSyncPendingIndicator();
+
         syncRef.update(update).then(()=>{
+
+            pendingSyncWrites--;
+            updateSyncPendingIndicator();
+
             lastPushedPayload = JSON.parse(JSON.stringify(payload));
+
             changed.forEach(k=>{
-                knownSectionMeta[k] = { deviceId: payload.deviceId, updatedAt: payload.updatedAt };
+                if(k==="planning"){
+                    knownSectionMeta.planning = knownSectionMeta.planning || {};
+                    changedPlanningDays.forEach(day=>{ knownSectionMeta.planning[day] = meta; });
+                    return;
+                }
+                knownSectionMeta[k] = meta;
             });
+
             saveKnownSectionMeta();
             renderSyncSectionMeta();
             recordSyncHistory(payload.deviceId,payload.updatedAt);
+
         }).catch(err=>{
+            pendingSyncWrites--;
+            updateSyncPendingIndicator();
             console.error("Erreur de synchronisation :",err);
         });
     },800);
-}
-
-const UNSAFE_OBJECT_KEYS = ["__proto__","constructor","prototype"];
-
-function mergePlanningData(target,source){
-    Object.keys(source || {}).forEach(key=>{
-        if(UNSAFE_OBJECT_KEYS.includes(key)) return;
-        target[key] = source[key];
-    });
 }
 
 function generateId(){
@@ -9715,8 +9929,13 @@ function applySyncData(data,isInitialLoad){
     const hasSectionMeta = data.sectionMeta && typeof data.sectionMeta==="object";
     if(!hasSectionMeta && data.deviceId===syncDeviceId) return;
 
-    function sectionIsSelf(key){
+    function sectionIsSelf(key,day){
         if(!hasSectionMeta) return false;
+        if(key==="planning"){
+            const perDay = data.sectionMeta.planning;
+            const meta = perDay && perDay[day];
+            return !!(meta && meta.deviceId===syncDeviceId);
+        }
         const meta = data.sectionMeta[key];
         return !!(meta && meta.deviceId===syncDeviceId);
     }
@@ -9729,27 +9948,88 @@ function applySyncData(data,isInitialLoad){
     applyingRemoteUpdate = true;
     let anyRemoteChangeApplied = false;
 
-    if(data.planning && !sectionIsSelf("planning")){
-        Object.keys(planning).forEach(key=>delete planning[key]);
-        mergePlanningData(planning,data.planning);
-        sanitizePlanningSlots();
-        savePlanning();
-        anyRemoteChangeApplied = true;
+    /* --- Filet de sécurité anti-conflit ---
+       Avant d'écraser une section locale avec la version distante, on
+       vérifie si CET appareil a un changement local pas encore confirmé
+       envoyé (la valeur locale actuelle diffère de lastPushedPayload, le
+       dernier envoi réussi) : si oui, c'est un vrai conflit — les deux
+       appareils ont modifié la même chose "en même temps" (probablement
+       l'un juste avant de recevoir la mise à jour de l'autre). On
+       sauvegarde alors la valeur locale AVANT de l'écraser, pour permettre
+       une restauration en un clic (voir restoreSyncConflictBackup() et le
+       toast plus bas) — sans ça, une modification récente pouvait
+       disparaître sans un mot. Limité aux sections où perdre du contenu
+       serait le plus coûteux (planning, checklist, dépenses partagées) :
+       les champs de métadonnées (nom du voyage, devises...) changent
+       rarement des deux côtés en même temps et sont triviaux à retaper. */
+    let conflictBackup = null;
+
+    function stashConflict(key,day,value){
+        if(!conflictBackup) conflictBackup = {};
+        if(day){
+            conflictBackup[key] = conflictBackup[key] || {};
+            conflictBackup[key][day] = value;
+        }else{
+            conflictBackup[key] = value;
+        }
+    }
+
+    function localDivergedFromLastPush(key,currentValue,day){
+        if(!lastPushedPayload) return false;
+        if(day) return JSON.stringify(currentValue)!==JSON.stringify((lastPushedPayload.planning||{})[day]);
+        return JSON.stringify(currentValue)!==JSON.stringify(lastPushedPayload[key]);
+    }
+
+    if(data.planning && typeof data.planning==="object"){
+
+        const allDays = new Set([...Object.keys(planning),...Object.keys(data.planning)]);
+        let planningChanged = false;
+
+        allDays.forEach(day=>{
+
+            if(UNSAFE_OBJECT_KEYS.includes(day)) return;
+            if(sectionIsSelf("planning",day)) return;
+
+            const remoteValue = data.planning[day]!==undefined ? data.planning[day] : null;
+            const localValue = planning[day];
+
+            if(JSON.stringify(localValue)===JSON.stringify(remoteValue)) return;
+
+            if(localDivergedFromLastPush("planning",localValue,day)){
+                stashConflict("planning",day,localValue);
+            }
+
+            if(remoteValue===null){
+                delete planning[day];
+            }else{
+                planning[day] = remoteValue;
+            }
+            planningChanged = true;
+        });
+
+        if(planningChanged){
+            sanitizePlanningSlots();
+            savePlanning();
+            anyRemoteChangeApplied = true;
+        }
     }
 
     if(Array.isArray(data.checklist) && !sectionIsSelf("checklist")){
+        if(localDivergedFromLastPush("checklist",checklist)) stashConflict("checklist",null,checklist);
         checklist = data.checklist;
         saveChecklist();
         anyRemoteChangeApplied = true;
     }
 
     if(Array.isArray(data.tricountParticipants) && !sectionIsSelf("tricountParticipants")){
+        if(localDivergedFromLastPush("tricountParticipants",tricountParticipants)) stashConflict("tricountParticipants",null,tricountParticipants);
         tricountParticipants = data.tricountParticipants;
         localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(tricountParticipants));
         anyRemoteChangeApplied = true;
     }
 
     if(Array.isArray(data.tricountExpenses) && !sectionIsSelf("tricountExpenses")){
+        if(localDivergedFromLastPush("tricountExpenses",tricountExpenses)) stashConflict("tricountExpenses",null,tricountExpenses);
         tricountExpenses = data.tricountExpenses;
         localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(tricountExpenses));
         anyRemoteChangeApplied = true;
@@ -9850,6 +10130,12 @@ function applySyncData(data,isInitialLoad){
 
     applyingRemoteUpdate = false;
 
+    if(conflictBackup){
+        conflictBackup.timestamp = Date.now();
+        localStorage.setItem(SYNC_CONFLICT_BACKUP_KEY,JSON.stringify(conflictBackup));
+        renderSyncConflictBackupRow();
+    }
+
     if(anyRemoteChangeApplied){
 
         syncStatus.textContent =
@@ -9861,7 +10147,19 @@ function applySyncData(data,isInitialLoad){
            appairage/chargement de page : c'est attendu, pas une
            "nouveauté" que l'utilisateur doit remarquer. */
         if(!isInitialLoad){
-            showToast("Mis à jour depuis un autre appareil.",{duration:3500});
+            if(conflictBackup){
+                showToast(
+                    "⚠️ Cette donnée a aussi été modifiée sur l'autre appareil — tes changements récents ont peut-être été remplacés.",
+                    {
+                        type:"error",
+                        duration:9000,
+                        actionLabel:"Restaurer",
+                        onAction:restoreSyncConflictBackup
+                    }
+                );
+            }else{
+                showToast("Mis à jour depuis un autre appareil.",{duration:3500});
+            }
         }
     }
 }
@@ -10120,6 +10418,20 @@ syncRegenerateBtn.addEventListener("click",()=>{
 
                 if(syncRef) syncRef.off();
                 removeOwnPresence(syncCode);
+
+                /* Marque l'ancien code comme abandonné SANS supprimer ses
+                   données : un appareil encore relié avec ce code (qui n'a
+                   pas encore vu ce message) continue de lire des données
+                   valables plutôt qu'un noeud brusquement vidé. Sert de
+                   repère pour un nettoyage manuel futur (console Firebase),
+                   pas une suppression automatique — voir
+                   [[sync_reliability_hardening]] pour le raisonnement. */
+                syncDb.ref("trips/"+syncCode+"/abandoned").set({
+                    at: firebase.database.ServerValue.TIMESTAMP,
+                    reason: "regenerated",
+                    supersededBy: newCode
+                });
+
                 syncCode = newCode;
                 localStorage.setItem(SYNC_CODE_KEY,syncCode);
                 lastPushedPayload = JSON.parse(JSON.stringify(snapshot));

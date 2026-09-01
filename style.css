@@ -726,6 +726,56 @@ body.dark .sync-panel button.checklist-remove{
     color:#ff8a80;
 }
 
+.sync-conflict-backup{
+    background:#FFF4E0;
+    border:1px solid rgba(178,122,0,.3);
+    border-radius:10px;
+    padding:10px 12px;
+    margin:0 0 10px;
+}
+
+.sync-conflict-backup p{
+    margin:0 0 8px;
+    font-size:11.5px;
+    color:#B27A00;
+    line-height:1.4;
+}
+
+.sync-conflict-backup-actions{
+    display:flex;
+    gap:8px;
+}
+
+.sync-conflict-backup-actions button{
+    flex:1;
+}
+
+.sync-conflict-dismiss-btn{
+    background:none;
+    border:1px solid rgba(178,122,0,.35);
+    border-radius:10px;
+    color:#B27A00;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    padding:8px 12px;
+}
+
+body.dark .sync-conflict-backup{
+    background:rgba(226,169,58,.12);
+    border-color:rgba(226,169,58,.35);
+}
+
+body.dark .sync-conflict-backup p{
+    color:#E2A93A;
+}
+
+body.dark .sync-conflict-dismiss-btn{
+    border-color:rgba(226,169,58,.4);
+    color:#E2A93A;
+}
+
 /* --- Appareils synchronisés (#devicesView, ouvert depuis .sync-status) --- */
 
 .devices-summary{
@@ -3936,6 +3986,15 @@ body.dark .activity-note{
 
 body.dark .menu-hint{
     color:#7C8BAE;
+}
+
+.menu-hint-warning{
+    color:#B27A00;
+    font-weight:600;
+}
+
+body.dark .menu-hint-warning{
+    color:#E2A93A;
 }
 
 .menu-item-danger{

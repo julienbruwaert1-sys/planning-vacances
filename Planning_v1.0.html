@@ -248,7 +248,8 @@
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
 <button id="printBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF / Imprimer" aria-label="Exporter le planning en PDF"><span class="menu-item-icon">🖨️</span><span class="menu-item-label">Exporter en PDF</span></button>
 <button id="exportIcsBtn" class="menu-item" type="button" role="menuitem" title="Exporter vers le calendrier (.ics)" aria-label="Exporter le planning vers le calendrier"><span class="menu-item-icon">🗓️</span><span class="menu-item-label">Exporter vers le calendrier</span></button>
-<button id="exportDataBtn" class="menu-item" type="button" role="menuitem" title="Exporter mes données (sauvegarde JSON)" aria-label="Exporter mes données en JSON" hidden><span class="menu-item-icon">💾</span><span class="menu-item-label">Exporter mes données</span></button>
+<button id="exportDataBtn" class="menu-item" type="button" role="menuitem" title="Exporter mes données (sauvegarde JSON)" aria-label="Exporter mes données en JSON"><span class="menu-item-icon">💾</span><span class="menu-item-label">Exporter mes données</span></button>
+<p id="backupReminderHint" class="menu-hint"></p>
 </div>
 
 <div class="settings-tab-group" data-tab="voyage">
@@ -301,12 +302,21 @@
 <div id="syncCodeDisplay" class="sync-code-display"></div>
 </div>
 <div id="syncQrContainer" class="qr-inline-wrap"></div>
+<p class="sync-desc">🔒 Ne partage ce code qu'avec des appareils de confiance : il donne un accès complet en lecture/écriture à ce voyage.</p>
+<p id="syncPendingInfo" class="sync-desc" hidden></p>
 <button id="syncStatus" class="sync-status" type="button" data-profile-view="devicesView">En attente…</button>
 <div id="syncHistoryRow" class="sync-history-row" hidden>
 <span id="syncHistoryInfo" class="sync-history-text"></span>
 <span class="sync-history-chevron">›</span>
 </div>
 <div id="syncSectionMetaList" class="sync-section-meta-list"></div>
+<div id="syncConflictBackup" class="sync-conflict-backup" hidden>
+<p>⚠️ Une modification récente a peut-être été remplacée par une synchro (<span id="syncConflictBackupWhen"></span>).</p>
+<div class="sync-conflict-backup-actions">
+<button id="syncConflictRestoreBtn" class="add" type="button">Restaurer mes changements</button>
+<button id="syncConflictDismissBtn" class="sync-conflict-dismiss-btn" type="button">Ignorer</button>
+</div>
+</div>
 <button id="syncRegenerateBtn" class="checklist-remove" type="button">Régénérer le code (déconnecte les autres appareils)</button>
 <button id="syncUnlinkBtn" class="checklist-remove" type="button">Se déconnecter de la synchronisation</button>
 </div>

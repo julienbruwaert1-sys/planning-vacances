@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "trips": {
+      ".read": false,
+      ".write": false,
+      "$code": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
