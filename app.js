@@ -4704,6 +4704,7 @@ function closeAllFullscreenViews(){
     if(!cameraView.hidden) closeCameraView();
     if(!qrScanView.hidden) stopQrScan();
     if(wakeLockWanted) releaseMapWakeLock();
+    detachDevicesPresenceListener();
     localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
 }
 
@@ -7911,6 +7912,7 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         if(row.dataset.profileView==="albumView") renderAlbumView();
         if(row.dataset.profileView==="tripHistoryView") renderTripHistoryView();
         if(row.dataset.profileView==="weatherForecastView") renderWeatherForecast();
+        if(row.dataset.profileView==="devicesView") attachDevicesPresenceListener();
         updateCountdownBanner();
     });
 });
@@ -7968,6 +7970,7 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
         }
         view.hidden = true;
         if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
+        if(view.id==="devicesView") detachDevicesPresenceListener();
         localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
         updateCountdownBanner();
     });
@@ -8008,6 +8011,7 @@ document.addEventListener("keydown",(e)=>{
         if(!view.hidden){
             view.hidden = true;
             if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
+            if(view.id==="devicesView") detachDevicesPresenceListener();
             localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
         }
     });
@@ -9143,6 +9147,9 @@ if(!syncDeviceId){
     localStorage.setItem(SYNC_DEVICE_ID_KEY,syncDeviceId);
 }
 
+const SYNC_DEVICE_NAME_KEY = "syncDeviceName";
+let syncDeviceName = localStorage.getItem(SYNC_DEVICE_NAME_KEY) || "";
+
 let syncCode = localStorage.getItem(SYNC_CODE_KEY) || "";
 let syncPushTimer = null;
 
@@ -9159,6 +9166,13 @@ const syncRegenerateBtn = document.getElementById("syncRegenerateBtn");
 const syncSectionMetaList = document.getElementById("syncSectionMetaList");
 const syncQrContainer = document.getElementById("syncQrContainer");
 const syncHistoryRow = document.getElementById("syncHistoryRow");
+const deviceNameInput = document.getElementById("deviceNameInput");
+const deviceNameSaveBtn = document.getElementById("deviceNameSaveBtn");
+const devicesView = document.getElementById("devicesView");
+const devicesSummary = document.getElementById("devicesSummary");
+const devicesList = document.getElementById("devicesList");
+
+deviceNameInput.value = syncDeviceName;
 
 /* Rendu une seule fois par code (pas à chaque updateSyncPanelView(), qui est
    appelé très souvent) : syncQrRenderedFor garde trace du dernier code déjà
@@ -9195,6 +9209,187 @@ syncHistoryRow.addEventListener("click",()=>{
     syncSectionMetaList.classList.toggle("open");
 });
 
+/* --- Présence des appareils (#devicesView, mockup C validé) ---
+   trips/{code}/presence/{deviceId} = {online, lastSeen, name} — nœud séparé
+   des données de voyage elles-mêmes (trips/{code}/planning etc.), écrit par
+   CHAQUE appareil pour lui-même uniquement (jamais pour un autre : renommer
+   un autre appareil depuis ici n'est pas supporté, seulement le sien). */
+
+function saveDeviceName(name){
+    syncDeviceName = name.trim().slice(0,40);
+    localStorage.setItem(SYNC_DEVICE_NAME_KEY,syncDeviceName);
+    deviceNameInput.value = syncDeviceName;
+    if(syncCode) updateDevicePresence();
+}
+
+deviceNameSaveBtn.addEventListener("click",()=>{
+    saveDeviceName(deviceNameInput.value);
+    showToast("Nom de l'appareil enregistré.",{type:"success"});
+});
+
+deviceNameInput.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+        e.preventDefault();
+        deviceNameSaveBtn.click();
+    }
+});
+
+/* onDisconnect() doit être ré-armé à chaque (re)connexion — Firebase l'efface
+   après chaque coupure, il ne survit pas tout seul à travers une perte de
+   réseau. Appelé à la fois ici (pairage/régénération) et dans le listener
+   ".info/connected" plus bas (reconnexion après une coupure), pour couvrir
+   les deux façons dont une session peut (re)devenir active. */
+function updateDevicePresence(){
+    if(!syncCode) return;
+    const presenceRef = syncDb.ref("trips/"+syncCode+"/presence/"+syncDeviceId);
+    presenceRef.onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP});
+    presenceRef.update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,name:syncDeviceName});
+}
+
+/* Retire l'entrée de CET appareil sous un code donné — appelé avec l'ANCIEN
+   code juste avant de s'en détacher (déconnexion ou régénération), sinon il
+   resterait affiché "en ligne" pour toujours sous un code que plus personne
+   n'utilise. */
+function removeOwnPresence(code){
+    if(code) syncDb.ref("trips/"+code+"/presence/"+syncDeviceId).remove();
+}
+
+let devicesPresenceRef = null;
+
+function renderDevicesList(presenceData){
+    if(!devicesList) return;
+    devicesList.innerHTML = "";
+
+    const entries = Object.keys(presenceData||{}).map(id=>({id,...presenceData[id]}));
+    if(!entries.find(e=>e.id===syncDeviceId)){
+        /* "online" volontairement absent : le statut de cet appareil se lit
+           toujours sur firebaseConnected plus bas, jamais sur ce champ. */
+        entries.push({id:syncDeviceId,lastSeen:Date.now(),name:syncDeviceName});
+    }
+    entries.sort((a,b)=>{
+        if(a.id===syncDeviceId) return -1;
+        if(b.id===syncDeviceId) return 1;
+        return (b.lastSeen||0)-(a.lastSeen||0);
+    });
+
+    /* Le statut de CET appareil vient de firebaseConnected (déjà su avec
+       certitude par l'appli elle-même via .info/connected), pas de
+       entry.online — cette dernière peut être momentanément périmée (valeur
+       encore "true" d'une session précédente fermée brutalement, avant que
+       ce chargement-ci ait eu le temps de la rafraîchir via
+       updateDevicePresence()). Pour les AUTRES appareils, entry.online reste
+       la seule source possible : c'est justement ce que la présence sert à
+       connaître. */
+    const onlineCount = entries.filter(e=> e.id===syncDeviceId ? firebaseConnected : e.online).length;
+    devicesSummary.innerHTML = onlineCount>0
+        ? `<b>${onlineCount}</b> appareil${onlineCount>1?"s":""} connecté${onlineCount>1?"s":""} maintenant`
+        : "Aucun appareil connecté pour l'instant";
+
+    let otherIndex = 1;
+
+    entries.forEach(entry=>{
+
+        const isSelf = entry.id===syncDeviceId;
+        const isOnline = isSelf ? firebaseConnected : !!entry.online;
+
+        const row = document.createElement("div");
+        row.className = "device-row";
+
+        const icon = document.createElement("div");
+        icon.className = "device-icon";
+        icon.textContent = "📱";
+        row.appendChild(icon);
+
+        const info = document.createElement("div");
+        info.className = "device-info";
+
+        if(isSelf){
+
+            const editRow = document.createElement("div");
+            editRow.className = "device-edit-row";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.maxLength = 40;
+            input.placeholder = "Nom de cet appareil";
+            input.value = syncDeviceName;
+            input.addEventListener("keydown",(e)=>{
+                if(e.key==="Enter"){
+                    e.preventDefault();
+                    saveDeviceName(input.value);
+                    showToast("Nom enregistré.",{type:"success"});
+                }
+            });
+
+            const okBtn = document.createElement("button");
+            okBtn.type = "button";
+            okBtn.className = "add";
+            okBtn.textContent = "OK";
+            okBtn.addEventListener("click",()=>{
+                saveDeviceName(input.value);
+                showToast("Nom enregistré.",{type:"success"});
+            });
+
+            editRow.appendChild(input);
+            editRow.appendChild(okBtn);
+            info.appendChild(editRow);
+
+            const meta = document.createElement("div");
+            meta.className = "device-meta";
+            meta.textContent = isOnline ? "En ligne" : "Hors ligne — en attente de connexion";
+            info.appendChild(meta);
+
+        }else{
+
+            const nameLine = document.createElement("div");
+            nameLine.className = "device-name-line";
+            nameLine.textContent = entry.name || `Appareil ${++otherIndex}`;
+            info.appendChild(nameLine);
+
+            const meta = document.createElement("div");
+            meta.className = "device-meta";
+            meta.textContent = isOnline
+                ? "En ligne"
+                : "Hors ligne · vu "+new Date(entry.lastSeen||0).toLocaleString("fr-FR",{
+                    day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"
+                });
+            info.appendChild(meta);
+        }
+
+        row.appendChild(info);
+
+        const dot = document.createElement("span");
+        dot.className = "device-dot "+(isOnline ? "on" : "off");
+        row.appendChild(dot);
+
+        devicesList.appendChild(row);
+    });
+}
+
+function attachDevicesPresenceListener(){
+    if(!syncCode) return;
+    detachDevicesPresenceListener();
+    devicesPresenceRef = syncDb.ref("trips/"+syncCode+"/presence");
+    devicesPresenceRef.on("value",(snap)=>{
+        renderDevicesList(snap.val());
+    });
+}
+
+function detachDevicesPresenceListener(){
+    if(devicesPresenceRef){
+        devicesPresenceRef.off();
+        devicesPresenceRef = null;
+    }
+}
+
+/* Ferme le panneau de sync (desktop) quand on ouvre les appareils par-dessus
+   — sinon il reste ouvert sous la nouvelle vue plein écran. Sans effet sur
+   mobile (syncPanel y est déjà vide/masqué, voir updateProfileConsolidation). */
+syncStatus.addEventListener("click",()=>{
+    syncPanel.hidden = true;
+    syncToggleBtn.setAttribute("aria-expanded","false");
+});
+
 /* Enregistré seulement une fois syncCode/syncStatus déclarés plus haut :
    ce callback est asynchrone (déclenché par Firebase, pas par le script
    lui-même) mais s'exécutait avant que "let syncCode" ait pu s'initialiser
@@ -9203,6 +9398,7 @@ syncHistoryRow.addEventListener("click",()=>{
 syncDb.ref(".info/connected").on("value",(snap)=>{
     firebaseConnected = snap.val()===true;
     updateSyncConnectionStatus();
+    if(firebaseConnected && syncCode) updateDevicePresence();
 });
 
 const SYNC_HISTORY_KEY = "syncHistory";
@@ -9675,6 +9871,7 @@ function startSyncListener(){
     if(syncRef) syncRef.off();
 
     syncRef = syncDb.ref("trips/"+syncCode);
+    updateDevicePresence();
 
     /* .on("value") déclenche immédiatement avec l'état déjà en base au
        moment de l'attache — ce premier événement n'est pas un "nouveau"
@@ -9887,6 +10084,8 @@ syncJoinBtn.addEventListener("click",()=>{
 function clearSyncState(){
     if(syncRef) syncRef.off();
     syncRef = null;
+    removeOwnPresence(syncCode);
+    detachDevicesPresenceListener();
     syncCode = "";
     localStorage.removeItem(SYNC_CODE_KEY);
     lastPushedPayload = null;
@@ -9920,6 +10119,7 @@ syncRegenerateBtn.addEventListener("click",()=>{
                 syncRegenerateBtn.disabled = false;
 
                 if(syncRef) syncRef.off();
+                removeOwnPresence(syncCode);
                 syncCode = newCode;
                 localStorage.setItem(SYNC_CODE_KEY,syncCode);
                 lastPushedPayload = JSON.parse(JSON.stringify(snapshot));

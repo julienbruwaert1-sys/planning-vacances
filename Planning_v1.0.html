@@ -301,7 +301,7 @@
 <div id="syncCodeDisplay" class="sync-code-display"></div>
 </div>
 <div id="syncQrContainer" class="qr-inline-wrap"></div>
-<p id="syncStatus" class="sync-status">En attente…</p>
+<button id="syncStatus" class="sync-status" type="button" data-profile-view="devicesView">En attente…</button>
 <div id="syncHistoryRow" class="sync-history-row" hidden>
 <span id="syncHistoryInfo" class="sync-history-text"></span>
 <span class="sync-history-chevron">›</span>
@@ -961,7 +961,27 @@ Masquer les éléments cochés
 <p class="profile-about">Planificateur de Vacances — application personnelle, 100% locale et utilisable hors-ligne.</p>
 <p class="profile-version-about">Version <span id="profileVersionAbout"></span></p>
 </div>
+<div class="profile-section">
+<div class="profile-field">
+<label for="deviceNameInput">Nom de cet appareil</label>
+<div class="tricount-add-row">
+<input type="text" id="deviceNameInput" placeholder="Ex. iPhone de Julien" maxlength="40">
+<button id="deviceNameSaveBtn" class="add" type="button">Enregistrer</button>
+</div>
+</div>
+</div>
 <div class="profile-section" id="syncPanelSlot"></div>
+</div>
+</div>
+
+<div id="devicesView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>📱 Appareils synchronisés</h2>
+</div>
+<div class="fullscreen-body">
+<p id="devicesSummary" class="devices-summary"></p>
+<div id="devicesList" class="devices-list"></div>
 </div>
 </div>
 

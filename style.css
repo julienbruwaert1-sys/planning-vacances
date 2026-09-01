@@ -554,10 +554,34 @@ body.dark .sync-direction-option.active{
 }
 
 .sync-status{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    width:100%;
+    background:none;
+    border:none;
+    padding:2px;
+    border-radius:6px;
+    font-family:'Inter',Arial,sans-serif;
     font-size:11px;
     color:#2F8F5B;
     margin:0 0 10px;
     font-weight:600;
+    cursor:pointer;
+    text-align:left;
+}
+
+.sync-status::after{
+    content:"›";
+    color:#9AAAB4;
+    font-size:13px;
+    font-weight:700;
+    flex:none;
+}
+
+.sync-status:hover{
+    background:#F1F7FB;
 }
 
 .sync-history-row{
@@ -665,6 +689,14 @@ body.dark .sync-status{
     color:#6fd68c;
 }
 
+body.dark .sync-status::after{
+    color:#7C8BAE;
+}
+
+body.dark .sync-status:hover{
+    background:#182238;
+}
+
 body.dark .sync-status.offline{
     color:#E2A93A;
 }
@@ -692,6 +724,137 @@ body.dark .sync-section-meta-row b{
 body.dark .sync-panel button.checklist-remove{
     background:#182238;
     color:#ff8a80;
+}
+
+/* --- Appareils synchronisés (#devicesView, ouvert depuis .sync-status) --- */
+
+.devices-summary{
+    font-size:12px;
+    color:#9AAAB4;
+    margin:0 0 12px;
+}
+
+.devices-summary b{
+    color:#2F8F5B;
+    font-weight:700;
+}
+
+.devices-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.device-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:#F1F7FB;
+    border-radius:10px;
+    padding:9px 12px;
+}
+
+.device-icon{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:#FFFFFF;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:15px;
+    flex-shrink:0;
+}
+
+.device-info{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex:1;
+    min-width:0;
+}
+
+.device-name-line{
+    font-size:13px;
+    font-weight:700;
+    color:#33404A;
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.device-you-tag{
+    font-size:9px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    background:#D2503B;
+    color:#FFFFFF;
+    border-radius:6px;
+    padding:2px 5px;
+}
+
+.device-meta{
+    font-size:11px;
+    color:#9AAAB4;
+}
+
+.device-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    flex-shrink:0;
+}
+
+.device-dot.on{
+    background:#2F8F5B;
+}
+
+.device-dot.off{
+    background:#9AAAB4;
+    opacity:.6;
+}
+
+.device-edit-row{
+    display:flex;
+    gap:8px;
+}
+
+.device-edit-row input{
+    flex:1;
+    min-width:0;
+}
+
+body.dark .devices-summary{
+    color:#7C8BAE;
+}
+
+body.dark .devices-summary b{
+    color:#6fd68c;
+}
+
+body.dark .device-row{
+    background:#182238;
+}
+
+body.dark .device-icon{
+    background:#121A2E;
+}
+
+body.dark .device-name-line{
+    color:#EAF0FB;
+}
+
+body.dark .device-meta{
+    color:#7C8BAE;
+}
+
+body.dark .device-dot.on{
+    background:#6fd68c;
+}
+
+body.dark .device-dot.off{
+    background:#7C8BAE;
 }
 
 .date-wrap input,
