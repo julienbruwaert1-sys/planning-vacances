@@ -269,7 +269,17 @@ const isFirstLaunch =
     localStorage.getItem("dayCount")===null &&
     localStorage.getItem("appIconChoice")===null;
 
-if(isFirstLaunch){
+/* Lu ici (très tôt, avant la décision d'afficher l'écran de bienvenue) en
+   plus de sa lecture habituelle près de la fin du fichier (qui déclenche la
+   vraie liaison) : sur un téléphone jamais utilisé, scanner le QR de sync
+   d'un autre appareil affichait "Créons ton voyage", forçant à taper "Plus
+   tard" à la main avant même que la liaison ait eu la moindre chance de
+   s'exécuter (async, .once("value")) — déroutant, puisqu'un voyage va de
+   toute façon arriver dans l'instant qui suit. Un simple .has() suffit ici,
+   pas besoin de lire le code lui-même. */
+const arrivingViaSyncLink = new URLSearchParams(location.search).has("sync");
+
+if(isFirstLaunch && !arrivingViaSyncLink){
     document.getElementById("welcomeView").hidden = false;
 }else{
     if(!tripName){
@@ -1047,6 +1057,20 @@ function updateConverterCountryHeader(){
     subEl.textContent = dayWithData>0
         ? `${dayWithData} jour${dayWithData>1?"s":""} renseigné${dayWithData>1?"s":""}`
         : "";
+}
+
+/* Déclaré ici (bien avant refreshActivityAttachmentCounts()/le reste du
+   système de documents, plus bas avec le reste d'IndexedDB) : renderActivities()
+   le lit à CHAQUE rendu, y compris le tout premier appel inconditionnel un
+   peu plus bas dans le fichier — le déclarer près de sa vraie section
+   aurait levé un ReferenceError (TDZ) dès le chargement, même schéma déjà
+   rencontré avec CURRENCIES/baseCurrency. Rempli de façon asynchrone (scan
+   IndexedDB), donc vide au tout premier rendu — un second rendu suit dès
+   que refreshActivityAttachmentCounts() se résout, voir son appel initial. */
+let activityAttachmentCounts = {};
+
+function activityHasAttachments(day,activityId){
+    return !!activityAttachmentCounts[day+":"+activityId];
 }
 
 function renderActivities(){
@@ -5040,7 +5064,7 @@ function renderReservations(){
     .forEach(day=>{
         sections.forEach(slot=>{
             (planning[day][slot] || []).forEach(activity=>{
-                if(activity.reservationLink){
+                if(activity.reservationLink || activityHasAttachments(day,activity.id)){
                     if(!byDay[day]) byDay[day] = [];
                     byDay[day].push(activity);
                 }
@@ -5112,8 +5136,10 @@ function renderReservations(){
             const item = document.createElement("div");
             item.className = "search-result-item";
 
+            const hasAttachments = activityHasAttachments(day,activity.id);
+
             const nameDiv = document.createElement("div");
-            nameDiv.textContent = `${icons[activity.type] || "📌"} ${activity.name}`;
+            nameDiv.textContent = `${icons[activity.type] || "📌"} ${activity.name}${hasAttachments ? " 📎" : ""}`;
 
             const dayDiv = document.createElement("div");
             dayDiv.className = "search-result-day";
@@ -5122,13 +5148,21 @@ function renderReservations(){
             item.appendChild(nameDiv);
             item.appendChild(dayDiv);
 
+            /* Une activité "documents seulement" (pièces jointes mais pas de
+               lien de réservation) ouvre directement la modale des
+               documents au clic, plutôt que de rester inerte ou d'afficher
+               l'erreur "lien invalide" pensée pour l'autre cas. */
             item.addEventListener("click",()=>{
-                if(/^https?:\/\//i.test(activity.reservationLink)){
-                    // CAPACITOR : lien externe — voir "Liens externes" en
-                    // haut du fichier (@capacitor/browser).
-                    window.open(activity.reservationLink,"_blank","noopener,noreferrer");
-                }else{
-                    showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
+                if(activity.reservationLink){
+                    if(/^https?:\/\//i.test(activity.reservationLink)){
+                        // CAPACITOR : lien externe — voir "Liens externes" en
+                        // haut du fichier (@capacitor/browser).
+                        window.open(activity.reservationLink,"_blank","noopener,noreferrer");
+                    }else{
+                        showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
+                    }
+                }else if(hasAttachments){
+                    openAttachmentsModal(day,activity);
                 }
             });
 
@@ -6654,21 +6688,33 @@ async function renderAttachmentsList(){
         return;
     }
 
-    attachments.forEach(att=>{
-
+    /* Un seul groupe construit ici (pas re-dérivé au clic) : les URL objet
+       et les entrées de groupe doivent rester en phase — reconstruire le
+       groupe séparément au clic risquerait de désynchroniser l'URL d'une
+       entrée avec son blob si l'ordre de attachments changeait entre-temps. */
+    const group = attachments.map(att=>{
         const url = URL.createObjectURL(att.blob);
         attachmentsObjectUrls.push(url);
+        return { id:att.id, url, type:attachmentFileType(att.blob), fileName:att.fileName };
+    });
+
+    attachments.forEach((att,i)=>{
+
+        const entry = group[i];
 
         const row = document.createElement("div");
         row.className = "attachment-row";
 
-        const openLink = document.createElement("a");
-        openLink.className = "attachment-open-btn";
-        openLink.href = url;
-        openLink.target = "_blank";
-        openLink.rel = "noopener noreferrer";
-        openLink.textContent = `📎 ${att.fileName}`;
-        row.appendChild(openLink);
+        /* Bouton (pas <a target="_blank">) : ouvre le nouveau visualiseur
+           avec navigation gauche/droite entre les documents de CETTE
+           activité (mêmes patrons que openPhotoLightbox()/showLightboxAt()
+           de l'Album) au lieu de déléguer à un nouvel onglet du navigateur. */
+        const openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.className = "attachment-open-btn";
+        openBtn.textContent = `📎 ${att.fileName}`;
+        openBtn.addEventListener("click",()=>openAttachmentLightbox(entry.id,group));
+        row.appendChild(openBtn);
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -6681,6 +6727,9 @@ async function renderAttachmentsList(){
                 async ()=>{
                     await deleteDayPhoto(att.id);
                     renderAttachmentsList();
+                    await refreshActivityAttachmentCounts();
+                    renderActivities();
+                    if(!reservationsView.hidden) renderReservations();
                 }
             );
         });
@@ -6689,6 +6738,180 @@ async function renderAttachmentsList(){
         attachmentsList.appendChild(row);
     });
 }
+
+function attachmentFileType(blob){
+    if(!blob || !blob.type) return "other";
+    if(blob.type.startsWith("image/")) return "image";
+    if(blob.type==="application/pdf") return "pdf";
+    return "other";
+}
+
+/* Un seul scan complet du store (pas d'index dédié : "day" existe déjà pour
+   getActivityAttachments(), pas "activityId" ni "kind") reconstruit tout
+   activityAttachmentCounts d'un coup — appelé au chargement puis chaque
+   fois qu'un document est ajouté/supprimé, jamais à chaque rendu (coûterait
+   un aller-retour IndexedDB par frappe). Alimente à la fois le badge sur la
+   carte d'activité (renderActivities()) et l'inclusion dans Réservations
+   (renderReservations()) via activityHasAttachments(). */
+async function refreshActivityAttachmentCounts(){
+    let records;
+    try{
+        const db = await openPhotoDB();
+        records = await new Promise((resolve,reject)=>{
+            const tx = db.transaction(PHOTO_STORE_NAME,"readonly");
+            const req = tx.objectStore(PHOTO_STORE_NAME).getAll();
+            req.onsuccess = ()=>resolve(req.result);
+            req.onerror = ()=>reject(req.error);
+        });
+    }catch(err){
+        console.error("Impossible de recenser les documents :",err);
+        return;
+    }
+    const counts = {};
+    records.forEach(r=>{
+        if(r.tripId===currentTripId && r.kind==="attachment"){
+            const key = r.day+":"+r.activityId;
+            counts[key] = (counts[key]||0)+1;
+        }
+    });
+    activityAttachmentCounts = counts;
+}
+
+/* --- Visualiseur de documents avec swipe gauche/droite ---
+   Même patron que openPhotoLightbox()/showLightboxAt() de l'Album (voir
+   plus bas dans le fichier) : un groupe (tous les documents de l'activité
+   ouverte), un index courant, navigation clavier/tactile identique. La
+   différence est le TYPE de contenu affiché — image, PDF (iframe, un
+   blob: s'affiche nativement) ou "autre" (aucun aperçu fiable en navigateur,
+   juste un lien pour l'ouvrir dans un nouvel onglet). */
+const attachmentLightbox = document.getElementById("attachmentLightbox");
+const attachmentLightboxClose = document.getElementById("attachmentLightboxClose");
+const attachmentLightboxCounter = document.getElementById("attachmentLightboxCounter");
+const attachmentLightboxImage = document.getElementById("attachmentLightboxImage");
+const attachmentLightboxFrame = document.getElementById("attachmentLightboxFrame");
+const attachmentLightboxFallback = document.getElementById("attachmentLightboxFallback");
+const attachmentLightboxFallbackName = document.getElementById("attachmentLightboxFallbackName");
+const attachmentLightboxOpenExternal = document.getElementById("attachmentLightboxOpenExternal");
+const attachmentLightboxDelete = document.getElementById("attachmentLightboxDelete");
+
+let attachmentLightboxGroup = [];
+let attachmentLightboxIndex = 0;
+let openAttachmentLightboxId = null;
+
+function showAttachmentLightboxAt(index){
+
+    if(!attachmentLightboxGroup.length) return;
+
+    attachmentLightboxIndex = (index + attachmentLightboxGroup.length) % attachmentLightboxGroup.length;
+    const entry = attachmentLightboxGroup[attachmentLightboxIndex];
+    openAttachmentLightboxId = entry.id;
+
+    attachmentLightboxImage.hidden = true;
+    attachmentLightboxFrame.hidden = true;
+    attachmentLightboxFrame.src = "about:blank";
+    attachmentLightboxFallback.hidden = true;
+
+    if(entry.type==="image"){
+        attachmentLightboxImage.hidden = false;
+        attachmentLightboxImage.src = entry.url;
+    }else if(entry.type==="pdf"){
+        attachmentLightboxFrame.hidden = false;
+        attachmentLightboxFrame.src = entry.url;
+    }else{
+        attachmentLightboxFallback.hidden = false;
+        attachmentLightboxFallbackName.textContent = entry.fileName;
+        attachmentLightboxOpenExternal.href = entry.url;
+    }
+
+    attachmentLightboxCounter.hidden = attachmentLightboxGroup.length<=1;
+    attachmentLightboxCounter.textContent = `${attachmentLightboxIndex+1} / ${attachmentLightboxGroup.length}`;
+}
+
+function openAttachmentLightbox(id,group){
+    attachmentLightboxGroup = group;
+    const startIndex = attachmentLightboxGroup.findIndex(a=>a.id===id);
+    showAttachmentLightboxAt(startIndex===-1 ? 0 : startIndex);
+    attachmentLightbox.hidden = false;
+}
+
+function closeAttachmentLightbox(){
+    attachmentLightbox.hidden = true;
+    attachmentLightboxFrame.src = "about:blank";
+    openAttachmentLightboxId = null;
+    attachmentLightboxGroup = [];
+}
+
+attachmentLightboxClose.addEventListener("click",closeAttachmentLightbox);
+
+attachmentLightbox.addEventListener("click",(e)=>{
+    if(e.target===attachmentLightbox) closeAttachmentLightbox();
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(attachmentLightbox.hidden) return;
+    if(e.key==="Escape") closeAttachmentLightbox();
+    if(e.key==="ArrowLeft") showAttachmentLightboxAt(attachmentLightboxIndex-1);
+    if(e.key==="ArrowRight") showAttachmentLightboxAt(attachmentLightboxIndex+1);
+});
+
+let attachmentLightboxTouchStartX = null;
+let attachmentLightboxTouchStartY = null;
+
+function handleAttachmentLightboxTouchStart(e){
+    const t = e.touches[0];
+    attachmentLightboxTouchStartX = t.clientX;
+    attachmentLightboxTouchStartY = t.clientY;
+}
+
+function handleAttachmentLightboxTouchEnd(e){
+    if(attachmentLightboxTouchStartX===null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - attachmentLightboxTouchStartX;
+    const dy = t.clientY - attachmentLightboxTouchStartY;
+    attachmentLightboxTouchStartX = null;
+    attachmentLightboxTouchStartY = null;
+
+    if(attachmentLightboxGroup.length<=1) return;
+    if(Math.abs(dx)<40 || Math.abs(dx)<Math.abs(dy)) return;
+
+    if(dx<0) showAttachmentLightboxAt(attachmentLightboxIndex+1);
+    else showAttachmentLightboxAt(attachmentLightboxIndex-1);
+}
+
+/* Écouteurs sur le CONTENEUR (pas chaque élément de contenu comme pour la
+   lightbox photo) : un <iframe> ne laisse jamais remonter les événements
+   tactiles déclenchés sur SON contenu jusqu'au document parent (contexte de
+   navigation séparé) — les attacher sur attachmentLightbox lui-même capte
+   au moins les swipes sur la zone/le fond autour du PDF, plutôt que de ne
+   jamais fonctionner du tout pour ce type de document. */
+attachmentLightbox.addEventListener("touchstart",handleAttachmentLightboxTouchStart,{passive:true});
+attachmentLightbox.addEventListener("touchend",handleAttachmentLightboxTouchEnd);
+
+attachmentLightboxDelete.addEventListener("click",()=>{
+
+    if(openAttachmentLightboxId===null) return;
+
+    const idToDelete = openAttachmentLightboxId;
+    const fileName = attachmentLightboxGroup[attachmentLightboxIndex].fileName;
+
+    showConfirmModal(
+        `Supprimer « ${fileName} » ?`,
+        async ()=>{
+            try{
+                await deleteDayPhoto(idToDelete);
+                closeAttachmentLightbox();
+                renderAttachmentsList();
+                await refreshActivityAttachmentCounts();
+                renderActivities();
+                if(!reservationsView.hidden) renderReservations();
+                showToast("Document supprimé.",{type:"success"});
+            }catch(err){
+                console.error("Impossible de supprimer le document :",err);
+                showToast("Impossible de supprimer le document.",{type:"error"});
+            }
+        }
+    );
+});
 
 function openAttachmentsModal(day,activity){
     attachmentsModalDay = day;
@@ -6722,6 +6945,9 @@ attachmentFileInput.addEventListener("change",async ()=>{
         await addActivityAttachment(attachmentsModalDay,attachmentsModalActivityId,file);
         showToast("Document ajouté.",{type:"success"});
         renderAttachmentsList();
+        await refreshActivityAttachmentCounts();
+        renderActivities();
+        if(!reservationsView.hidden) renderReservations();
     }catch(err){
         console.error("Impossible d'ajouter le document :",err);
         showToast("Impossible d'ajouter le document sur cet appareil.",{type:"error"});
@@ -10730,6 +10956,16 @@ renderDayWeather();
    (voir migrateLegacyPhotos) puis réaffiche la bande de photos du jour au
    cas où elle se serait affichée vide avant la fin de la migration. */
 migrateLegacyPhotos().then(renderDayPhotos);
+
+/* Le tout premier renderActivities()/renderReservations() (plus haut dans
+   le script) tourne avant que ce scan IndexedDB async ait pu se résoudre —
+   activityAttachmentCounts est donc vide à ce moment-là (aucun badge, aucune
+   activité "documents seulement" dans Réservations) puis se corrige tout
+   seul dès que le scan aboutit, ici. */
+refreshActivityAttachmentCounts().then(()=>{
+    renderActivities();
+    if(!reservationsView.hidden) renderReservations();
+});
 
 /* --- Raccourcis d'application (appui long sur l'icône, manifest.json) ---
    Chaque raccourci navigue vers ?shortcut=... — traité une seule fois ici,

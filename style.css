@@ -202,6 +202,11 @@ body.dark .paste-import-textarea{
 .attachment-open-btn{
     flex:1;
     min-width:0;
+    background:none;
+    border:none;
+    padding:0;
+    text-align:left;
+    cursor:pointer;
     color:#33404A;
     font-family:'Inter',Arial,sans-serif;
     font-size:13.5px;
@@ -3533,6 +3538,55 @@ body.dark .trip-history-delete-btn:hover{
 
 .photo-lightbox-delete{
     background:#A8323A;
+}
+
+.attachment-lightbox-frame{
+    width:100%;
+    max-width:700px;
+    height:80vh;
+    border:none;
+    border-radius:12px;
+    background:#FFFFFF;
+    box-shadow:0 12px 32px rgba(0,0,0,.4);
+}
+
+.attachment-lightbox-frame[hidden]{
+    display:none;
+}
+
+.attachment-lightbox-fallback{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    background:#FFFFFF;
+    border-radius:16px;
+    padding:36px 28px;
+    max-width:340px;
+    text-align:center;
+    box-shadow:0 12px 32px rgba(0,0,0,.4);
+}
+
+.attachment-lightbox-fallback[hidden]{
+    display:none;
+}
+
+.attachment-lightbox-fallback p{
+    margin:0;
+    font-size:14px;
+    font-weight:600;
+    color:#33404A;
+    word-break:break-word;
+}
+
+.attachment-lightbox-open-external{
+    background:#D2503B;
+    color:#FFFFFF;
+    text-decoration:none;
+    border-radius:999px;
+    padding:10px 20px;
+    font-size:13px;
+    font-weight:700;
 }
 
 .camera-view{
