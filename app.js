@@ -1898,6 +1898,7 @@ exportDataBtn.addEventListener("click",()=>{
         startDate:localStorage.getItem("startDate") || "",
         baseCurrency:localStorage.getItem("baseCurrency") || "GBP",
         targetCurrency:localStorage.getItem("targetCurrency") || "",
+        tripTimezone:localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
         checklist,
         checklistTemplates:JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
         travelerInfo:JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
@@ -1958,6 +1959,35 @@ function handleImportBackupFile(file){
 
                 archiveCurrentTrip();
 
+                /* Manquait ici (audit 2026-09-01, signalé comme "le voyage en
+                   cours apparaît aussi dans l'historique") : contrairement à
+                   finalizeTripCreation()/replaceTripWithImportedRows()/
+                   restoreTrip()/adoptRemoteTrip(), ce chemin archivait le
+                   voyage courant SANS jamais lui donner une nouvelle identité
+                   — le voyage importé continuait à vivre sous le même
+                   currentTripId que celui qui venait d'être figé dans
+                   l'historique. Résultat : le voyage "actuel" et son propre
+                   instantané dans l'historique partageaient le même id (donc
+                   les mêmes photos/documents IndexedDB, scopés par tripId). */
+                currentTripId = generateId();
+                localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
+
+                /* Le fichier de sauvegarde ne couvre pas forcément tous les
+                   champs (ex. exports plus anciens) — sans ce nettoyage, un
+                   champ absent du fichier laissait la valeur de l'ANCIEN
+                   voyage (maintenant dans l'historique) attachée au nouveau
+                   currentTripId : même classe de fuite que l'audit d'isolation
+                   du 2026-09-01 sur replaceTripWithImportedRows()/
+                   deleteTripBtn. */
+                localStorage.removeItem(CHECKLIST_STORAGE_KEY);
+                localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
+                localStorage.removeItem(TRAVELER_INFO_KEY);
+                localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
+                localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
+                localStorage.removeItem("baseCurrency");
+                localStorage.removeItem("targetCurrency");
+                localStorage.removeItem(TRIP_TIMEZONE_KEY);
+
                 localStorage.setItem("vacationPlanning",JSON.stringify(data.planning || {}));
 
                 if(data.dayCount) localStorage.setItem("dayCount",String(data.dayCount));
@@ -1966,6 +1996,7 @@ function handleImportBackupFile(file){
                 if(data.tripCountry!==undefined) localStorage.setItem(TRIP_COUNTRY_KEY,data.tripCountry);
                 if(data.baseCurrency!==undefined) localStorage.setItem("baseCurrency",data.baseCurrency);
                 if(data.targetCurrency!==undefined) localStorage.setItem("targetCurrency",data.targetCurrency);
+                if(data.tripTimezone!==undefined) localStorage.setItem(TRIP_TIMEZONE_KEY,data.tripTimezone);
                 if(Array.isArray(data.checklist)) localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(data.checklist));
                 if(Array.isArray(data.checklistTemplates)) localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(data.checklistTemplates));
                 if(data.travelerInfo && typeof data.travelerInfo==="object") localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(data.travelerInfo));
@@ -5401,8 +5432,147 @@ function populateMapDaySelect(){
     mapDaySelect.value = previousValue;
 }
 
+/* Ne liste que les types réellement présents dans le voyage (avec une
+   adresse, donc potentiellement localisables) — évite de proposer "Bar"/
+   "Spectacle"/etc. dans le filtre si aucune activité de ce type n'existe,
+   ce qui viderait systématiquement la carte. Object.keys(icons) donne
+   l'ordre canonique déjà utilisé ailleurs plutôt qu'un ordre arbitraire. */
+function populateMapTypeSelect(){
+
+    const previousValue = mapTypeSelect.value;
+    const presentTypes = new Set();
+
+    Object.keys(planning).forEach(day=>{
+        ["matin","midi","apresMidi","soir"].forEach(slot=>{
+            (planning[day][slot] || []).forEach(activity=>{
+                if(activity.type && activity.address && activity.address.trim()){
+                    presentTypes.add(activity.type);
+                }
+            });
+        });
+    });
+
+    mapTypeSelect.innerHTML = "";
+
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = "Tous les types";
+    mapTypeSelect.appendChild(allOpt);
+
+    Object.keys(icons).forEach(type=>{
+        if(!presentTypes.has(type)) return;
+        const opt = document.createElement("option");
+        opt.value = type;
+        opt.textContent = `${icons[type]} ${type}`;
+        mapTypeSelect.appendChild(opt);
+    });
+
+    mapTypeSelect.value = presentTypes.has(previousValue) ? previousValue : "";
+}
+
 mapDaySelect.addEventListener("change",renderMapView);
 mapTypeSelect.addEventListener("change",renderMapView);
+
+/* --- Vue carte : volet "Jour" flottant (mockup C approuvé) — liste les
+   activités localisées du filtre courant sous la carte, en plus des
+   punaises ; toucher une ligne recentre la carte dessus. Remplace
+   l'ancienne barre de filtres empilée qui prenait ~45% de l'écran sur
+   mobile. Les options moins fréquentes (pays/recherche/offline/écran
+   allumé) ont migré dans le menu "⋯" de l'en-tête (mapMoreBtn). --- */
+const mapDaySheet = document.getElementById("mapDaySheet");
+const mapDaySheetToggle = document.getElementById("mapDaySheetToggle");
+const mapDaySheetList = document.getElementById("mapDaySheetList");
+const mapDaySheetCount = document.getElementById("mapDaySheetCount");
+const mapDaySheetDate = document.getElementById("mapDaySheetDate");
+let mapMarkersByKey = {};
+
+mapDaySheetToggle.addEventListener("click",(e)=>{
+    if(e.target.closest("select")) return;
+    mapDaySheet.classList.toggle("expanded");
+});
+
+function buildMapDaySheetRow(day,activity,showDayBadge,key){
+
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "map-day-sheet-row-item";
+
+    const icon = document.createElement("span");
+    icon.className = "map-day-sheet-row-icon";
+    icon.textContent = icons[activity.type] || "📍";
+
+    const info = document.createElement("span");
+    info.className = "map-day-sheet-row-info";
+
+    const name = document.createElement("span");
+    name.className = "map-day-sheet-row-name";
+    name.textContent = (showDayBadge ? `J${day} · ` : "") + activity.name;
+
+    const time = document.createElement("span");
+    time.className = "map-day-sheet-row-time";
+    time.textContent = activity.time || "";
+
+    info.appendChild(name);
+    info.appendChild(time);
+    row.appendChild(icon);
+    row.appendChild(info);
+
+    row.addEventListener("click",()=>{
+
+        const marker = mapMarkersByKey[key];
+        if(!marker) return;
+
+        mapDaySheet.classList.remove("expanded");
+
+        document.querySelectorAll("#mapDaySheetList .map-day-sheet-row-item.hl")
+        .forEach(r=>r.classList.remove("hl"));
+        row.classList.add("hl");
+
+        mapInstance.setView(marker.getLatLng(),Math.max(mapInstance.getZoom(),15));
+        marker.openPopup();
+    });
+
+    return row;
+}
+
+/* --- Vue carte : menu "⋯" (options moins fréquentes) — même schéma
+   ouverture/fermeture que le menu options du coin (optionsMenuBtn), en
+   instance séparée puisque c'est un bouton différent dans un autre
+   en-tête plein écran. --- */
+const mapMoreBtn = document.getElementById("mapMoreBtn");
+const mapMorePanel = document.getElementById("mapMorePanel");
+
+function closeMapMoreMenu(){
+    mapMorePanel.hidden = true;
+    mapMoreBtn.setAttribute("aria-expanded","false");
+}
+
+mapMoreBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const isOpen = !mapMorePanel.hidden;
+    mapMorePanel.hidden = isOpen;
+    mapMoreBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+});
+
+mapMorePanel.addEventListener("click",(e)=>{
+    const item = e.target.closest(".menu-item");
+    if(item && !item.hasAttribute("data-keep-menu-open")){
+        closeMapMoreMenu();
+    }
+});
+
+document.addEventListener("click",(e)=>{
+    if(!mapMorePanel.hidden && !e.target.closest(".map-more-menu")){
+        closeMapMoreMenu();
+    }
+});
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape" && !mapMorePanel.hidden){
+        closeMapMoreMenu();
+        mapMoreBtn.focus();
+    }
+});
 
 /* --- Filtre "pays de vacances" (réutilise le pays du logo choisi) --- */
 
@@ -7768,6 +7938,7 @@ async function renderMapView(){
     }
 
     populateMapDaySelect();
+    populateMapTypeSelect();
 
     if(!mapInstance){
 
@@ -7790,6 +7961,7 @@ async function renderMapView(){
     }
 
     mapMarkersLayer.clearLayers();
+    mapMarkersByKey = {};
     mapUserLocationLayer.clearLayers();
     mapRouteLayer.clearLayers();
     showUserLocationOnMap();
@@ -7811,6 +7983,7 @@ async function renderMapView(){
 
     const entries = collectActivitiesWithAddress(dayFilter,typeFilter);
     const points = [];
+    const sheetRows = document.createDocumentFragment();
 
     for(const {day,activity} of entries){
         try{
@@ -7853,9 +8026,13 @@ async function renderMapView(){
             popup.appendChild(addressEl);
             popup.appendChild(fixBtn);
 
-            L.marker([coords.lat,coords.lon],{icon})
+            const marker = L.marker([coords.lat,coords.lon],{icon})
             .addTo(mapMarkersLayer)
             .bindPopup(popup);
+
+            const markerKey = `${day}:${activity.id}`;
+            mapMarkersByKey[markerKey] = marker;
+            sheetRows.appendChild(buildMapDaySheetRow(day,activity,!dayFilter,markerKey));
 
             points.push([coords.lat,coords.lon]);
 
@@ -7863,6 +8040,20 @@ async function renderMapView(){
             console.error("Géocodage impossible :",err);
         }
     }
+
+    mapDaySheetList.innerHTML = "";
+    if(points.length){
+        mapDaySheetList.appendChild(sheetRows);
+    }else{
+        const empty = document.createElement("p");
+        empty.className = "map-day-sheet-empty";
+        empty.textContent = "Aucune activité localisée pour ce filtre.";
+        mapDaySheetList.appendChild(empty);
+    }
+
+    mapDaySheetCount.textContent =
+        `${points.length} activité${points.length>1?"s":""} localisée${points.length>1?"s":""}`;
+    mapDaySheetDate.textContent = dayFilter ? (formatDayDateShort(dayFilter) || "") : "";
 
     if(dayFilter && points.length>=2){
         L.polyline(points,{
@@ -8077,6 +8268,7 @@ function poiIconFor(item){
 }
 
 const mapPoiToggle = document.getElementById("mapPoiToggle");
+const mapPoiSearchBar = document.getElementById("mapPoiSearchBar");
 const mapPoiSearchInput = document.getElementById("mapPoiSearchInput");
 const mapPoiSearchBtn = document.getElementById("mapPoiSearchBtn");
 let mapPoiActive = false;
@@ -8205,8 +8397,7 @@ mapPoiToggle.addEventListener("click",()=>{
     mapPoiActive = !mapPoiActive;
     mapPoiToggle.classList.toggle("active",mapPoiActive);
     mapPoiToggle.setAttribute("aria-pressed",String(mapPoiActive));
-    mapPoiSearchInput.hidden = !mapPoiActive;
-    mapPoiSearchBtn.hidden = !mapPoiActive;
+    mapPoiSearchBar.hidden = !mapPoiActive;
 
     if(!mapPoiActive && mapPoiLayer){
         mapPoiLayer.clearLayers();

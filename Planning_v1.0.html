@@ -828,32 +828,37 @@ Masquer les éléments cochés
 <div class="fullscreen-header">
 <button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
 <h2>🗺️ Carte du voyage</h2>
+<div class="map-more-menu">
+<button type="button" id="mapMoreBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="Filtres et options" aria-label="Filtres et options de la carte">⋯</button>
+<div id="mapMorePanel" class="options-menu-panel" role="menu" hidden>
+<div class="menu-item menu-item-static">
+<span class="menu-item-icon">🏷️</span>
+<span class="menu-item-label">Type d'activité</span>
+<select id="mapTypeSelect" class="menu-item-inline-select" aria-label="Filtrer par type d'activité"></select>
 </div>
-<div class="map-toolbar">
-<select id="mapDaySelect" aria-label="Filtrer par jour"></select>
-<select id="mapTypeSelect" aria-label="Filtrer par type d'activité">
-<option value="">Tous les types</option>
-<option>Restaurant</option>
-<option>Musée</option>
-<option>Bar</option>
-<option>Visite</option>
-<option>Randonnée</option>
-<option>Shopping</option>
-<option>Logement</option>
-<option>Spectacle</option>
-<option>Incontournable</option>
-<option>Pépite locale</option>
-<option>Pratique</option>
-</select>
-<button type="button" id="mapCountryToggle" class="map-country-toggle" aria-pressed="false">🌍 Pays du voyage uniquement</button>
-<button type="button" id="mapPoiToggle" class="map-country-toggle" aria-pressed="false">🔍 Rechercher sur la carte</button>
-<button type="button" id="mapDownloadAreaBtn" class="map-country-toggle">⬇️ Télécharger cette zone hors-ligne</button>
-<button type="button" id="mapWakeLockToggle" class="map-country-toggle" aria-pressed="false" hidden>🔆 Garder l'écran allumé</button>
-<input type="text" id="mapPoiSearchInput" class="map-poi-search-input" placeholder="Pharmacie, supermarché, nom d'un lieu…" hidden>
-<button type="button" id="mapPoiSearchBtn" class="map-poi-search-btn" hidden>🔍 Rechercher ici</button>
+<button type="button" id="mapCountryToggle" class="menu-item" role="menuitem" aria-pressed="false">🌍 Pays du voyage uniquement</button>
+<button type="button" id="mapPoiToggle" class="menu-item" role="menuitem" aria-pressed="false">🔍 Rechercher sur la carte</button>
+<button type="button" id="mapDownloadAreaBtn" class="menu-item" role="menuitem" data-keep-menu-open>⬇️ Télécharger cette zone hors-ligne</button>
+<button type="button" id="mapWakeLockToggle" class="menu-item" role="menuitem" aria-pressed="false" hidden>🔆 Garder l'écran allumé</button>
+</div>
+</div>
+</div>
+<div id="mapPoiSearchBar" class="map-poi-search-bar" hidden>
+<input type="text" id="mapPoiSearchInput" class="map-poi-search-input" placeholder="Pharmacie, supermarché, nom d'un lieu…">
+<button type="button" id="mapPoiSearchBtn" class="map-poi-search-btn">🔍 Rechercher ici</button>
 </div>
 <div id="mapContainer" class="map-container"></div>
 <div id="mapOfflineNotice" class="map-offline-notice" hidden>📡 Carte indisponible hors-ligne — connecte-toi à internet pour la voir.</div>
+<div id="mapDaySheet" class="map-day-sheet">
+<div class="map-day-sheet-head" id="mapDaySheetToggle">
+<div class="map-day-sheet-handle"></div>
+<select id="mapDaySelect" class="map-day-sheet-select" aria-label="Filtrer par jour"></select>
+<span class="map-day-sheet-date" id="mapDaySheetDate"></span>
+<span class="map-day-sheet-count" id="mapDaySheetCount"></span>
+<span class="map-day-sheet-chevron" aria-hidden="true">⌃</span>
+</div>
+<div class="map-day-sheet-list" id="mapDaySheetList"></div>
+</div>
 </div>
 
 <div id="albumView" class="fullscreen-view profile-sub-view" hidden>
