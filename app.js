@@ -79,10 +79,6 @@
    - Scanner de QR code (qrScanBtn, jsQR vendorisé) : décodage en JS pur
      sur des frames de canvas, plus lent/moins fiable en conditions réelles
      qu'un plugin natif basé ML Kit (ex. @capacitor-mlkit/barcode-scanning).
-   - Verrouillage biométrique / stockage sécurisé (voir le commentaire
-     détaillé près de TRAVELER_INFO_KEY) : aucun des deux n'a d'équivalent
-     web fonctionnel pour une appli sans backend — rien à coder avant la
-     conversion, seulement documenté sur place.
    - Sauvegarde automatique sur le cloud du téléphone (voir le commentaire
      détaillé près de exportDataBtn) : aucune API web n'écrit dans l'espace
      de sauvegarde système — Android Auto Backup se configure côté natif
@@ -1665,7 +1661,6 @@ deleteTripBtn.addEventListener("click",()=>{
             localStorage.removeItem("appIconChoice");
             localStorage.removeItem(CHECKLIST_STORAGE_KEY);
             localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
-            localStorage.removeItem(TRAVELER_INFO_KEY);
             /* Manquaient ici (audit d'isolation entre voyages, 2026-09-01) :
                Tricount et devises n'existaient pas encore quand ce
                gestionnaire a été écrit, jamais mis à jour depuis — sans ça,
@@ -1901,7 +1896,6 @@ exportDataBtn.addEventListener("click",()=>{
         tripTimezone:localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
         checklist,
         checklistTemplates:JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
-        travelerInfo:JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
         tricountParticipants,
         tricountExpenses
     };
@@ -1981,7 +1975,6 @@ function handleImportBackupFile(file){
                    deleteTripBtn. */
                 localStorage.removeItem(CHECKLIST_STORAGE_KEY);
                 localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
-                localStorage.removeItem(TRAVELER_INFO_KEY);
                 localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
                 localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
                 localStorage.removeItem("baseCurrency");
@@ -1999,7 +1992,6 @@ function handleImportBackupFile(file){
                 if(data.tripTimezone!==undefined) localStorage.setItem(TRIP_TIMEZONE_KEY,data.tripTimezone);
                 if(Array.isArray(data.checklist)) localStorage.setItem(CHECKLIST_STORAGE_KEY,JSON.stringify(data.checklist));
                 if(Array.isArray(data.checklistTemplates)) localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(data.checklistTemplates));
-                if(data.travelerInfo && typeof data.travelerInfo==="object") localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(data.travelerInfo));
                 if(Array.isArray(data.tricountParticipants)) localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(data.tricountParticipants));
                 if(Array.isArray(data.tricountExpenses)) localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(data.tricountExpenses));
 
@@ -2082,7 +2074,6 @@ function replaceTripWithImportedRows(rows){
     localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
     localStorage.removeItem(CHECKLIST_STORAGE_KEY);
     localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
-    localStorage.removeItem(TRAVELER_INFO_KEY);
     localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
     localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
     localStorage.removeItem("startDate");
@@ -3332,7 +3323,6 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
             localStorage.setItem(CURRENT_TRIP_ID_KEY,currentTripId);
             localStorage.removeItem(CHECKLIST_STORAGE_KEY);
             localStorage.removeItem(CHECKLIST_TEMPLATE_STATE_KEY);
-            localStorage.removeItem(TRAVELER_INFO_KEY);
             localStorage.removeItem(TRICOUNT_PARTICIPANTS_KEY);
             localStorage.removeItem(TRICOUNT_EXPENSES_KEY);
             localStorage.removeItem("startDate");
@@ -4876,68 +4866,6 @@ bottomNavTabs.forEach(btn=>{
     });
 });
 
-/* --- Profil : infos voyageur ---
-   CAPACITOR : passeport/contact d'urgence — les données les plus sensibles
-   de l'appli — vivent ici en clair dans localStorage, comme tout le reste.
-   Contrairement à ce que le texte affiché disait à l'origine, ces champs
-   SONT synchronisés (collectSyncData/applySyncData) et exportés (sauvegarde
-   JSON) — texte corrigé pour refléter le comportement réel plutôt que
-   l'inverse (voir [[settings_page_reorg]]/mémoire pour le contexte).
-   Aucune des deux protections suivantes n'a d'équivalent web fonctionnel,
-   donc rien à coder tant que l'app n'est pas convertie :
-   - Stockage sécurisé : le web n'expose pas le Keystore Android/Keychain
-     iOS à JS — localStorage n'est jamais "sécurisé" au sens matériel,
-     seulement isolé par origine. @capacitor/preferences (ou un plugin de
-     stockage chiffré dédié) donnerait un vrai stockage protégé par le
-     système pour TRAVELER_INFO_KEY spécifiquement.
-   - Verrouillage biométrique : WebAuthn (empreinte/visage via
-     l'authentificateur de la plateforme) existe côté web, mais suppose
-     normalement un serveur pour vérifier le challenge — inadapté à une
-     appli 100% locale sans backend. Un vrai verrou d'appli (empreinte/
-     visage avant d'ouvrir Infos voyageur, ou l'appli entière) demande un
-     plugin natif (ex. @capacitor-community/biometric-auth). */
-
-const TRAVELER_INFO_KEY = "travelerInfo";
-const travelerNameInput = document.getElementById("travelerName");
-const travelerPassportInput = document.getElementById("travelerPassport");
-const travelerEmergencyInput = document.getElementById("travelerEmergency");
-const travelerFlightNumberInput = document.getElementById("travelerFlightNumber");
-const travelerBookingRefInput = document.getElementById("travelerBookingRef");
-const travelerInsuranceInput = document.getElementById("travelerInsurance");
-
-function loadTravelerInfo(){
-    const info = JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}");
-    travelerNameInput.value = info.name || "";
-    travelerPassportInput.value = info.passport || "";
-    travelerEmergencyInput.value = info.emergency || "";
-    travelerFlightNumberInput.value = info.flightNumber || "";
-    travelerBookingRefInput.value = info.bookingRef || "";
-    travelerInsuranceInput.value = info.insurance || "";
-}
-
-function saveTravelerInfo(){
-    localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify({
-        name: travelerNameInput.value.trim(),
-        passport: travelerPassportInput.value.trim(),
-        emergency: travelerEmergencyInput.value.trim(),
-        flightNumber: travelerFlightNumberInput.value.trim(),
-        bookingRef: travelerBookingRefInput.value.trim(),
-        insurance: travelerInsuranceInput.value.trim()
-    }));
-}
-
-[
-    travelerNameInput,
-    travelerPassportInput,
-    travelerEmergencyInput,
-    travelerFlightNumberInput,
-    travelerBookingRefInput,
-    travelerInsuranceInput
-].forEach(input=>{
-    input.addEventListener("change",saveTravelerInfo);
-});
-
-loadTravelerInfo();
 
 /* --- Profil : Aide et support (notes locales, aucun backend) --- */
 
@@ -7726,7 +7654,6 @@ function restoreTrip(trip){
     localStorage.setItem(TRICOUNT_PARTICIPANTS_KEY,JSON.stringify(trip.tricountParticipants || []));
     localStorage.setItem(TRICOUNT_EXPENSES_KEY,JSON.stringify(trip.tricountExpenses || []));
     localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(trip.checklistTemplates || []));
-    localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(trip.travelerInfo || {}));
     localStorage.setItem(CURRENT_TRIP_ID_KEY,trip.id);
     localStorage.setItem(TRIP_CREATED_KEY,"1");
 
@@ -9638,8 +9565,24 @@ const firebaseConfig = {
     appId: "1:80389776651:web:95d1a2383858705310ee0e"
 };
 
-firebase.initializeApp(firebaseConfig);
-const syncDb = firebase.database();
+/* Audit 2026-09-01 : ces deux appels tournaient sans filet, en haut de
+   fichier — si le SDK Firebase n'avait pas fini de charger (ex. tout
+   premier lancement hors-ligne, avant que le service worker ait eu la
+   moindre chance de mettre vendor/firebase-*.js en cache), l'erreur
+   synchrone levée ici plantait le SCRIPT ENTIER à partir de ce point :
+   tout ce qui est déclaré plus bas (historique des voyages,
+   enregistrement du service worker, badge de version…) ne s'exécutait
+   simplement jamais, sans le moindre message. syncDb=null dégrade
+   maintenant la synchronisation vers son état "non disponible" déjà
+   prévu par ailleurs (mêmes chemins que "hors ligne"/"pas encore
+   appairé"), au lieu de tout arrêter. */
+let syncDb = null;
+try{
+    firebase.initializeApp(firebaseConfig);
+    syncDb = firebase.database();
+}catch(err){
+    console.error("Synchronisation indisponible (Firebase n'a pas pu s'initialiser) :",err);
+}
 
 /* --- Robustesse hors-ligne ---
    ".info/connected" est un chemin spécial du SDK Realtime Database :
@@ -9789,7 +9732,7 @@ deviceNameInput.addEventListener("keydown",(e)=>{
    ".info/connected" plus bas (reconnexion après une coupure), pour couvrir
    les deux façons dont une session peut (re)devenir active. */
 function updateDevicePresence(){
-    if(!syncCode) return;
+    if(!syncCode || !syncDb) return;
     const presenceRef = syncDb.ref("trips/"+syncCode+"/presence/"+syncDeviceId);
     presenceRef.onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP});
     presenceRef.update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,name:syncDeviceName});
@@ -9800,7 +9743,7 @@ function updateDevicePresence(){
    resterait affiché "en ligne" pour toujours sous un code que plus personne
    n'utilise. */
 function removeOwnPresence(code){
-    if(code) syncDb.ref("trips/"+code+"/presence/"+syncDeviceId).remove();
+    if(code && syncDb) syncDb.ref("trips/"+code+"/presence/"+syncDeviceId).remove();
 }
 
 let devicesPresenceRef = null;
@@ -9916,7 +9859,7 @@ function renderDevicesList(presenceData){
 }
 
 function attachDevicesPresenceListener(){
-    if(!syncCode) return;
+    if(!syncCode || !syncDb) return;
     detachDevicesPresenceListener();
     devicesPresenceRef = syncDb.ref("trips/"+syncCode+"/presence");
     devicesPresenceRef.on("value",(snap)=>{
@@ -9944,11 +9887,21 @@ syncStatus.addEventListener("click",()=>{
    lui-même) mais s'exécutait avant que "let syncCode" ait pu s'initialiser
    dans certains cas, ce qui levait un ReferenceError (TDZ) qui bloquait
    ensuite toute la synchronisation (bug du 2026-08-31). */
-syncDb.ref(".info/connected").on("value",(snap)=>{
-    firebaseConnected = snap.val()===true;
+if(syncDb){
+    syncDb.ref(".info/connected").on("value",(snap)=>{
+        firebaseConnected = snap.val()===true;
+        updateSyncConnectionStatus();
+        if(firebaseConnected && syncCode) updateDevicePresence();
+    });
+}else{
+    /* Firebase indisponible dès l'init (voir le try/catch plus haut) :
+       reflète tout de suite l'état "hors service" au lieu de laisser
+       firebaseConnected sur sa valeur initiale (true), qui afficherait
+       à tort "🟢 Connecté" à un utilisateur déjà appairé lors d'une
+       session précédente. */
+    firebaseConnected = false;
     updateSyncConnectionStatus();
-    if(firebaseConnected && syncCode) updateDevicePresence();
-});
+}
 
 const SYNC_HISTORY_KEY = "syncHistory";
 
@@ -9984,7 +9937,6 @@ const SYNC_SECTION_GROUPS = [
     { label:"Checklist", keys:["checklist","checklistTemplates"] },
     { label:"Budget & devises", keys:["tricountParticipants","tricountExpenses","baseCurrency","targetCurrency"] },
     { label:"Dates & voyage", keys:["dayCount","startDate","tripName","tripCountry","tripTimezone"] },
-    { label:"Infos voyageur", keys:["travelerInfo"] },
     { label:"Aide", keys:["helpNotes","helpReports"] }
 ];
 const SYNC_ALL_KEYS = SYNC_SECTION_GROUPS.flatMap(g=>g.keys);
@@ -10199,7 +10151,6 @@ function collectSyncData(){
         baseCurrency: localStorage.getItem("baseCurrency") || "GBP",
         targetCurrency: localStorage.getItem("targetCurrency") || "",
         checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
-        travelerInfo: JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
         helpNotes: helpNotesInput.value,
         helpReports: helpReportsHistory,
         updatedAt: Date.now(),
@@ -10273,6 +10224,11 @@ function buildFullSyncSnapshot(){
    initiale. Centralisé ici pour que les trois endroits restent identiques
    au lieu de trois copies qui divergent au fil du temps. */
 function pushFullSnapshotToRemote(code){
+    /* Rejette au lieu de lancer un TypeError synchrone sur syncDb.ref() —
+       les appelants (syncGenerateBtn/syncJoinBtn/syncPushBtn/régénération
+       de code) ont tous déjà un .catch() qui affiche un toast d'erreur,
+       il suffit donc que cette promesse échoue normalement. */
+    if(!syncDb) return Promise.reject(new Error("Synchronisation indisponible"));
     const snapshot = buildFullSyncSnapshot();
     return syncDb.ref("trips/"+code).set(snapshot).then(()=>{
         lastPushedPayload = JSON.parse(JSON.stringify(snapshot));
@@ -10289,6 +10245,7 @@ function pushFullSnapshotToRemote(code){
    d'écrasement) plutôt que de la laisser s'appliquer toute seule comme le
    fait le listener continu de startSyncListener(). */
 function pullSnapshotFromRemote(code){
+    if(!syncDb) return Promise.reject(new Error("Synchronisation indisponible"));
     return syncDb.ref("trips/"+code).once("value").then(snapshot=>snapshot.val());
 }
 
@@ -10436,7 +10393,6 @@ function buildCurrentTripSnapshot(){
         tricountParticipants,
         tricountExpenses,
         checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
-        travelerInfo: JSON.parse(localStorage.getItem(TRAVELER_INFO_KEY) || "{}"),
         archivedAt: Date.now()
     };
 }
@@ -10691,11 +10647,6 @@ function applySyncData(data,isInitialLoad){
         anyRemoteChangeApplied = true;
     }
 
-    if(data.travelerInfo && typeof data.travelerInfo==="object" && !sectionIsSelf("travelerInfo")){
-        localStorage.setItem(TRAVELER_INFO_KEY,JSON.stringify(data.travelerInfo));
-        anyRemoteChangeApplied = true;
-    }
-
     if(data.helpNotes!==undefined && !sectionIsSelf("helpNotes")){
         helpNotesInput.value = data.helpNotes;
         localStorage.setItem(HELP_NOTES_KEY,data.helpNotes);
@@ -10774,6 +10725,7 @@ function startSyncListener(){
 function attachPlanningListener(){
 
     if(syncRef) syncRef.off();
+    if(!syncDb) return;
 
     syncRef = syncDb.ref("trips/"+syncCode);
 
@@ -10818,8 +10770,14 @@ function pairWithCode(code,options){
     if(options && options.isNew){
         /* Publication complète, indépendante de syncAutoEnabled : il faut
            bien que trips/{code} existe pour que l'autre appareil puisse
-           un jour le lire, que la sync auto soit activée ici ou non. */
-        pushFullSnapshotToRemote(syncCode);
+           un jour le lire, que la sync auto soit activée ici ou non.
+           .catch() ajouté ici (audit 2026-09-01) : sans lui, un échec
+           (réseau ou Firebase indisponible) ne laissait qu'une rejection
+           de promesse non gérée en console, sans aucun retour visible
+           pour l'utilisateur qui reste pourtant sur "en attente...". */
+        pushFullSnapshotToRemote(syncCode).catch(()=>{
+            showToast("Impossible de publier le code de synchronisation.",{type:"error"});
+        });
         syncStatus.textContent = "🟢 Code généré, en attente de l'autre appareil";
     }
 }
@@ -10889,6 +10847,15 @@ document.addEventListener("keydown",(e)=>{
 });
 
 syncGenerateBtn.addEventListener("click",()=>{
+    /* Seul point d'entrée de la sync qui ne passait par aucune promesse
+       déjà catchée (contrairement à Rejoindre/Récupérer/Envoyer) — sans
+       cette vérification, un clic ici pendant que Firebase est
+       indisponible affichait quand même "Code généré" avant que la
+       publication échoue silencieusement en arrière-plan. */
+    if(!syncDb){
+        showToast("Synchronisation indisponible sur cet appareil pour le moment.",{type:"error"});
+        return;
+    }
     const code = generateSyncCode();
     pairWithCode(code,{isNew:true});
     showToast("Code de synchronisation généré.",{type:"success"});

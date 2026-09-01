@@ -342,7 +342,6 @@
 <button id="desktopProfileBtn" class="icon-btn" type="button" title="Profil" aria-label="Ouvrir le profil" aria-haspopup="true" aria-expanded="false">👤</button>
 <div id="desktopProfilePanel" class="options-menu-panel" role="menu" hidden>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="dateSettingsView"><span class="menu-item-icon">🗓️</span><span class="menu-item-label">Dates &amp; devise</span></button>
-<button class="menu-item" type="button" role="menuitem" data-profile-view="travelerInfoView"><span class="menu-item-icon">🧳</span><span class="menu-item-label">Infos voyageur</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="tripStatsView"><span class="menu-item-icon">📊</span><span class="menu-item-label">Statistiques du voyage</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="reservationsView"><span class="menu-item-icon">🔗</span><span class="menu-item-label">Réservations</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="mapView"><span class="menu-item-icon">🗺️</span><span class="menu-item-label">Carte du voyage</span></button>
@@ -722,7 +721,6 @@ Masquer les éléments cochés
 <div class="profile-list">
 <button class="profile-row" type="button" data-profile-view="dateSettingsView"><span class="profile-row-icon">🗓️</span><span class="profile-row-label">Dates &amp; devise</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
-<button class="profile-row" type="button" data-profile-view="travelerInfoView"><span class="profile-row-icon">🧳</span><span class="profile-row-label">Infos voyageur</span><span class="profile-row-chevron">›</span></button>
 </div>
 </div>
 
@@ -758,47 +756,6 @@ Masquer les éléments cochés
 <div id="cacheVersionBadge" class="cache-version-badge"></div>
 <div id="serverOriginBadge" class="cache-version-badge"></div>
 
-</div>
-
-<div id="travelerInfoView" class="fullscreen-view profile-sub-view" hidden>
-<div class="fullscreen-header">
-<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
-<h2>🧳 Infos voyageur</h2>
-</div>
-<div class="fullscreen-body">
-<div class="profile-section">
-<div class="profile-field">
-<label for="travelerName">Nom</label>
-<input type="text" id="travelerName" placeholder="Ton nom">
-</div>
-<div class="profile-field">
-<label for="travelerPassport">N° de passeport / pièce d'identité</label>
-<input type="text" id="travelerPassport" placeholder="Optionnel">
-</div>
-<div class="profile-field">
-<label for="travelerEmergency">Contact d'urgence</label>
-<input type="text" id="travelerEmergency" placeholder="Nom et téléphone">
-</div>
-<p class="profile-hint">Synchronisées entre tes appareils si la synchronisation (☁️) est active, et incluses dans les sauvegardes JSON exportées — jamais partagées ailleurs.</p>
-</div>
-
-<div class="profile-section">
-<div class="profile-section-title">Documents de voyage</div>
-<div class="profile-field">
-<label for="travelerFlightNumber">N° de vol</label>
-<input type="text" id="travelerFlightNumber" placeholder="Ex. BA1234">
-</div>
-<div class="profile-field">
-<label for="travelerBookingRef">N° de réservation d'hôtel / Airbnb</label>
-<input type="text" id="travelerBookingRef" placeholder="Optionnel">
-</div>
-<div class="profile-field">
-<label for="travelerInsurance">Assurance voyage</label>
-<input type="text" id="travelerInsurance" placeholder="Assureur, n° de contrat…">
-</div>
-<p class="profile-hint">Synchronisées entre tes appareils si la synchronisation (☁️) est active, et incluses dans les sauvegardes JSON exportées — jamais partagées ailleurs.</p>
-</div>
-</div>
 </div>
 
 <div id="weatherForecastView" class="fullscreen-view profile-sub-view" hidden>
