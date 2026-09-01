@@ -330,6 +330,8 @@ if(tripName){
 
 const optionsMenuItem = document.getElementById("optionsMenuItem");
 const syncMenuItem = document.getElementById("syncMenuItem");
+const displaySettingsContent = document.getElementById("displaySettingsContent");
+const displaySettingsSlot = document.getElementById("displaySettingsSlot");
 const dataSettingsContent = document.getElementById("dataSettingsContent");
 const dataSettingsSlot = document.getElementById("dataSettingsSlot");
 const syncPanelContent = document.getElementById("syncPanelContent");
@@ -360,7 +362,7 @@ settingsTabButtons.forEach(btn=>{
     });
 });
 
-updateSettingsTabs("affichage");
+updateSettingsTabs("donnees");
 
 /* --- Menu options (coin) --- */
 
@@ -1272,7 +1274,7 @@ dragged = null;
 
             let addressReservationSuffix = "";
             if(activity.address && activity.address.trim()) addressReservationSuffix += " 📍";
-            if(activity.reservationLink) addressReservationSuffix += " 🔗";
+            if(activity.reservationLink) addressReservationSuffix += " 🎫";
             if(activityHasAttachments(currentDay,activity.id)) addressReservationSuffix += " 📎";
 
             const strong = document.createElement("strong");
@@ -1461,13 +1463,7 @@ dragged = null;
                 mapItem.textContent = "📍 Ouvrir dans Maps";
                 mapItem.addEventListener("click",()=>{
                     closeActivityMenus();
-                    // CAPACITOR : lien externe — voir la note "Liens externes"
-                    // en haut du fichier (@capacitor/browser).
-                    window.open(
-                        "https://www.google.com/maps/search/?api=1&query="
-                        + encodeURIComponent(activity.address.trim()),
-                        "_blank"
-                    );
+                    openAddressInMaps(activity.address);
                 });
                 popover.appendChild(mapItem);
             }
@@ -1476,16 +1472,10 @@ dragged = null;
                 const reservationItem = document.createElement("button");
                 reservationItem.type = "button";
                 reservationItem.className = "activity-popover-item";
-                reservationItem.textContent = "🔗 Réservation";
+                reservationItem.textContent = "🎫 Réservation";
                 reservationItem.addEventListener("click",()=>{
                     closeActivityMenus();
-                    if(/^https?:\/\//i.test(activity.reservationLink)){
-                        // CAPACITOR : lien externe — voir "Liens externes" en
-                        // haut du fichier (@capacitor/browser).
-                        window.open(activity.reservationLink,"_blank","noopener,noreferrer");
-                    }else{
-                        showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
-                    }
+                    openReservationLink(activity.reservationLink);
                 });
                 popover.appendChild(reservationItem);
             }
@@ -4796,12 +4786,17 @@ function updateProfileConsolidation(desktop){
     syncToggleBtn.setAttribute("aria-expanded","false");
 
     if(desktop){
+        // Ordre d'appendChild = ordre d'affichage dans le popup ⋮ : Affichage
+        // avant Données/Voyage, comme dans le HTML d'origine avant la
+        // séparation en deux noeuds (voir profile_page_display_split).
+        optionsMenuPanel.appendChild(displaySettingsContent);
         optionsMenuPanel.appendChild(dataSettingsContent);
         syncPanel.appendChild(syncPanelContent);
         optionsMenuItem.hidden = false;
         syncMenuItem.hidden = false;
         desktopProfileMenuItem.hidden = false;
     }else{
+        displaySettingsSlot.appendChild(displaySettingsContent);
         dataSettingsSlot.appendChild(dataSettingsContent);
         syncPanelSlot.appendChild(syncPanelContent);
         optionsMenuItem.hidden = true;
@@ -5079,6 +5074,96 @@ function renderProfileStats(){
 
 /* --- Profil : réservations (vue consolidée des liens par activité) --- */
 
+// CAPACITOR : lien externe — voir "Liens externes" en haut du fichier
+// (@capacitor/browser). Partagé entre le popover d'activité (Planning) et
+// la vue Réservations, plutôt que dupliqué à chaque endroit qui doit
+// ouvrir une adresse.
+function openAddressInMaps(address){
+    window.open(
+        "https://www.google.com/maps/search/?api=1&query="
+        + encodeURIComponent(address.trim()),
+        "_blank"
+    );
+}
+
+// CAPACITOR : lien externe — voir "Liens externes" en haut du fichier
+// (@capacitor/browser). Même raison que openAddressInMaps() ci-dessus.
+function openReservationLink(link){
+    if(/^https?:\/\//i.test(link)){
+        window.open(link,"_blank","noopener,noreferrer");
+    }else{
+        showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
+    }
+}
+
+/* Catégories réellement ouvrables pour une activité donnée (adresse/
+   réservation/documents), dans cet ordre d'affichage — utilisé à la fois
+   pour décider "ouvrir direct" (1 seule) vs "demander" (2+), voir
+   renderReservations(). */
+function buildReservationCategories(day,activity,hasAttachments){
+    const categories = [];
+    if(activity.address && activity.address.trim()){
+        categories.push({icon:"📍",label:"Ouvrir l'adresse",action:()=>openAddressInMaps(activity.address)});
+    }
+    if(activity.reservationLink){
+        categories.push({icon:"🎫",label:"Voir la réservation",action:()=>openReservationLink(activity.reservationLink)});
+    }
+    if(hasAttachments){
+        categories.push({icon:"📎",label:"Voir les documents",action:()=>openAttachmentsModal(day,activity)});
+    }
+    return categories;
+}
+
+const reservationsChoicePopover = document.getElementById("reservationsChoicePopover");
+
+function closeReservationsChoicePopover(){
+    reservationsChoicePopover.hidden = true;
+    reservationsChoicePopover.innerHTML = "";
+}
+
+/* Ancré sur la ligne cliquée (position:fixed, calculée depuis son
+   getBoundingClientRect() — la liste défile dans son propre conteneur,
+   un positionnement CSS relatif classique serait coupé par son overflow).
+   Un seul noeud réutilisé/repeuplé à chaque clic plutôt qu'un popover par
+   ligne : au plus une activité a besoin de choisir à la fois. */
+function openReservationsChoicePopover(anchorEl,categories){
+
+    reservationsChoicePopover.innerHTML = "";
+
+    categories.forEach(cat=>{
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "menu-item";
+        btn.setAttribute("role","menuitem");
+        const icon = document.createElement("span");
+        icon.className = "menu-item-icon";
+        icon.textContent = cat.icon;
+        const label = document.createElement("span");
+        label.className = "menu-item-label";
+        label.textContent = cat.label;
+        btn.appendChild(icon);
+        btn.appendChild(label);
+        btn.addEventListener("click",(e)=>{
+            e.stopPropagation();
+            closeReservationsChoicePopover();
+            cat.action();
+        });
+        reservationsChoicePopover.appendChild(btn);
+    });
+
+    const rect = anchorEl.getBoundingClientRect();
+    reservationsChoicePopover.style.top = (rect.bottom + 6) + "px";
+    reservationsChoicePopover.style.left = rect.left + "px";
+    reservationsChoicePopover.style.width = rect.width + "px";
+    reservationsChoicePopover.hidden = false;
+}
+
+document.addEventListener("click",(e)=>{
+    if(!reservationsChoicePopover.hidden && !e.target.closest("#reservationsChoicePopover")){
+        closeReservationsChoicePopover();
+    }
+});
+
 /* Vue "jours repliables" — mêmes classes/interaction que l'Album
    (.album-day-group/-heading/-toggle/-body, voir renderPhotoGroups()) pour
    rester cohérent visuellement, mais avec sa propre clé de repli
@@ -5171,9 +5256,14 @@ function renderReservations(){
             item.className = "search-result-item";
 
             const hasAttachments = activityHasAttachments(day,activity.id);
+            const categories = buildReservationCategories(day,activity,hasAttachments);
 
             const nameDiv = document.createElement("div");
-            nameDiv.textContent = `${icons[activity.type] || "📌"} ${activity.name}${hasAttachments ? " 📎" : ""}`;
+            let suffix = "";
+            if(activity.address && activity.address.trim()) suffix += " 📍";
+            if(activity.reservationLink) suffix += " 🎫";
+            if(hasAttachments) suffix += " 📎";
+            nameDiv.textContent = `${icons[activity.type] || "📌"} ${activity.name}${suffix}`;
 
             const dayDiv = document.createElement("div");
             dayDiv.className = "search-result-day";
@@ -5182,21 +5272,21 @@ function renderReservations(){
             item.appendChild(nameDiv);
             item.appendChild(dayDiv);
 
-            /* Une activité "documents seulement" (pièces jointes mais pas de
-               lien de réservation) ouvre directement la modale des
-               documents au clic, plutôt que de rester inerte ou d'afficher
-               l'erreur "lien invalide" pensée pour l'autre cas. */
-            item.addEventListener("click",()=>{
-                if(activity.reservationLink){
-                    if(/^https?:\/\//i.test(activity.reservationLink)){
-                        // CAPACITOR : lien externe — voir "Liens externes" en
-                        // haut du fichier (@capacitor/browser).
-                        window.open(activity.reservationLink,"_blank","noopener,noreferrer");
-                    }else{
-                        showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
-                    }
-                }else if(hasAttachments){
-                    openAttachmentsModal(day,activity);
+            /* Une seule catégorie applicable (adresse/réservation/documents)
+               → ouverte directement, sans étape en plus. Deux ou plus →
+               petit menu ancré sur la ligne pour choisir (mockup B validé,
+               2026-09-02) — avant ça, la réservation gagnait toujours
+               contre les documents, sans aucun moyen d'accéder à l'autre.
+               stopPropagation() : sinon ce même clic remonte jusqu'au
+               listener document "clic à l'extérieur" (voir plus haut) qui
+               referme le popover à l'instant même où il vient de s'ouvrir. */
+            item.addEventListener("click",(e)=>{
+                e.stopPropagation();
+                closeReservationsChoicePopover();
+                if(categories.length===1){
+                    categories[0].action();
+                }else if(categories.length>1){
+                    openReservationsChoicePopover(item,categories);
                 }
             });
 

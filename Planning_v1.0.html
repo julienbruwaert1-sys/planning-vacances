@@ -218,9 +218,8 @@
 <div class="corner-menu-item" id="optionsMenuItem">
 <button id="optionsMenuBtn" class="icon-btn options-menu-trigger" type="button" title="Options" aria-label="Ouvrir le menu options" aria-haspopup="true" aria-expanded="false">⋮</button>
 <div id="optionsMenuPanel" class="options-menu-panel" role="menu" hidden>
-<div id="dataSettingsContent">
-
-<div class="settings-tab-group" data-tab="affichage">
+<div id="displaySettingsContent">
+<div class="settings-tab-group">
 <div class="menu-section-label">Affichage</div>
 <button id="themeToggle" class="menu-item" type="button" role="menuitem" title="Mode sombre" aria-label="Basculer le mode sombre"><span class="menu-item-icon">🌙</span><span class="menu-item-label">Mode sombre</span></button>
 <button id="layoutToggle" class="menu-item" type="button" role="menuitem" title="Mode auto" aria-label="Changer le mode d'affichage"><span class="menu-item-icon">🔄</span><span class="menu-item-label">Affichage mode auto</span></button>
@@ -242,6 +241,8 @@
 </div>
 <button id="hapticToggle" class="menu-item" type="button" role="menuitem" title="Retour haptique" aria-label="Activer/désactiver les vibrations de retour"><span class="menu-item-icon">📳</span><span class="menu-item-label">Retour haptique</span></button>
 </div>
+</div>
+<div id="dataSettingsContent">
 
 <div class="settings-tab-group" data-tab="donnees">
 <div class="menu-section-label">Importer</div>
@@ -716,23 +717,18 @@ Masquer les éléments cochés
 <div class="profile-cat-label">Ce voyage</div>
 <div class="profile-list">
 <button class="profile-row" type="button" data-profile-view="dateSettingsView"><span class="profile-row-icon">🗓️</span><span class="profile-row-label">Dates &amp; devise</span><span class="profile-row-chevron">›</span></button>
-<button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
-</div>
-</div>
-
-<div class="profile-cat-group">
-<div class="profile-cat-label">Contenu du voyage</div>
-<div class="profile-list">
 <button class="profile-row" type="button" data-profile-view="checklistView"><span class="profile-row-icon">🎒</span><span class="profile-row-label">Checklist de voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="mapView"><span class="profile-row-icon">🗺️</span><span class="profile-row-label">Carte du voyage</span><span class="profile-row-chevron">›</span></button>
-<button class="profile-row" type="button" data-profile-view="tripHistoryView"><span class="profile-row-icon">🗂️</span><span class="profile-row-label">Historique des voyages</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 </div>
 </div>
 
 <div class="profile-cat-group">
 <div class="profile-cat-label">Application</div>
 <div class="profile-list">
+<button class="profile-row" type="button" data-profile-view="displaySettingsView"><span class="profile-row-icon">🎨</span><span class="profile-row-label">Affichage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="dataSettingsView"><span class="profile-row-icon">⚙️</span><span class="profile-row-label">Réglages &amp; données</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="tripHistoryView"><span class="profile-row-icon">🗂️</span><span class="profile-row-label">Historique des voyages</span><span class="profile-row-chevron">›</span></button>
 </div>
 </div>
 
@@ -775,6 +771,7 @@ Masquer les éléments cochés
 <div id="reservationsList"></div>
 </div>
 </div>
+<div id="reservationsChoicePopover" class="options-menu-panel reservations-choice-popover" role="menu" hidden></div>
 </div>
 
 <div id="mapView" class="fullscreen-view profile-sub-view" hidden>
@@ -886,6 +883,16 @@ Masquer les éléments cochés
 </div>
 </div>
 
+<div id="displaySettingsView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🎨 Affichage</h2>
+</div>
+<div class="fullscreen-body">
+<div id="displaySettingsSlot"></div>
+</div>
+</div>
+
 <div id="dataSettingsView" class="fullscreen-view profile-sub-view" hidden>
 <div class="fullscreen-header">
 <button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
@@ -894,8 +901,7 @@ Masquer les éléments cochés
 <div class="fullscreen-body">
 <div class="date-tabs" id="settingsTabs">
 <div class="date-tabs-group">
-<button class="date-tab active" type="button" data-tab="affichage">🎨 Affichage</button>
-<button class="date-tab" type="button" data-tab="donnees">📂 Données</button>
+<button class="date-tab active" type="button" data-tab="donnees">📂 Données</button>
 <button class="date-tab" type="button" data-tab="voyage">🧳 Voyage</button>
 </div>
 </div>
@@ -938,8 +944,10 @@ Masquer les éléments cochés
 <h2>ℹ️ À propos</h2>
 </div>
 <div class="fullscreen-body">
-<div class="profile-list">
-<button id="checkUpdateBtn" class="profile-row" type="button"><span class="profile-row-icon">⬇️</span><span class="profile-row-label">Vérifier les mises à jour</span><span class="profile-row-chevron">›</span></button>
+<div class="profile-section">
+<div class="profile-section-title">Mises à jour</div>
+<p class="profile-hint about-update-hint">Vérifie si une nouvelle version de l'application est disponible.</p>
+<button id="checkUpdateBtn" class="add" type="button">⬇️ Vérifier les mises à jour</button>
 </div>
 <div class="profile-section">
 <div class="profile-field">

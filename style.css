@@ -1300,6 +1300,12 @@ body.dark .profile-search-empty{
     margin:10px 0 0;
 }
 
+/* Suit directement .profile-section-title ici (pas la fin d'une carte de
+   champs comme le cas habituel) — inverse le sens de la marge par défaut. */
+.about-update-hint{
+    margin:0 0 12px;
+}
+
 .help-notes-input{
     width:100%;
     padding:12px;
@@ -4184,6 +4190,17 @@ body.dark .activity-note{
     padding:8px;
 }
 
+/* Ancré dynamiquement (position:fixed, top/left/width calculés en JS
+   depuis la ligne cliquée — voir openReservationsChoicePopover()) plutôt
+   qu'au coin d'un bouton fixe comme .options-menu-panel normalement :
+   #reservationsList défile dans son propre conteneur, un ancrage
+   position:absolute classique serait coupé par son overflow. */
+.reservations-choice-popover{
+    position:fixed;
+    top:auto;
+    right:auto;
+}
+
 .search-panel{
     width:280px;
     padding:10px;
@@ -4344,18 +4361,21 @@ body.dark .menu-hint-warning{
 }
 
 /* Réglages & données : #dataSettingsContent (avec ses .settings-tab-group)
-   est un seul jeu de noeuds partagé entre le popup ⋮ desktop
-   (#optionsMenuPanel, liste à plat, inchangée) et la page Profil mobile
-   (#dataSettingsSlot, à onglets) — updateProfileConsolidation() le déplace
-   d'un endroit à l'autre. Le style ci-dessous dépend donc du PARENT réel,
-   pas d'une classe que JS devrait mettre à jour à chaque changement de
+   et #displaySettingsContent (Affichage, extrait le 2026-09-02 pour devenir
+   sa propre page — voir profile_page_display_split) sont chacun un seul
+   jeu de noeuds partagé entre le popup ⋮ desktop (#optionsMenuPanel, liste
+   à plat, inchangée) et leur page Profil mobile respective
+   (#dataSettingsSlot à onglets, #displaySettingsSlot sans onglet puisque
+   seul contenu de sa page) — updateProfileConsolidation() les déplace d'un
+   endroit à l'autre. Le style ci-dessous dépend donc du PARENT réel, pas
+   d'une classe que JS devrait mettre à jour à chaque changement de
    contexte. */
 #optionsMenuPanel .settings-tab-group{
     display:block;
 }
 
-#dataSettingsSlot .settings-tab-group{
-    display:none;
+#dataSettingsSlot .settings-tab-group,
+#displaySettingsSlot .settings-tab-group{
     background:#FFFFFF;
     border-radius:16px;
     box-shadow:0 2px 8px rgba(51,64,74,.07);
@@ -4363,36 +4383,51 @@ body.dark .menu-hint-warning{
     margin-bottom:14px;
 }
 
+/* #displaySettingsSlot n'a qu'un seul groupe, toujours affiché — seul
+   #dataSettingsSlot garde le mécanisme d'onglets (Données/Voyage). */
+#dataSettingsSlot .settings-tab-group{
+    display:none;
+}
+
 #dataSettingsSlot .settings-tab-group.active-tab{
     display:block;
 }
 
 #dataSettingsSlot .menu-divider,
-#dataSettingsSlot .menu-section-label{
+#dataSettingsSlot .menu-section-label,
+#displaySettingsSlot .menu-divider,
+#displaySettingsSlot .menu-section-label{
     display:none;
 }
 
-body.dark #dataSettingsSlot .settings-tab-group{
+body.dark #dataSettingsSlot .settings-tab-group,
+body.dark #displaySettingsSlot .settings-tab-group{
     background:#121A2E;
     box-shadow:0 2px 8px rgba(0,0,0,.4);
 }
 
-body.theme-noel #dataSettingsSlot .settings-tab-group{
+body.theme-noel #dataSettingsSlot .settings-tab-group,
+body.theme-noel #displaySettingsSlot .settings-tab-group{
     background:#EDF5EE;
 }
-body.dark.theme-noel #dataSettingsSlot .settings-tab-group{
+body.dark.theme-noel #dataSettingsSlot .settings-tab-group,
+body.dark.theme-noel #displaySettingsSlot .settings-tab-group{
     background:#132A22;
 }
-body.theme-ghibli #dataSettingsSlot .settings-tab-group{
+body.theme-ghibli #dataSettingsSlot .settings-tab-group,
+body.theme-ghibli #displaySettingsSlot .settings-tab-group{
     background:#E7EFDA;
 }
-body.dark.theme-ghibli #dataSettingsSlot .settings-tab-group{
+body.dark.theme-ghibli #dataSettingsSlot .settings-tab-group,
+body.dark.theme-ghibli #displaySettingsSlot .settings-tab-group{
     background:#2A3A2E;
 }
-body.theme-halloween #dataSettingsSlot .settings-tab-group{
+body.theme-halloween #dataSettingsSlot .settings-tab-group,
+body.theme-halloween #displaySettingsSlot .settings-tab-group{
     background:#F3DCC0;
 }
-body.dark.theme-halloween #dataSettingsSlot .settings-tab-group{
+body.dark.theme-halloween #dataSettingsSlot .settings-tab-group,
+body.dark.theme-halloween #displaySettingsSlot .settings-tab-group{
     background:#332440;
 }
 
