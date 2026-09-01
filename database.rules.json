@@ -4,8 +4,8 @@
       ".read": false,
       ".write": false,
       "$code": {
-        ".read": true,
-        ".write": true
+        ".read": "auth != null",
+        ".write": "auth != null"
       }
     }
   }

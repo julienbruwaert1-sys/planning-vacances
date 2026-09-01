@@ -9675,6 +9675,28 @@ let syncDb = null;
 try{
     firebase.initializeApp(firebaseConfig);
     syncDb = firebase.database();
+
+    /* Connexion anonyme (2026-09-02) : aucun écran de connexion, aucun mot
+       de passe — juste une identité par appareil que le SDK crée et
+       persiste tout seul, pour que les règles Firebase puissent exiger
+       "auth != null" en plus de connaître le code à 10 caractères (ferme
+       l'accès direct par script/curl à la base, démontré possible sans
+       ça — voir le commentaire "auth != null" plus bas près de
+       database.rules.json). Ne bloque rien si ça échoue : la base reste
+       lisible/inscriptible sous les règles ACTUELLES (qui n'exigent pas
+       encore auth != null) tant que l'authentification anonyme n'a pas
+       été activée dans la console Firebase — voir ce fichier. */
+    try{
+        firebase.auth().signInAnonymously().catch(err=>{
+            console.error("Connexion anonyme Firebase impossible (l'authentification n'est peut-être pas encore activée dans la console) :",err);
+        });
+    }catch(err){
+        // vendor/firebase-auth-compat.js absent/pas chargé : syncDb reste
+        // valable, seule l'identité anonyme manque — pas une raison de
+        // considérer toute la synchronisation indisponible (voir le catch
+        // englobant juste en dessous, qui aurait ce message trompeur).
+        console.error("Module d'authentification Firebase indisponible :",err);
+    }
 }catch(err){
     console.error("Synchronisation indisponible (Firebase n'a pas pu s'initialiser) :",err);
 }

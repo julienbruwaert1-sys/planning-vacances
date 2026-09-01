@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v269";
+const CACHE_NAME = "planning-v270";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -82,6 +82,7 @@ const APP_SHELL = [
     "./vendor/xlsx.full.min.js",
     "./vendor/firebase-app-compat.js",
     "./vendor/firebase-database-compat.js",
+    "./vendor/firebase-auth-compat.js",
     "./vendor/leaflet.js",
     "./vendor/leaflet.css",
     "./vendor/leaflet.markercluster.js",
