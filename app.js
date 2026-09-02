@@ -9672,6 +9672,21 @@ const firebaseConfig = {
    prévu par ailleurs (mêmes chemins que "hors ligne"/"pas encore
    appairé"), au lieu de tout arrêter. */
 let syncDb = null;
+
+/* Se règle sur la promesse de connexion anonyme ci-dessous — résolue (pas
+   rejetée) une fois la TENTATIVE de connexion terminée, qu'elle ait
+   réussi ou non. Chaque fonction qui écrit/lit réellement sur Firebase
+   fait "await syncAuthReady;" avant son premier syncDb.ref(...) (2026-
+   09-02, voir plus bas) : sans ça, un clic assez rapide après le
+   chargement de la page pouvait lancer une écriture AVANT que le SDK
+   n'ait fini de s'authentifier, et les règles ("auth != null") la
+   rejetaient alors même que la connexion aurait fini par réussir une
+   fraction de seconde plus tard — confirmé en test (lastPushedPayload
+   jamais renseigné après un clic "Générer un code" trop rapide). Reste
+   une promesse déjà résolue par défaut si l'auth échoue à s'initialiser
+   plus bas, pour ne jamais bloquer indéfiniment un "await" en aval. */
+let syncAuthReady = Promise.resolve();
+
 try{
     firebase.initializeApp(firebaseConfig);
     syncDb = firebase.database();
@@ -9683,11 +9698,11 @@ try{
        l'accès direct par script/curl à la base, démontré possible sans
        ça — voir le commentaire "auth != null" plus bas près de
        database.rules.json). Ne bloque rien si ça échoue : la base reste
-       lisible/inscriptible sous les règles ACTUELLES (qui n'exigent pas
-       encore auth != null) tant que l'authentification anonyme n'a pas
-       été activée dans la console Firebase — voir ce fichier. */
+       lisible/inscriptible sous les règles ACTUELLES tant que
+       l'authentification anonyme n'a pas été activée dans la console
+       Firebase — voir ce fichier. */
     try{
-        firebase.auth().signInAnonymously().catch(err=>{
+        syncAuthReady = firebase.auth().signInAnonymously().catch(err=>{
             console.error("Connexion anonyme Firebase impossible (l'authentification n'est peut-être pas encore activée dans la console) :",err);
         });
     }catch(err){
@@ -9848,8 +9863,9 @@ deviceNameInput.addEventListener("keydown",(e)=>{
    réseau. Appelé à la fois ici (pairage/régénération) et dans le listener
    ".info/connected" plus bas (reconnexion après une coupure), pour couvrir
    les deux façons dont une session peut (re)devenir active. */
-function updateDevicePresence(){
+async function updateDevicePresence(){
     if(!syncCode || !syncDb) return;
+    await syncAuthReady;
     const presenceRef = syncDb.ref("trips/"+syncCode+"/presence/"+syncDeviceId);
     presenceRef.onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP});
     presenceRef.update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,name:syncDeviceName});
@@ -9859,8 +9875,10 @@ function updateDevicePresence(){
    code juste avant de s'en détacher (déconnexion ou régénération), sinon il
    resterait affiché "en ligne" pour toujours sous un code que plus personne
    n'utilise. */
-function removeOwnPresence(code){
-    if(code && syncDb) syncDb.ref("trips/"+code+"/presence/"+syncDeviceId).remove();
+async function removeOwnPresence(code){
+    if(!code || !syncDb) return;
+    await syncAuthReady;
+    syncDb.ref("trips/"+code+"/presence/"+syncDeviceId).remove();
 }
 
 let devicesPresenceRef = null;
@@ -9975,9 +9993,10 @@ function renderDevicesList(presenceData){
     });
 }
 
-function attachDevicesPresenceListener(){
+async function attachDevicesPresenceListener(){
     if(!syncCode || !syncDb) return;
     detachDevicesPresenceListener();
+    await syncAuthReady;
     devicesPresenceRef = syncDb.ref("trips/"+syncCode+"/presence");
     devicesPresenceRef.on("value",(snap)=>{
         renderDevicesList(snap.val());
@@ -10340,20 +10359,26 @@ function buildFullSyncSnapshot(){
    "Envoyer" manuel (mockup B), et la direction "mine" de la liaison
    initiale. Centralisé ici pour que les trois endroits restent identiques
    au lieu de trois copies qui divergent au fil du temps. */
-function pushFullSnapshotToRemote(code){
+async function pushFullSnapshotToRemote(code){
     /* Rejette au lieu de lancer un TypeError synchrone sur syncDb.ref() —
        les appelants (syncGenerateBtn/syncJoinBtn/syncPushBtn/régénération
        de code) ont tous déjà un .catch() qui affiche un toast d'erreur,
        il suffit donc que cette promesse échoue normalement. */
-    if(!syncDb) return Promise.reject(new Error("Synchronisation indisponible"));
+    if(!syncDb) throw new Error("Synchronisation indisponible");
+    /* Attend la connexion anonyme (2026-09-02, voir plus haut près de
+       firebase.auth()) avant d'écrire — sans ça, un clic assez rapide
+       après le chargement de la page lance ce .set() avant que le SDK
+       n'ait fini de s'authentifier, et les règles ("auth != null")
+       rejettent l'écriture alors même que la connexion anonyme aurait
+       fini par réussir une fraction de seconde plus tard. */
+    await syncAuthReady;
     const snapshot = buildFullSyncSnapshot();
-    return syncDb.ref("trips/"+code).set(snapshot).then(()=>{
-        lastPushedPayload = JSON.parse(JSON.stringify(snapshot));
-        knownSectionMeta = JSON.parse(JSON.stringify(snapshot.sectionMeta));
-        saveKnownSectionMeta();
-        renderSyncSectionMeta();
-        recordSyncHistory(snapshot.deviceId,snapshot.updatedAt);
-    });
+    await syncDb.ref("trips/"+code).set(snapshot);
+    lastPushedPayload = JSON.parse(JSON.stringify(snapshot));
+    knownSectionMeta = JSON.parse(JSON.stringify(snapshot.sectionMeta));
+    saveKnownSectionMeta();
+    renderSyncSectionMeta();
+    recordSyncHistory(snapshot.deviceId,snapshot.updatedAt);
 }
 
 /* Simple lecture ponctuelle (.once()) — utilisée par le bouton "Récupérer"
@@ -10361,9 +10386,11 @@ function pushFullSnapshotToRemote(code){
    de VOIR la donnée avant de décider (appareil non trouvé, ou confirmation
    d'écrasement) plutôt que de la laisser s'appliquer toute seule comme le
    fait le listener continu de startSyncListener(). */
-function pullSnapshotFromRemote(code){
-    if(!syncDb) return Promise.reject(new Error("Synchronisation indisponible"));
-    return syncDb.ref("trips/"+code).once("value").then(snapshot=>snapshot.val());
+async function pullSnapshotFromRemote(code){
+    if(!syncDb) throw new Error("Synchronisation indisponible");
+    await syncAuthReady;
+    const snapshot = await syncDb.ref("trips/"+code).once("value");
+    return snapshot.val();
 }
 
 /* Adopte un voyage reçu d'un autre appareil dont l'identité (tripId) diffère
@@ -10839,10 +10866,12 @@ function startSyncListener(){
     if(syncAutoEnabled) attachPlanningListener();
 }
 
-function attachPlanningListener(){
+async function attachPlanningListener(){
 
     if(syncRef) syncRef.off();
     if(!syncDb) return;
+    await syncAuthReady;
+    if(syncRef) syncRef.off(); // une régénération/déconnexion pendant l'attente a pu se glisser entre-temps
 
     syncRef = syncDb.ref("trips/"+syncCode);
 
