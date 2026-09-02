@@ -4417,6 +4417,17 @@ body.dark .activity-note{
     bottom:calc(100% + 8px);
     left:0;
     right:auto;
+    /* .options-menu-panel n'a aucune limite de hauteur par défaut (pas
+       besoin quand il s'ouvre vers le bas depuis un grand écran) — ici il
+       s'ouvre vers le HAUT depuis un point proche du bas de l'écran, donc
+       sans cette limite son contenu déborde hors de la fenêtre PAR LE HAUT
+       sur un écran bas (téléphone forcé en "vue PC" via le mode
+       d'affichage) : les premiers réglages (Total du jour & trajet, Retour
+       haptique, thème...) deviennent inaccessibles, aucun scroll ne les
+       ramène puisque c'est la fenêtre qui les coupe, pas le panneau.
+       Rapporté le 2026-09-02. */
+    max-height:calc(100vh - 24px);
+    overflow-y:auto;
 }
 
 body.dark .desktop-sidebar{
