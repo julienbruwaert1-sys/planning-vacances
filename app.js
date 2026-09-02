@@ -6782,10 +6782,10 @@ function drawWeatherForecast(){
     /* Vent/lever/coucher : infos du jour entier, toujours affichées telles
        quelles (mockup A validé, 2026-09-02). L'indice UV envisagé un temps
        n'a finalement pas été retenu dans cette ligne. */
-    if(selected.wind!==null || selected.sunrise || selected.sunset){
+    if(selected.wind!=null || selected.sunrise || selected.sunset){
         const detailRow = document.createElement("div");
         detailRow.className = "weather-detail-row";
-        if(selected.wind!==null){
+        if(selected.wind!=null){
             const wind = document.createElement("span");
             const windB = document.createElement("b");
             windB.textContent = `${selected.wind} km/h`;
@@ -6829,7 +6829,13 @@ function drawWeatherForecast(){
     }
     const hourData = relevantHours.find(h=>h.hour===weatherForecastSelectedHour) || relevantHours[0] || null;
 
-    if(hourData && (hourData.precipitation!==null || hourData.humidity!==null || hourData.feelsLike!==null)){
+    /* "!= null" (comparaison large, pas "!==") volontaire ci-dessous : une
+       entrée déjà en cache (TTL 3h) écrite par la version d'AVANT l'ajout
+       de humidity/feelsLike a des .hours sans ces deux clés du tout —
+       hourData.humidity y vaut alors undefined, pas null. "!==null" les
+       laissait passer (undefined!==null est vrai) et affichait
+       littéralement "Humidité undefined %". Bug signalé 2026-09-02. */
+    if(hourData && (hourData.precipitation!=null || hourData.humidity!=null || hourData.feelsLike!=null)){
         const hourlyRow = document.createElement("div");
         hourlyRow.className = "weather-detail-row weather-detail-row-hourly";
 
@@ -6840,21 +6846,21 @@ function drawWeatherForecast(){
         label.append("À ",labelB," :");
         hourlyRow.appendChild(label);
 
-        if(hourData.precipitation!==null){
+        if(hourData.precipitation!=null){
             const precip = document.createElement("span");
             const precipB = document.createElement("b");
             precipB.textContent = `${hourData.precipitation} %`;
             precip.append("Précipitations ",precipB);
             hourlyRow.appendChild(precip);
         }
-        if(hourData.humidity!==null){
+        if(hourData.humidity!=null){
             const humidity = document.createElement("span");
             const humidityB = document.createElement("b");
             humidityB.textContent = `${hourData.humidity} %`;
             humidity.append("Humidité ",humidityB);
             hourlyRow.appendChild(humidity);
         }
-        if(hourData.feelsLike!==null){
+        if(hourData.feelsLike!=null){
             const feels = document.createElement("span");
             const feelsB = document.createElement("b");
             feelsB.textContent = `${hourData.feelsLike}°`;
@@ -6910,7 +6916,7 @@ function drawWeatherForecast(){
                jour juste au-dessus, qui lui l'a toujours affiché sans
                condition de seuil. Le cacher à 0% donnait l'impression d'une
                donnée manquante par moments plutôt que d'un vrai 0%. */
-            precipEl.textContent = h.precipitation!==null ? `💧${h.precipitation}%` : "";
+            precipEl.textContent = h.precipitation!=null ? `💧${h.precipitation}%` : "";
 
             const tempEl = document.createElement("span");
             tempEl.className = "weather-hour-temp";
@@ -8670,12 +8676,34 @@ tripHistoryDeleteBtn.addEventListener("click",()=>{
     );
 });
 
-function restoreTrip(trip){
+async function restoreTrip(trip){
 
     archiveCurrentTrip();
 
     const history = loadTripHistory().filter(t=>t.id!==trip.id);
     saveTripHistory(history);
+
+    /* Le voyage restauré redevient le voyage ACTIF : il n'a plus sa place
+       dans l'historique partagé sur Firebase (bug signalé 2026-09-02,
+       "restaurer un voyage partagé crée une copie") — sans cette
+       révocation, l'entrée restait sur Firebase et le listener continu
+       (attachTripHistoryListener()) la réinjectait comme un doublon
+       fantôme au prochain rechargement/évènement, malgré le garde
+       id!==currentTripId ajouté au même endroit (qui protège CET appareil
+       une fois le voyage actif, mais pas les autres appareils appairés
+       tant que l'entrée traîne sur Firebase). Même raisonnement
+       d'asymétrie que unshareTripFromHistory() : seul le partageur
+       d'origine (trip.shared && !trip.receivedShare) révoque — un voyage
+       REÇU ne doit jamais toucher à Firebase, la copie de l'autre
+       appareil doit rester intacte. */
+    if(trip.shared && !trip.receivedShare && syncDb && syncCode){
+        await syncAuthReady;
+        try{
+            await syncDb.ref("trips/"+syncCode+"/historique/"+trip.id).remove();
+        }catch(err){
+            console.error("Impossible de retirer le partage du voyage restauré :",err);
+        }
+    }
 
     localStorage.setItem("vacationPlanning",JSON.stringify(trip.planning || {}));
     localStorage.setItem("startDate",trip.startDate || "");
@@ -11605,8 +11633,17 @@ async function attachTripHistoryListener(){
         // doit pouvoir révoquer le partage pour tout le monde, un
         // destinataire qui "ne veut plus" ne doit retirer que sa propre
         // copie, jamais celle de l'autre appareil.
+        // id!==currentTripId (2026-09-02, bug signalé "restaurer un voyage
+        // partagé crée une copie") : restaurer un voyage archivé le retire
+        // de l'historique local et en fait le voyage ACTIF (restoreTrip()),
+        // mais s'il était partagé, l'entrée pouvait rester sur Firebase le
+        // temps que restoreTrip() la révoque (ou pour toujours côté
+        // destinataire, qui n'a pas le droit d'y toucher) — sans ce garde,
+        // ce même listener la voyait "absente de l'historique local" et la
+        // réinjectait aussitôt comme un doublon fantôme, alors qu'elle
+        // vient de devenir le voyage actif, pas un voyage archivé.
         Object.keys(remote).forEach(id=>{
-            if(!localHistory.find(t=>t.id===id)){
+            if(!localHistory.find(t=>t.id===id) && id!==currentTripId){
                 localHistory.unshift({...remote[id], id, shared:true, receivedShare:true});
                 changed = true;
             }
