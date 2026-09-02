@@ -6539,6 +6539,12 @@ const weatherForecastPlace = document.getElementById("weatherForecastPlace");
 const weatherForecastContent = document.getElementById("weatherForecastContent");
 let weatherForecastDays = null;
 let weatherForecastSelectedIndex = 0;
+/* Heure dont les valeurs "à Xh" (précipitations/humidité/ressenti) sont
+   affichées dans le résumé — mockup A validé, 2026-09-02. Remise à null au
+   changement de jour pour retomber sur le défaut (première heure
+   pertinente) au lieu de garder une heure qui n'existe pas forcément sur
+   le nouveau jour. */
+let weatherForecastSelectedHour = null;
 
 async function fetchMultiDayWeather(lat,lon){
 
@@ -6553,8 +6559,8 @@ async function fetchMultiDayWeather(lat,lon){
     const url =
         "https://api.open-meteo.com/v1/forecast?latitude="+lat
         + "&longitude="+lon
-        + "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max"
-        + "&hourly=temperature_2m,weathercode,precipitation_probability"
+        + "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max,sunrise,sunset"
+        + "&hourly=temperature_2m,weathercode,precipitation_probability,relative_humidity_2m,apparent_temperature"
         + "&timezone=auto&forecast_days="+WEATHER_FORECAST_DAYS;
 
     const response = await fetchWithTimeout(url,8000);
@@ -6581,11 +6587,15 @@ async function fetchMultiDayWeather(lat,lon){
                 hour: parseInt(t.slice(11,13),10),
                 code: data.hourly.weathercode[i],
                 temp: Math.round(data.hourly.temperature_2m[i]),
-                precipitation: data.hourly.precipitation_probability ? data.hourly.precipitation_probability[i] : null
+                precipitation: data.hourly.precipitation_probability ? data.hourly.precipitation_probability[i] : null,
+                humidity: data.hourly.relative_humidity_2m ? data.hourly.relative_humidity_2m[i] : null,
+                feelsLike: data.hourly.apparent_temperature ? Math.round(data.hourly.apparent_temperature[i]) : null
             });
         });
     }
 
+    // "HH:MM" en fuseau local (timezone=auto ci-dessus) — Open-Meteo renvoie
+    // sunrise/sunset au format "2026-09-10T06:52", on ne garde que l'heure.
     const days = data.daily.time.map((dateStr,i)=>({
         date: dateStr,
         code: data.daily.weathercode[i],
@@ -6593,6 +6603,8 @@ async function fetchMultiDayWeather(lat,lon){
         min: Math.round(data.daily.temperature_2m_min[i]),
         precipitation: data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[i] : null,
         wind: data.daily.windspeed_10m_max ? Math.round(data.daily.windspeed_10m_max[i]) : null,
+        sunrise: data.daily.sunrise ? data.daily.sunrise[i].slice(11,16) : null,
+        sunset: data.daily.sunset ? data.daily.sunset[i].slice(11,16) : null,
         hours: hoursByDate[dateStr] || []
     }));
 
@@ -6653,6 +6665,7 @@ function drawWeatherForecast(){
 
         chip.addEventListener("click",()=>{
             weatherForecastSelectedIndex = i;
+            weatherForecastSelectedHour = null;
             drawWeatherForecast();
         });
 
@@ -6704,16 +6717,12 @@ function drawWeatherForecast(){
 
     summary.appendChild(top);
 
-    if(selected.precipitation!==null || selected.wind!==null){
+    /* Vent/lever/coucher : infos du jour entier, toujours affichées telles
+       quelles (mockup A validé, 2026-09-02). L'indice UV envisagé un temps
+       n'a finalement pas été retenu dans cette ligne. */
+    if(selected.wind!==null || selected.sunrise || selected.sunset){
         const detailRow = document.createElement("div");
         detailRow.className = "weather-detail-row";
-        if(selected.precipitation!==null){
-            const precip = document.createElement("span");
-            const precipB = document.createElement("b");
-            precipB.textContent = `${selected.precipitation} %`;
-            precip.append("Précipitations ",precipB);
-            detailRow.appendChild(precip);
-        }
         if(selected.wind!==null){
             const wind = document.createElement("span");
             const windB = document.createElement("b");
@@ -6721,10 +6730,22 @@ function drawWeatherForecast(){
             wind.append("Vent ",windB);
             detailRow.appendChild(wind);
         }
+        if(selected.sunrise){
+            const sunrise = document.createElement("span");
+            const sunriseB = document.createElement("b");
+            sunriseB.textContent = selected.sunrise;
+            sunrise.append("Lever ",sunriseB);
+            detailRow.appendChild(sunrise);
+        }
+        if(selected.sunset){
+            const sunset = document.createElement("span");
+            const sunsetB = document.createElement("b");
+            sunsetB.textContent = selected.sunset;
+            sunset.append("Coucher ",sunsetB);
+            detailRow.appendChild(sunset);
+        }
         summary.appendChild(detailRow);
     }
-
-    weatherForecastContent.appendChild(summary);
 
     /* Liste par heure (mockup B validé, 2026-09-02) : "|| []" au cas où une
        entrée déjà en cache (avant cet ajout, TTL 3h) n'a pas encore
@@ -6737,6 +6758,52 @@ function drawWeatherForecast(){
 
     const relevantHours = hours.filter(h=>!isToday || h.hour>=nowHour);
 
+    /* Précipitations/humidité/ressenti varient dans la journée, contrairement
+       à vent/lever/coucher — affichés "à Xh", Xh étant l'heure sélectionnée
+       dans la liste plus bas (défaut : la première heure pertinente, donc
+       l'heure actuelle ou la plus proche). Mockup A validé, 2026-09-02. */
+    if(weatherForecastSelectedHour===null && relevantHours.length){
+        weatherForecastSelectedHour = relevantHours[0].hour;
+    }
+    const hourData = relevantHours.find(h=>h.hour===weatherForecastSelectedHour) || relevantHours[0] || null;
+
+    if(hourData && (hourData.precipitation!==null || hourData.humidity!==null || hourData.feelsLike!==null)){
+        const hourlyRow = document.createElement("div");
+        hourlyRow.className = "weather-detail-row weather-detail-row-hourly";
+
+        const label = document.createElement("span");
+        label.className = "weather-detail-hourly-label";
+        const labelB = document.createElement("b");
+        labelB.textContent = `${hourData.hour}h`;
+        label.append("À ",labelB," :");
+        hourlyRow.appendChild(label);
+
+        if(hourData.precipitation!==null){
+            const precip = document.createElement("span");
+            const precipB = document.createElement("b");
+            precipB.textContent = `${hourData.precipitation} %`;
+            precip.append("Précipitations ",precipB);
+            hourlyRow.appendChild(precip);
+        }
+        if(hourData.humidity!==null){
+            const humidity = document.createElement("span");
+            const humidityB = document.createElement("b");
+            humidityB.textContent = `${hourData.humidity} %`;
+            humidity.append("Humidité ",humidityB);
+            hourlyRow.appendChild(humidity);
+        }
+        if(hourData.feelsLike!==null){
+            const feels = document.createElement("span");
+            const feelsB = document.createElement("b");
+            feelsB.textContent = `${hourData.feelsLike}°`;
+            feels.append("Ressenti ",feelsB);
+            hourlyRow.appendChild(feels);
+        }
+        summary.appendChild(hourlyRow);
+    }
+
+    weatherForecastContent.appendChild(summary);
+
     if(relevantHours.length){
         const hourList = document.createElement("div");
         hourList.className = "weather-hour-list";
@@ -6747,6 +6814,21 @@ function drawWeatherForecast(){
             const row = document.createElement("div");
             row.className = "weather-hour-row";
             if(isToday && h.hour===nowHour) row.classList.add("now");
+            if(h.hour===weatherForecastSelectedHour) row.classList.add("selected");
+            row.setAttribute("role","button");
+            row.tabIndex = 0;
+            row.setAttribute("aria-label",`Voir précipitations, humidité et ressenti à ${h.hour}h`);
+            const selectThisHour = ()=>{
+                weatherForecastSelectedHour = h.hour;
+                drawWeatherForecast();
+            };
+            row.addEventListener("click",selectThisHour);
+            row.addEventListener("keydown",(e)=>{
+                if(e.key==="Enter" || e.key===" "){
+                    e.preventDefault();
+                    selectThisHour();
+                }
+            });
 
             const hourEl = document.createElement("span");
             hourEl.className = "weather-hour-time";
@@ -6787,6 +6869,7 @@ function drawWeatherForecast(){
 async function renderWeatherForecast(){
 
     weatherForecastSelectedIndex = 0;
+    weatherForecastSelectedHour = null;
 
     if(!lastKnownPosition || (Date.now()-lastKnownPosition.timestamp) >= USER_LOCATION_TTL_MS){
         weatherForecastPlace.textContent = "";

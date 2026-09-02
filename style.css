@@ -3025,10 +3025,37 @@ body.dark .weather-icon-big.weather-spin{
     padding:8px 12px;
     background:#FFFFFF;
     font-family:'Inter',Arial,sans-serif;
+    cursor:pointer;
 }
 
 .weather-hour-row.now{
     background:#F6D9D2;
+}
+
+/* Tap sur une heure = alimente la ligne "à Xh" du résumé au-dessus
+   (précipitations/humidité/ressenti), mockup A validé 2026-09-02 — un
+   liseré plutôt qu'un fond plein pour rester distinct de .now (l'heure
+   actuelle réelle), qui coïncident par défaut mais peuvent diverger dès
+   qu'on tape une autre heure. */
+.weather-hour-row.selected{
+    box-shadow:inset 3px 0 0 0 #D2503B;
+}
+
+.weather-detail-row-hourly{
+    background:#FCEEE8;
+    border-top:none;
+    margin-top:8px;
+    padding:8px 10px;
+    border-radius:10px;
+}
+
+.weather-detail-hourly-label{
+    color:#D2503B;
+    font-weight:700;
+}
+
+.weather-detail-hourly-label b{
+    color:#D2503B;
 }
 
 .weather-hour-time{
@@ -3086,6 +3113,19 @@ body.dark .weather-hour-row{
 
 body.dark .weather-hour-row.now{
     background:#3A2430;
+}
+
+body.dark .weather-hour-row.selected{
+    box-shadow:inset 3px 0 0 0 #3D7CFF;
+}
+
+body.dark .weather-detail-row-hourly{
+    background:rgba(61,124,255,.14);
+}
+
+body.dark .weather-detail-hourly-label,
+body.dark .weather-detail-hourly-label b{
+    color:#3D7CFF;
 }
 
 body.dark .weather-hour-time,
