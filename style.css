@@ -4407,27 +4407,34 @@ body.dark .activity-note{
 }
 
 /* Les panneaux (.options-menu-panel/.date-panel) s'ouvrent normalement
-   vers le bas depuis un bouton en haut à droite — ici le déclencheur est
-   en bas d'une colonne à gauche, donc ils doivent s'ouvrir vers le HAUT
-   et s'étendre vers la DROITE (pas "right:0", qui les ferait déborder
-   hors de la fenêtre puisque la sidebar est déjà le bord gauche). */
+   vers le bas depuis un bouton en haut à droite, en position:absolute
+   ancré à un petit conteneur (.corner-menu-item). Ici le déclencheur est
+   en bas d'une colonne à gauche : un simple "ouvrir vers le haut" en
+   absolute restait insuffisant (signalé 2026-09-02 encore coupé en haut,
+   après un premier correctif max-height) — la cause réelle est que
+   .corner-menu-item ne fait QUE la hauteur du bouton lui-même, situé tout
+   en bas de la sidebar : "bottom:calc(100% + 8px)" repart donc d'un point
+   déjà proche du bas de l'écran, et même avec une hauteur plafonnée à
+   100vh le HAUT du panneau se retrouve mathématiquement au-dessus de
+   y=0 (hors fenêtre, donc hors de portée du défilement interne du
+   panneau, qui ne peut pas remonter au-delà de son propre cadre).
+   position:fixed change la référence : "top"/"bottom" se calculent alors
+   depuis la fenêtre ENTIÈRE, pas depuis ce petit conteneur — la hauteur
+   disponible s'auto-ajuste correctement à n'importe quelle taille d'écran. */
 .desktop-sidebar-bottom .options-menu-panel,
 .desktop-sidebar-bottom .date-panel{
-    top:auto;
-    bottom:calc(100% + 8px);
-    left:0;
+    position:fixed;
+    top:16px;
+    bottom:76px;
+    left:194px;
     right:auto;
-    /* .options-menu-panel n'a aucune limite de hauteur par défaut (pas
-       besoin quand il s'ouvre vers le bas depuis un grand écran) — ici il
-       s'ouvre vers le HAUT depuis un point proche du bas de l'écran, donc
-       sans cette limite son contenu déborde hors de la fenêtre PAR LE HAUT
-       sur un écran bas (téléphone forcé en "vue PC" via le mode
-       d'affichage) : les premiers réglages (Total du jour & trajet, Retour
-       haptique, thème...) deviennent inaccessibles, aucun scroll ne les
-       ramène puisque c'est la fenêtre qui les coupe, pas le panneau.
-       Rapporté le 2026-09-02. */
-    max-height:calc(100vh - 24px);
+    max-height:none;
     overflow-y:auto;
+    /* Largeur fixe de 240px (héritée de .options-menu-panel) : débordait
+       hors fenêtre sur un téléphone étroit forcé en vue PC (sidebar 180px
+       + 240px de panneau > largeur d'écran courante). Rétrécit au besoin
+       plutôt que de déborder. */
+    width:min(240px,calc(100vw - 210px));
 }
 
 body.dark .desktop-sidebar{

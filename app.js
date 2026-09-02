@@ -10759,12 +10759,41 @@ function sanitizePlanningSlots(){
 
 const TRIP_HISTORY_KEY = "tripHistory";
 
+/* Auto-guérison contre les doublons signalés dans l'historique (2026-09-02) :
+   aucune cause certaine identifiée par relecture de code (tous les appels à
+   archiveCurrentTrip() régénèrent bien currentTripId juste après, voir
+   finalizeTripCreation()/replaceTripWithImportedRows()/restoreTrip()/
+   adoptRemoteTrip()) — filet de sécurité au lieu d'un correctif ciblé tant
+   que la cause exacte n'est pas reproduite. Garde la copie la plus RÉCENTE
+   (archivedAt le plus grand) en cas de vrai id en double, et réécrit
+   silencieusement le localStorage assaini. */
 function loadTripHistory(){
+    let history;
     try{
-        return JSON.parse(localStorage.getItem(TRIP_HISTORY_KEY)) || [];
+        history = JSON.parse(localStorage.getItem(TRIP_HISTORY_KEY)) || [];
     }catch(err){
         return [];
     }
+    if(!Array.isArray(history)) return [];
+
+    const byId = new Map();
+    history.forEach(trip=>{
+        if(!trip || !trip.id) return;
+        const existing = byId.get(trip.id);
+        if(!existing || (trip.archivedAt||0)>=(existing.archivedAt||0)){
+            byId.set(trip.id,trip);
+        }
+    });
+
+    if(byId.size!==history.length){
+        const deduped = history
+            .map(trip=>trip && trip.id ? byId.get(trip.id) : trip)
+            .filter((trip,index,arr)=>arr.findIndex(t=>t===trip)===index);
+        localStorage.setItem(TRIP_HISTORY_KEY,JSON.stringify(deduped));
+        return deduped;
+    }
+
+    return history;
 }
 
 function saveTripHistory(history){
