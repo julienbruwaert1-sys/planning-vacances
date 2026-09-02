@@ -4895,14 +4895,21 @@ body.dark .desktop-sidebar-bottom{
 }
 
 /* Ancré dynamiquement (position:fixed, top/left/width calculés en JS
-   depuis la ligne cliquée — voir openReservationsChoicePopover()) plutôt
-   qu'au coin d'un bouton fixe comme .options-menu-panel normalement :
-   #reservationsList défile dans son propre conteneur, un ancrage
-   position:absolute classique serait coupé par son overflow. */
-.reservations-choice-popover{
+   depuis l'élément cliqué — voir openChoicePopover()) plutôt qu'au coin
+   d'un bouton fixe comme .options-menu-panel normalement : nécessaire
+   pour #reservationsList (défile dans son propre conteneur, un ancrage
+   position:absolute classique serait coupé par son overflow) et réutilisé
+   tel quel pour les popovers Importer/Exporter du menu ⋮ (2026-09-02).
+   Vit désormais à la racine du document (jamais dans une vue [hidden] —
+   voir le commentaire HTML à côté de #choicePopover), donc son z-index
+   doit explicitement dépasser .fullscreen-view (2000, Réservations) ET
+   .corner-menu (1000, menu ⋮) plutôt que d'hériter passivement de leur
+   contexte d'empilement comme avant son déplacement. */
+.choice-popover-fixed{
     position:fixed;
     top:auto;
     right:auto;
+    z-index:2100;
 }
 
 .search-panel{

@@ -219,6 +219,12 @@
 
 <div id="printView"></div>
 
+<!-- Toujours rendu au niveau racine (jamais dans une vue qui peut être
+     [hidden]) : openChoicePopover() doit pouvoir s'afficher qu'il soit
+     déclenché depuis Réservations OU depuis le menu ⋮ (Importer/Exporter),
+     qui vivent dans des sous-arbres différents. -->
+<div id="choicePopover" class="options-menu-panel choice-popover-fixed" role="menu" hidden></div>
+
 <div class="corner-menu">
 
 <div class="corner-menu-item" id="optionsMenuItem">
@@ -257,20 +263,21 @@
 
 <div class="settings-tab-group" data-tab="donnees">
 <div class="menu-section-label">Importer</div>
-<button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON" aria-label="Importer un fichier Excel, CSV, texte, .ics ou une sauvegarde JSON"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
+<button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier, un calendrier ou du texte collé" aria-label="Importer"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json,.ics" hidden>
-<button id="importIcsBtn" class="menu-item" type="button" role="menuitem" title="Importer un calendrier .ics (Airbnb, etc.)" aria-label="Importer un calendrier .ics"><span class="menu-item-icon">📅</span><span class="menu-item-label">Importer un calendrier (.ics)</span></button>
-<button id="pasteImportBtn" class="menu-item" type="button" role="menuitem" title="Importer une réservation depuis un texte collé" aria-label="Importer une réservation depuis un texte collé"><span class="menu-item-icon">📋</span><span class="menu-item-label">Importer depuis un texte</span></button>
+<button id="importIcsBtn" type="button" hidden></button>
+<button id="pasteImportBtn" type="button" hidden></button>
 <button id="qrScanBtn" class="menu-item" type="button" role="menuitem" title="Scanner un QR code" aria-label="Scanner un QR code"><span class="menu-item-icon">🔳</span><span class="menu-item-label">Scanner un QR code</span></button>
 <input type="file" id="importIcsFile" accept=".ics,text/calendar" hidden>
 <input type="file" id="dayPhotoInput" accept="image/*,video/*" hidden>
 
 <div class="menu-divider"></div>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
-<button id="printBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF / Imprimer" aria-label="Exporter le planning en PDF"><span class="menu-item-icon">🖨️</span><span class="menu-item-label">Exporter en PDF</span></button>
-<button id="tripBookBtn" class="menu-item" type="button" role="menuitem" title="Exporter un carnet de voyage illustré (planning, photos, statistiques)" aria-label="Exporter le carnet de voyage en PDF"><span class="menu-item-icon">📖</span><span class="menu-item-label">Carnet de voyage (PDF)</span></button>
-<button id="exportIcsBtn" class="menu-item" type="button" role="menuitem" title="Exporter vers le calendrier (.ics)" aria-label="Exporter le planning vers le calendrier"><span class="menu-item-icon">🗓️</span><span class="menu-item-label">Exporter vers le calendrier</span></button>
-<button id="exportDataBtn" class="menu-item" type="button" role="menuitem" title="Exporter mes données (sauvegarde JSON)" aria-label="Exporter mes données en JSON"><span class="menu-item-icon">💾</span><span class="menu-item-label">Exporter mes données</span></button>
+<button id="exportBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF, vers le calendrier ou mes données" aria-label="Exporter"><span class="menu-item-icon">📤</span><span class="menu-item-label">Exporter</span></button>
+<button id="printBtn" type="button" hidden></button>
+<button id="tripBookBtn" type="button" hidden></button>
+<button id="exportIcsBtn" type="button" hidden></button>
+<button id="exportDataBtn" type="button" hidden></button>
 <p id="backupReminderHint" class="menu-hint"></p>
 </div>
 
@@ -516,16 +523,22 @@
 <div id="formDrawer" class="form-drawer">
 <div class="form-drawer-inner">
 <div class="form">
+<div class="field-suffix">
 <input
 type="text"
 id="activityName"
 placeholder="Nom de l'activité">
+<span class="field-suffix-label" id="activityNameSuffix">Nom</span>
+</div>
+<div class="field-suffix">
 <input
 type="text"
 id="activityAddress"
 placeholder="Adresse (optionnelle)">
+<span class="field-suffix-label" id="activityAddressSuffix">Adresse</span>
+</div>
 <select id="activityType">
-<option value="" disabled selected>Type de lieu</option>
+<option value="">Sans (aucune icône)</option>
 <option>Restaurant</option>
 <option>Musée</option>
 <option>Bar</option>
@@ -572,10 +585,13 @@ type="time"
 id="activityTime">
 <span class="field-suffix-label">Heure conseillée</span>
 </div>
+<div class="field-suffix">
 <input
 type="text"
 id="activityDuration"
 placeholder="Durée (optionnelle, ex. 2h)">
+<span class="field-suffix-label" id="activityDurationSuffix">Durée</span>
+</div>
 <input
 type="text"
 id="activityNote"
@@ -811,7 +827,6 @@ Masquer les éléments cochés
 <div id="reservationsList"></div>
 </div>
 </div>
-<div id="reservationsChoicePopover" class="options-menu-panel reservations-choice-popover" role="menu" hidden></div>
 </div>
 
 <div id="mapView" class="fullscreen-view profile-sub-view" hidden>

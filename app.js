@@ -530,6 +530,14 @@ const typeColors = {
     Pratique:"#78909C"
 };
 
+/* Type de lieu optionnel (2026-09-02) : "Sans" n'a pas d'entrée dans `icons`,
+   donc icons[type] est déjà undefined pour ce cas — pas de fallback 📌 ici,
+   contrairement aux pins de la vue Carte qui ont toujours besoin d'un
+   marqueur visible (eux gardent volontairement `icons[type] || "📍"`). */
+function activityIconPrefix(type){
+    return icons[type] ? icons[type] + " " : "";
+}
+
 let activityTypeFilter = "";
 
 function dayHasActivityType(day,type){
@@ -873,11 +881,6 @@ function addActivity(){
 
     if(!name){
         showToast("Donne un nom à l'activité.",{type:"error"});
-        return;
-    }
-
-    if(!type){
-        showToast("Choisis un type d'activité.",{type:"error"});
         return;
     }
 
@@ -1436,7 +1439,7 @@ function renderActivities(){
             div.dataset.index = index;
             div.setAttribute(
                 "aria-label",
-                `${activity.name}, ${activity.type}. `
+                `${activity.name}${activity.type ? ", "+activity.type : ""}. `
                 + "Ctrl + flèche haut ou bas pour réordonner."
             );
             div.style.setProperty("--type-color",typeColors[activity.type] || "#999");
@@ -1485,7 +1488,7 @@ function renderActivities(){
 
             const strong = document.createElement("strong");
             strong.textContent =
-            `${icons[activity.type] || "📌"} `
+            activityIconPrefix(activity.type)
             + (activity.time ? `${activity.time} – ` : "")
             + activity.name
             + addressReservationSuffix;
@@ -1511,23 +1514,25 @@ function renderActivities(){
             }
             titleRow.appendChild(editBtn);
 
-            const small = document.createElement("small");
-            const dot = document.createElement("span");
-            dot.style.display = "inline-block";
-            dot.style.width = "8px";
-            dot.style.height = "8px";
-            dot.style.borderRadius = "50%";
-            dot.style.marginRight = "6px";
-            dot.style.backgroundColor =
-            typeColors[activity.type] || "#999";
-            small.appendChild(dot);
-            small.appendChild(
-                document.createTextNode(activity.type)
-            );
-
             infoDiv.appendChild(titleRow);
-            infoDiv.appendChild(document.createElement("br"));
-            infoDiv.appendChild(small);
+
+            if(activity.type){
+                const small = document.createElement("small");
+                const dot = document.createElement("span");
+                dot.style.display = "inline-block";
+                dot.style.width = "8px";
+                dot.style.height = "8px";
+                dot.style.borderRadius = "50%";
+                dot.style.marginRight = "6px";
+                dot.style.backgroundColor =
+                typeColors[activity.type] || "#999";
+                small.appendChild(dot);
+                small.appendChild(
+                    document.createTextNode(activity.type)
+                );
+                infoDiv.appendChild(document.createElement("br"));
+                infoDiv.appendChild(small);
+            }
 
             const linkedTricountCount = tricountExpenses.filter(exp=>exp.activityId===activity.id).length;
 
@@ -1954,7 +1959,7 @@ function buildPrintView(){
 
                 const nameLine = document.createElement("div");
                 nameLine.textContent =
-                (icons[activity.type] || "📌") + " "
+                activityIconPrefix(activity.type)
                 + (activity.time ? activity.time + " – " : "")
                 + activity.name;
                 row.appendChild(nameLine);
@@ -2092,7 +2097,7 @@ async function buildTripBookView(){
 
                 const nameLine = document.createElement("div");
                 nameLine.textContent =
-                (icons[activity.type] || "📌") + " "
+                activityIconPrefix(activity.type)
                 + (activity.time ? activity.time + " – " : "")
                 + activity.name;
                 row.appendChild(nameLine);
@@ -2400,8 +2405,20 @@ const importBtn = document.getElementById("importBtn");
 const importFile = document.getElementById("importFile");
 const templateBtn = document.getElementById("templateBtn");
 
-importBtn.addEventListener("click",()=>{
-    importFile.click();
+/* "Importer un fichier"/"Exporter" ouvrent chacun un petit popover de choix
+   (même composant que openChoicePopover(), voir la section Réservations)
+   plutôt que d'agir directement — regroupe 2026-09-02 ce qui étaient 3
+   boutons (fichier/.ics/texte collé) et 4 boutons (PDF/carnet/.ics/JSON)
+   distincts dans le menu ⋮. Chaque choix déclenche .click() sur le bouton
+   d'origine (resté dans le DOM, juste caché) : réutilise sa logique
+   existante telle quelle, zéro duplication. */
+importBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    openChoicePopover(importBtn,[
+        {icon:"📂",label:"Fichier (Excel, CSV, JSON…)",action:()=>importFile.click()},
+        {icon:"📅",label:"Calendrier (.ics)",action:()=>importIcsBtn.click()},
+        {icon:"📋",label:"Texte collé",action:()=>pasteImportBtn.click()}
+    ]);
 });
 
 function normalizeSlot(value){
@@ -2876,7 +2893,7 @@ function buildPlanningICS(){
                 lines.push(`DTSTAMP:${formatICSDateTime(new Date())}Z`);
                 lines.push(`DTSTART:${formatICSDateTime(start)}`);
                 lines.push(`DTEND:${formatICSDateTime(end)}`);
-                lines.push(`SUMMARY:${escapeICSText(`${icons[activity.type] || "📌"} ${activity.name}`)}`);
+                lines.push(`SUMMARY:${escapeICSText(`${activityIconPrefix(activity.type)}${activity.name}`)}`);
                 if(activity.address) lines.push(`LOCATION:${escapeICSText(activity.address)}`);
                 if(activity.reservationLink) lines.push(`URL:${escapeICSText(activity.reservationLink)}`);
                 if(activity.note) lines.push(`DESCRIPTION:${escapeICSText(activity.note)}`);
@@ -2912,6 +2929,19 @@ exportIcsBtn.addEventListener("click",()=>{
     downloadBlobToGallery(blob,`planning_${tripName || "vacances"}.ics`.replace(/\s+/g,"_"));
 
     showToast(`${eventCount} activité(s) exportée(s) vers le calendrier.`,{type:"success"});
+});
+
+const exportBtn = document.getElementById("exportBtn");
+const tripBookBtn = document.getElementById("tripBookBtn");
+
+exportBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    openChoicePopover(exportBtn,[
+        {icon:"🖨️",label:"PDF (planning)",action:()=>printBtn.click()},
+        {icon:"📖",label:"Carnet de voyage (PDF)",action:()=>tripBookBtn.click()},
+        {icon:"🗓️",label:"Calendrier (.ics)",action:()=>exportIcsBtn.click()},
+        {icon:"💾",label:"Mes données (JSON)",action:()=>exportDataBtn.click()}
+    ]);
 });
 
 const importIcsBtn = document.getElementById("importIcsBtn");
@@ -4757,7 +4787,7 @@ function runGlobalSearch(query){
 
             const nameDiv = document.createElement("div");
             nameDiv.textContent =
-            `${icons[m.activity.type] || "📌"} ${m.activity.name}`;
+            `${activityIconPrefix(m.activity.type)}${m.activity.name}`;
 
             const dayDiv = document.createElement("div");
             dayDiv.className = "search-result-day";
@@ -5747,21 +5777,23 @@ function buildReservationCategories(day,activity,hasAttachments){
     return categories;
 }
 
-const reservationsChoicePopover = document.getElementById("reservationsChoicePopover");
+const choicePopover = document.getElementById("choicePopover");
 
-function closeReservationsChoicePopover(){
-    reservationsChoicePopover.hidden = true;
-    reservationsChoicePopover.innerHTML = "";
+function closeChoicePopover(){
+    choicePopover.hidden = true;
+    choicePopover.innerHTML = "";
 }
 
-/* Ancré sur la ligne cliquée (position:fixed, calculée depuis son
-   getBoundingClientRect() — la liste défile dans son propre conteneur,
-   un positionnement CSS relatif classique serait coupé par son overflow).
-   Un seul noeud réutilisé/repeuplé à chaque clic plutôt qu'un popover par
-   ligne : au plus une activité a besoin de choisir à la fois. */
-function openReservationsChoicePopover(anchorEl,categories){
+/* Ancré sur l'élément cliqué (position:fixed, calculée depuis son
+   getBoundingClientRect() — utile pour un élément qui défile dans son
+   propre conteneur, un positionnement CSS relatif classique serait coupé
+   par son overflow). Un seul noeud réutilisé/repeuplé à chaque clic plutôt
+   qu'un popover par appelant : au plus un choix est ouvert à la fois.
+   Partagé par Réservations (choix adresse/réservation/documents) et les
+   boutons Importer/Exporter du menu ⋮ (2026-09-02). */
+function openChoicePopover(anchorEl,categories){
 
-    reservationsChoicePopover.innerHTML = "";
+    choicePopover.innerHTML = "";
 
     categories.forEach(cat=>{
         const btn = document.createElement("button");
@@ -5778,22 +5810,22 @@ function openReservationsChoicePopover(anchorEl,categories){
         btn.appendChild(label);
         btn.addEventListener("click",(e)=>{
             e.stopPropagation();
-            closeReservationsChoicePopover();
+            closeChoicePopover();
             cat.action();
         });
-        reservationsChoicePopover.appendChild(btn);
+        choicePopover.appendChild(btn);
     });
 
     const rect = anchorEl.getBoundingClientRect();
-    reservationsChoicePopover.style.top = (rect.bottom + 6) + "px";
-    reservationsChoicePopover.style.left = rect.left + "px";
-    reservationsChoicePopover.style.width = rect.width + "px";
-    reservationsChoicePopover.hidden = false;
+    choicePopover.style.top = (rect.bottom + 6) + "px";
+    choicePopover.style.left = rect.left + "px";
+    choicePopover.style.width = rect.width + "px";
+    choicePopover.hidden = false;
 }
 
 document.addEventListener("click",(e)=>{
-    if(!reservationsChoicePopover.hidden && !e.target.closest("#reservationsChoicePopover")){
-        closeReservationsChoicePopover();
+    if(!choicePopover.hidden && !e.target.closest("#choicePopover")){
+        closeChoicePopover();
     }
 });
 
@@ -5920,7 +5952,7 @@ function renderReservations(){
             if(activity.address && activity.address.trim()) suffix += " 📍";
             if(activity.reservationLink) suffix += " 🎫";
             if(hasAttachments) suffix += " 📎";
-            nameDiv.textContent = `${icons[activity.type] || "📌"} ${activity.name}${suffix}`;
+            nameDiv.textContent = `${activityIconPrefix(activity.type)}${activity.name}${suffix}`;
 
             const dayDiv = document.createElement("div");
             dayDiv.className = "search-result-day";
@@ -5939,11 +5971,11 @@ function renderReservations(){
                referme le popover à l'instant même où il vient de s'ouvrir. */
             item.addEventListener("click",(e)=>{
                 e.stopPropagation();
-                closeReservationsChoicePopover();
+                closeChoicePopover();
                 if(categories.length===1){
                     categories[0].action();
                 }else if(categories.length>1){
-                    openReservationsChoicePopover(item,categories);
+                    openChoicePopover(item,categories);
                 }
             });
 
