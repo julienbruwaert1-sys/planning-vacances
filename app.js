@@ -1136,20 +1136,28 @@ function renderActivities(){
     const summary = document.getElementById("daySummary");
     summary.innerHTML = "";
 
-    if(hasPrice){
-        const baseSymbol = CURRENCIES[baseCurrency].symbol;
-        const priceSpan = document.createElement("span");
-        priceSpan.textContent =
-        `${priceCurrencyIcon(baseSymbol)} Total du jour : ${dayTotalPrice.toFixed(2)} ${baseSymbol}`;
-        summary.appendChild(priceSpan);
-    }
+    // Réglage "Total du jour & trajet" (Affichage → Vue Planning, 2026-09-02).
+    if(showDayTotals){
 
-    if(hasTravel){
-        const travelSpan = document.createElement("span");
-        travelSpan.textContent =
-        `🚗 Trajet total : ${dayTotalTravel} min`;
-        summary.appendChild(travelSpan);
+        if(hasPrice){
+            const baseSymbol = CURRENCIES[baseCurrency].symbol;
+            const priceSpan = document.createElement("span");
+            priceSpan.textContent =
+            `${priceCurrencyIcon(baseSymbol)} Total du jour : ${dayTotalPrice.toFixed(2)} ${baseSymbol}`;
+            summary.appendChild(priceSpan);
+        }
+
+        if(hasTravel){
+            const travelSpan = document.createElement("span");
+            travelSpan.textContent =
+            `🚗 Trajet total : ${dayTotalTravel} min`;
+            summary.appendChild(travelSpan);
+        }
     }
+    // Pas besoin de summary.hidden=... : #daySummary:empty{display:none}
+    // (déjà en CSS) masque déjà tout seul le cas "rien à afficher", que ce
+    // soit parce que showDayTotals est faux ou qu'aucune activité n'a de
+    // prix/trajet — aucun enfant ajouté dans les deux cas.
 
     updateConverterCountryHeader();
 
@@ -3448,13 +3456,14 @@ appIconSelect.addEventListener("change",()=>{
     );
 });
 
+/* Interrupteur visuel (2026-09-02) : icône/libellé restent fixes ("Mode
+   sombre"), l'état s'affiche uniquement via aria-pressed (voir
+   .menu-item-switch-track dans style.css) — contrairement à l'ancienne
+   convention où le texte lui-même changeait pour "Mode clair" une fois
+   activé. */
 function updateThemeButton(){
-
     const isDark = document.body.classList.contains("dark");
-
-    themeToggle.querySelector(".menu-item-icon").textContent = isDark ? "☀️" : "🌙";
-    themeToggle.querySelector(".menu-item-label").textContent = isDark ? "Mode clair" : "Mode sombre";
-    themeToggle.title = isDark ? "Mode clair" : "Mode sombre";
+    themeToggle.setAttribute("aria-pressed",String(isDark));
 }
 
 if(localStorage.getItem("theme")==="dark"){
@@ -3664,10 +3673,9 @@ let hapticEnabled = localStorage.getItem(HAPTIC_ENABLED_KEY)!==null
     ? localStorage.getItem(HAPTIC_ENABLED_KEY)==="1"
     : true;
 
+// Même convention "interrupteur visuel" que updateThemeButton() ci-dessus.
 function updateHapticButton(){
-    hapticToggle.querySelector(".menu-item-icon").textContent = hapticEnabled ? "📳" : "🔕";
-    hapticToggle.querySelector(".menu-item-label").textContent =
-    hapticEnabled ? "Retour haptique activé" : "Retour haptique désactivé";
+    hapticToggle.setAttribute("aria-pressed",String(hapticEnabled));
 }
 
 function triggerHaptic(pattern){
@@ -3686,6 +3694,47 @@ if(!hapticSupported){
         if(hapticEnabled) triggerHaptic(15);
     });
 }
+
+/* --- Réglages "Vue Planning" (Affichage → Vue Planning, 2026-09-02) ---
+   Par défaut à true (comportement historique inchangé) : ce sont des
+   réglages "opt-out", pas "opt-in", pour ne rien changer silencieusement
+   chez qui utilise déjà l'app. Déclarés ici (avant le premier vrai appel
+   à renderActivities()/renderDayPhotos() plus bas dans le fichier) pour
+   éviter la même erreur TDZ déjà rencontrée plusieurs fois cette
+   session. */
+const SHOW_DAY_TOTALS_KEY = "showDayTotals";
+const SHOW_DAY_PHOTOS_KEY = "showDayPhotos";
+
+let showDayTotals = localStorage.getItem(SHOW_DAY_TOTALS_KEY) !== "0";
+let showDayPhotos = localStorage.getItem(SHOW_DAY_PHOTOS_KEY) !== "0";
+
+const dayTotalsToggle = document.getElementById("dayTotalsToggle");
+const dayPhotosToggle = document.getElementById("dayPhotosToggle");
+
+function updateDayTotalsToggle(){
+    dayTotalsToggle.setAttribute("aria-pressed",String(showDayTotals));
+}
+
+function updateDayPhotosToggle(){
+    dayPhotosToggle.setAttribute("aria-pressed",String(showDayPhotos));
+}
+
+updateDayTotalsToggle();
+updateDayPhotosToggle();
+
+dayTotalsToggle.addEventListener("click",()=>{
+    showDayTotals = !showDayTotals;
+    localStorage.setItem(SHOW_DAY_TOTALS_KEY,showDayTotals ? "1" : "0");
+    updateDayTotalsToggle();
+    renderActivities();
+});
+
+dayPhotosToggle.addEventListener("click",()=>{
+    showDayPhotos = !showDayPhotos;
+    localStorage.setItem(SHOW_DAY_PHOTOS_KEY,showDayPhotos ? "1" : "0");
+    updateDayPhotosToggle();
+    renderDayPhotos();
+});
 
 const welcomeThemeToggle = document.getElementById("welcomeThemeToggle");
 welcomeThemeToggle.checked = document.body.classList.contains("dark");
@@ -6853,6 +6902,14 @@ cameraShutterBtn.addEventListener("pointercancel",()=>{
 
 async function renderDayPhotos(){
 
+    // Réglage "Photos sur le Planning" (Affichage → Vue Planning, 2026-09-02).
+    if(!showDayPhotos){
+        dayPhotoObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+        dayPhotoObjectUrls = [];
+        dayPhotoGallery.hidden = true;
+        return;
+    }
+
     dayPhotoObjectUrls.forEach(url=>URL.revokeObjectURL(url));
     dayPhotoObjectUrls = [];
 
@@ -7612,6 +7669,14 @@ function renderTripHistoryView(){
         if(countryLabel) metaParts.push(countryLabel);
         metaParts.push(`${trip.dayCount || 0} jour(s)`);
         meta.textContent = metaParts.join(" · ");
+
+        if(trip.shared){
+            const badge = document.createElement("span");
+            badge.className = "trip-history-card-badge";
+            badge.textContent = "🔗 Partagé";
+            meta.appendChild(badge);
+        }
+
         info.appendChild(meta);
 
         card.appendChild(info);
@@ -7647,6 +7712,8 @@ async function openTripHistoryDetail(trip){
         tripHistoryDetailInfo.appendChild(p);
     });
 
+    updateTripHistoryShareBtn(trip);
+
     tripHistoryView.hidden = true;
     tripHistoryDetailView.hidden = false;
 
@@ -7676,6 +7743,35 @@ document.getElementById("tripHistoryDetailBack").addEventListener("click",()=>{
     tripHistoryView.hidden = false;
 });
 
+const tripHistoryShareBtn = document.getElementById("tripHistoryShareBtn");
+
+function updateTripHistoryShareBtn(trip){
+    tripHistoryShareBtn.hidden = !syncCode;
+    tripHistoryShareBtn.setAttribute("aria-pressed",String(!!trip.shared));
+    tripHistoryShareBtn.textContent = trip.shared
+        ? "✅ Partagé — Ne plus partager"
+        : "🔗 Partager avec l'autre appareil";
+}
+
+tripHistoryShareBtn.addEventListener("click",async ()=>{
+
+    if(!openTripHistoryEntry) return;
+    const trip = openTripHistoryEntry;
+
+    tripHistoryShareBtn.disabled = true;
+
+    if(trip.shared){
+        await unshareTripFromHistory(trip);
+        showToast("Ce voyage n'est plus partagé.");
+    }else{
+        await shareTripToHistory(trip);
+    }
+
+    tripHistoryShareBtn.disabled = false;
+    updateTripHistoryShareBtn(trip);
+    renderTripHistoryView();
+});
+
 tripHistoryRestoreBtn.addEventListener("click",()=>{
 
     if(!openTripHistoryEntry) return;
@@ -7695,11 +7791,20 @@ tripHistoryDeleteBtn.addEventListener("click",()=>{
     const trip = openTripHistoryEntry;
 
     showConfirmModal(
-        `Supprimer définitivement « ${trip.name || "ce voyage"} » ? Cette action est irréversible et supprimera aussi ses photos.`,
+        trip.shared
+            ? `Supprimer définitivement « ${trip.name || "ce voyage"} » ? Ce voyage est partagé — il sera aussi retiré de l'autre appareil. Cette action est irréversible et supprimera aussi ses photos.`
+            : `Supprimer définitivement « ${trip.name || "ce voyage"} » ? Cette action est irréversible et supprimera aussi ses photos.`,
         async ()=>{
 
             const history = loadTripHistory().filter(t=>t.id!==trip.id);
             saveTripHistory(history);
+
+            // Un voyage partagé doit disparaître de l'autre appareil aussi,
+            // pas seulement de celui-ci — voir shareTripToHistory(). Le
+            // filtre juste au-dessus l'a déjà retiré de l'historique local,
+            // donc la remise à jour locale que fait unshareTripFromHistory()
+            // ne trouve plus rien à changer ici (no-op inoffensif).
+            if(trip.shared) await unshareTripFromHistory(trip);
 
             try{
                 await deleteTripPhotos(trip.id);
@@ -10496,7 +10601,13 @@ function sanitizePlanningSlots(){
     });
 }
 
-/* --- Historique des voyages (100% local, comme les photos) --- */
+/* --- Historique des voyages ---
+   Local par défaut (comme les photos, jamais synchronisées) — chaque
+   entrée peut individuellement devenir "partagée" (trip.shared) via les
+   fonctions de partage sélectif plus bas (2026-09-02) : seules les
+   métadonnées/le planning traversent alors Firebase (trips/{code}/
+   historique/{id}), jamais les photos/documents de ce voyage archivé, qui
+   restent en IndexedDB comme pour le voyage actif. */
 
 const TRIP_HISTORY_KEY = "tripHistory";
 
@@ -10510,6 +10621,97 @@ function loadTripHistory(){
 
 function saveTripHistory(history){
     localStorage.setItem(TRIP_HISTORY_KEY,JSON.stringify(history));
+}
+
+/* --- Partage sélectif de l'historique (2026-09-02) ---
+   Un voyage archivé reste local tant qu'il n'a pas été explicitement
+   partagé (bouton dans sa fiche) — contrairement au voyage EN COURS,
+   toujours synchronisé dès qu'appairé. trip.shared distingue les deux
+   côté UI (badge "🔗 Partagé" dans la liste, bouton dans la fiche). */
+
+let tripHistoryRef = null;
+
+function detachTripHistoryListener(){
+    if(tripHistoryRef){
+        tripHistoryRef.off();
+        tripHistoryRef = null;
+    }
+}
+
+async function attachTripHistoryListener(){
+
+    detachTripHistoryListener();
+    if(!syncDb || !syncCode) return;
+
+    await syncAuthReady;
+    if(!syncCode) return; // s'est délié pendant l'attente
+
+    tripHistoryRef = syncDb.ref("trips/"+syncCode+"/historique");
+
+    tripHistoryRef.on("value",(snapshot)=>{
+
+        const remote = snapshot.val() || {};
+        const localHistory = loadTripHistory();
+        let changed = false;
+
+        // Ajoute les voyages partagés reçus qu'on n'a pas encore.
+        Object.keys(remote).forEach(id=>{
+            if(!localHistory.find(t=>t.id===id)){
+                localHistory.unshift({...remote[id], id, shared:true});
+                changed = true;
+            }
+        });
+
+        // Retire les entrées PARTAGÉES localement qui ont disparu du
+        // distant (l'autre appareil les a supprimées/dé-partagées) — les
+        // voyages LOCAUX (jamais partagés) ne sont jamais concernés par ce
+        // filtre, seul leur propre bouton "Supprimer" peut les retirer.
+        const kept = localHistory.filter(t=>!t.shared || remote[t.id]);
+        if(kept.length!==localHistory.length) changed = true;
+
+        if(changed){
+            saveTripHistory(kept);
+            if(!tripHistoryView.hidden) renderTripHistoryView();
+        }
+    });
+}
+
+async function shareTripToHistory(trip){
+
+    if(!syncDb || !syncCode){
+        showToast("Synchronisation indisponible ou aucun appareil relié.",{type:"error"});
+        return;
+    }
+
+    await syncAuthReady;
+
+    try{
+        const payload = JSON.parse(JSON.stringify(trip));
+        delete payload.shared;
+        await syncDb.ref("trips/"+syncCode+"/historique/"+trip.id).set(payload);
+
+        trip.shared = true;
+        saveTripHistory(loadTripHistory().map(t=>t.id===trip.id ? {...t,shared:true} : t));
+        showToast("Voyage partagé avec l'autre appareil.",{type:"success"});
+    }catch(err){
+        console.error("Impossible de partager ce voyage :",err);
+        showToast("Impossible de partager ce voyage.",{type:"error"});
+    }
+}
+
+async function unshareTripFromHistory(trip){
+
+    if(syncDb && syncCode){
+        await syncAuthReady;
+        try{
+            await syncDb.ref("trips/"+syncCode+"/historique/"+trip.id).remove();
+        }catch(err){
+            console.error("Impossible de retirer le partage de ce voyage :",err);
+        }
+    }
+
+    trip.shared = false;
+    saveTripHistory(loadTripHistory().map(t=>t.id===trip.id ? {...t,shared:false} : t));
 }
 
 function buildCurrentTripSnapshot(){
@@ -10854,6 +11056,10 @@ function applySyncData(data,isInitialLoad){
 function startSyncListener(){
     updateDevicePresence();
     if(syncAutoEnabled) attachPlanningListener();
+    // Indépendant de syncAutoEnabled, comme la présence juste au-dessus :
+    // recevoir un voyage archivé partagé est un événement ponctuel, pas
+    // un flux continu qu'on voudrait pouvoir couper séparément.
+    attachTripHistoryListener();
 }
 
 async function attachPlanningListener(){
@@ -11113,6 +11319,7 @@ function clearSyncState(){
     detachPlanningListener();
     removeOwnPresence(syncCode);
     detachDevicesPresenceListener();
+    detachTripHistoryListener();
     syncCode = "";
     localStorage.removeItem(SYNC_CODE_KEY);
     lastPushedPayload = null;

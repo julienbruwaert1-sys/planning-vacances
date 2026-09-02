@@ -220,8 +220,8 @@
 <div id="optionsMenuPanel" class="options-menu-panel" role="menu" hidden>
 <div id="displaySettingsContent">
 <div class="settings-tab-group">
-<div class="menu-section-label">Affichage</div>
-<button id="themeToggle" class="menu-item" type="button" role="menuitem" title="Mode sombre" aria-label="Basculer le mode sombre"><span class="menu-item-icon">🌙</span><span class="menu-item-label">Mode sombre</span></button>
+<div class="menu-section-label">Apparence</div>
+<button id="themeToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="false" title="Mode sombre" aria-label="Activer/désactiver le mode sombre"><span class="menu-item-icon">🌙</span><span class="menu-item-label">Mode sombre</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
 <button id="layoutToggle" class="menu-item" type="button" role="menuitem" title="Mode auto" aria-label="Changer le mode d'affichage"><span class="menu-item-icon">🔄</span><span class="menu-item-label">Affichage mode auto</span></button>
 <div class="menu-item menu-item-static">
 <span class="menu-item-icon">🖼️</span>
@@ -239,7 +239,12 @@
 <option value="halloween">🎃 Halloween</option>
 </select>
 </div>
-<button id="hapticToggle" class="menu-item" type="button" role="menuitem" title="Retour haptique" aria-label="Activer/désactiver les vibrations de retour"><span class="menu-item-icon">📳</span><span class="menu-item-label">Retour haptique</span></button>
+<button id="hapticToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Retour haptique" aria-label="Activer/désactiver les vibrations de retour"><span class="menu-item-icon">📳</span><span class="menu-item-label">Retour haptique</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+</div>
+<div class="settings-tab-group">
+<div class="menu-section-label">Vue Planning</div>
+<button id="dayTotalsToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Total du jour et trajet" aria-label="Afficher ou masquer le total du jour et le trajet total dans le Planning"><span class="menu-item-icon">🧮</span><span class="menu-item-label">Total du jour &amp; trajet</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+<button id="dayPhotosToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Photos sur le Planning" aria-label="Afficher ou masquer les photos du jour dans le Planning"><span class="menu-item-icon">🖼️</span><span class="menu-item-label">Photos sur le Planning</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
 </div>
 </div>
 <div id="dataSettingsContent">
@@ -855,6 +860,7 @@ Masquer les éléments cochés
 </div>
 <div class="fullscreen-body">
 <div id="tripHistoryDetailInfo" class="trip-history-detail-info"></div>
+<button id="tripHistoryShareBtn" class="trip-history-share-btn" type="button" aria-pressed="false" hidden>🔗 Partager avec l'autre appareil</button>
 <button id="tripHistoryRestoreBtn" class="add trip-history-restore-btn" type="button">↩️ Restaurer ce voyage</button>
 <button id="tripHistoryDeleteBtn" class="trip-history-delete-btn" type="button">🗑️ Supprimer ce voyage</button>
 <div id="tripHistoryDetailContent" class="album-content"></div>

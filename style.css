@@ -3612,6 +3612,66 @@ body.dark .trip-history-detail-line{
     color:#7C8BAE;
 }
 
+/* Partage sélectif de l'historique (2026-09-02) : visible seulement si un
+   appareil est relié (syncCode) — masqué sinon, voir renderTripHistoryView()/
+   openTripHistoryDetail(). */
+.trip-history-share-btn{
+    width:100%;
+    margin-bottom:8px;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid rgba(61,124,255,.35);
+    background:none;
+    color:#3D7CFF;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.trip-history-share-btn:hover{
+    background:#EAF1FF;
+}
+
+.trip-history-share-btn[aria-pressed="true"]{
+    background:#3D7CFF;
+    color:#FFFFFF;
+    border-color:#3D7CFF;
+}
+
+.trip-history-share-btn[hidden]{
+    display:none;
+}
+
+body.dark .trip-history-share-btn{
+    border-color:rgba(109,158,255,.4);
+    color:#6D9EFF;
+}
+
+body.dark .trip-history-share-btn:hover{
+    background:#16223D;
+}
+
+body.dark .trip-history-share-btn[aria-pressed="true"]{
+    background:#3D7CFF;
+    color:#FFFFFF;
+    border-color:#3D7CFF;
+}
+
+.trip-history-card-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    font-size:10px;
+    font-weight:700;
+    color:#3D7CFF;
+    margin-left:6px;
+}
+
+body.dark .trip-history-card-badge{
+    color:#6D9EFF;
+}
+
 .trip-history-restore-btn{
     width:100%;
     margin-bottom:8px;
@@ -4325,6 +4385,51 @@ body.dark .activity-note{
     font-size:13px;
 }
 
+/* Interrupteur visuel (mockup C, vue Affichage, 2026-09-02) — l'icône et le
+   libellé restent fixes (nom du réglage), c'est ce rail qui porte l'état,
+   contrairement à l'ancienne convention "le texte change" (Mode sombre ↔
+   Mode clair) encore utilisée par les .menu-item ordinaires ailleurs.
+   Piloté par aria-pressed sur le bouton .menu-item-switch lui-même — toute
+   la ligne reste la cible de clic, comme les autres .menu-item. */
+.menu-item-switch-track{
+    width:38px;
+    height:22px;
+    border-radius:12px;
+    background:#E1EAF1;
+    position:relative;
+    flex-shrink:0;
+    transition:background .2s ease;
+}
+
+.menu-item-switch-track::after{
+    content:"";
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#FFFFFF;
+    box-shadow:0 1px 3px rgba(0,0,0,.25);
+    transition:transform .2s ease;
+}
+
+.menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
+    background:#D2503B;
+}
+
+.menu-item-switch[aria-pressed="true"] .menu-item-switch-track::after{
+    transform:translateX(16px);
+}
+
+body.dark .menu-item-switch-track{
+    background:#243252;
+}
+
+body.dark .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
+    background:#3D7CFF;
+}
+
 .menu-hint{
     font-size:10.5px;
     color:#9AAAB4;
@@ -4395,10 +4500,15 @@ body.dark .menu-hint-warning{
 
 #dataSettingsSlot .menu-divider,
 #dataSettingsSlot .menu-section-label,
-#displaySettingsSlot .menu-divider,
-#displaySettingsSlot .menu-section-label{
+#displaySettingsSlot .menu-divider{
     display:none;
 }
+
+/* #displaySettingsSlot garde ses .menu-section-label visibles (contrairement
+   à #dataSettingsSlot) : depuis le passage à deux groupes "Apparence"/"Vue
+   Planning" (2026-09-02), ce sont eux qui distinguent les deux cartes — pas
+   redondants avec le titre de page comme l'était l'unique groupe "Affichage"
+   d'avant. */
 
 body.dark #dataSettingsSlot .settings-tab-group,
 body.dark #displaySettingsSlot .settings-tab-group{
@@ -5642,7 +5752,8 @@ body.theme-noel .checklist-template-chip.active,
 body.theme-noel .form-toggle-btn,
 body.theme-noel button.add,
 body.theme-noel .search-filter-btn.active,
-body.theme-noel .tricount-currency-option.active{
+body.theme-noel .tricount-currency-option.active,
+body.theme-noel .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
     background:#B3261E;
 }
 
@@ -5985,7 +6096,8 @@ body.theme-ghibli .checklist-template-chip.active,
 body.theme-ghibli .form-toggle-btn,
 body.theme-ghibli button.add,
 body.theme-ghibli .search-filter-btn.active,
-body.theme-ghibli .tricount-currency-option.active{
+body.theme-ghibli .tricount-currency-option.active,
+body.theme-ghibli .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
     background:#5B7B4F;
 }
 
@@ -6462,7 +6574,8 @@ body.theme-halloween .checklist-template-chip.active,
 body.theme-halloween .form-toggle-btn,
 body.theme-halloween button.add,
 body.theme-halloween .search-filter-btn.active,
-body.theme-halloween .tricount-currency-option.active{
+body.theme-halloween .tricount-currency-option.active,
+body.theme-halloween .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
     background:#E27A3F;
 }
 
