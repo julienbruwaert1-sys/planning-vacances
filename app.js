@@ -3895,7 +3895,14 @@ let activeDateTab = "dates";
 function isDesktopContext(){
     if(document.body.classList.contains("desktop-mode")) return true;
     if(document.body.classList.contains("mobile-mode")) return false;
-    return window.innerWidth > 600;
+    /* matchMedia (2026-09-02) plutôt qu'un window.innerWidth brut : reflète
+       exactement le même seuil que la media query CSS (@media (max-width:
+       600px)) censée décider du même choix, et ne dépend pas d'une lecture
+       de dimension qui peut être prise avant que le viewport ait fini de se
+       stabiliser (signalé après une arrivée via lien QR ouvert depuis
+       l'appareil photo natif, qui affichait la mise en page PC sur
+       téléphone). */
+    return window.matchMedia("(min-width: 601px)").matches;
 }
 
 /* Onglets toujours visibles (mobile et desktop) depuis l'ajout de
@@ -4122,6 +4129,20 @@ jumpTodayBtn.addEventListener("click",jumpToToday);
 updateCountdownBanner();
 updateDatePlacement();
 refreshEndDateDisplay();
+
+/* Filet de sécurité (2026-09-02) : signalé qu'arriver via un lien de
+   sync QR (caméra native → navigateur, pas le scanner interne) pouvait
+   afficher la mise en page "PC" sur téléphone au tout premier chargement
+   — plus rien n'y était cliquable (les contrôles mobile, comme le
+   bandeau du bas, restent masqués tant que isDesktopContext() répond
+   "desktop"). Un second passage de updateDatePlacement() une fois que le
+   navigateur a réellement peint au moins une fois (double
+   requestAnimationFrame, pattern standard pour "après que la mise en
+   page se soit stabilisée") corrige le calcul si le premier s'est trompé
+   — inoffensif si le premier était déjà correct. */
+requestAnimationFrame(()=>{
+    requestAnimationFrame(updateDatePlacement);
+});
 
 /* --- Recherche globale --- */
 
@@ -7748,9 +7769,13 @@ const tripHistoryShareBtn = document.getElementById("tripHistoryShareBtn");
 function updateTripHistoryShareBtn(trip){
     tripHistoryShareBtn.hidden = !syncCode;
     tripHistoryShareBtn.setAttribute("aria-pressed",String(!!trip.shared));
-    tripHistoryShareBtn.textContent = trip.shared
-        ? "✅ Partagé — Ne plus partager"
-        : "🔗 Partager avec l'autre appareil";
+    if(trip.receivedShare){
+        tripHistoryShareBtn.textContent = "🔗 Reçu par partage — Retirer de mon historique";
+    }else if(trip.shared){
+        tripHistoryShareBtn.textContent = "✅ Partagé — Ne plus partager";
+    }else{
+        tripHistoryShareBtn.textContent = "🔗 Partager avec l'autre appareil";
+    }
 }
 
 tripHistoryShareBtn.addEventListener("click",async ()=>{
@@ -7760,7 +7785,17 @@ tripHistoryShareBtn.addEventListener("click",async ()=>{
 
     tripHistoryShareBtn.disabled = true;
 
-    if(trip.shared){
+    if(trip.receivedShare){
+        // Retire seulement MA copie — ne doit jamais toucher au voyage chez
+        // celui qui l'a partagé (voir unshareTripFromHistory()).
+        await unshareTripFromHistory(trip);
+        openTripHistoryEntry = null;
+        tripHistoryDetailView.hidden = true;
+        tripHistoryView.hidden = false;
+        renderTripHistoryView();
+        showToast("Retiré de ton historique.");
+        return;
+    }else if(trip.shared){
         await unshareTripFromHistory(trip);
         showToast("Ce voyage n'est plus partagé.");
     }else{
@@ -7791,7 +7826,7 @@ tripHistoryDeleteBtn.addEventListener("click",()=>{
     const trip = openTripHistoryEntry;
 
     showConfirmModal(
-        trip.shared
+        trip.shared && !trip.receivedShare
             ? `Supprimer définitivement « ${trip.name || "ce voyage"} » ? Ce voyage est partagé — il sera aussi retiré de l'autre appareil. Cette action est irréversible et supprimera aussi ses photos.`
             : `Supprimer définitivement « ${trip.name || "ce voyage"} » ? Cette action est irréversible et supprimera aussi ses photos.`,
         async ()=>{
@@ -10655,9 +10690,14 @@ async function attachTripHistoryListener(){
         let changed = false;
 
         // Ajoute les voyages partagés reçus qu'on n'a pas encore.
+        // receivedShare:true distingue "je l'ai reçu" de "je suis celui qui
+        // l'a partagé" — voir unshareTripFromHistory() : seul le partageur
+        // doit pouvoir révoquer le partage pour tout le monde, un
+        // destinataire qui "ne veut plus" ne doit retirer que sa propre
+        // copie, jamais celle de l'autre appareil.
         Object.keys(remote).forEach(id=>{
             if(!localHistory.find(t=>t.id===id)){
-                localHistory.unshift({...remote[id], id, shared:true});
+                localHistory.unshift({...remote[id], id, shared:true, receivedShare:true});
                 changed = true;
             }
         });
@@ -10699,7 +10739,20 @@ async function shareTripToHistory(trip){
     }
 }
 
+/* Volontairement asymétrique (corrigé 2026-09-02, signalé après un vrai
+   test à deux appareils) : côté PARTAGEUR (celui qui a archivé ce voyage
+   ici en premier), "ne plus partager" révoque le partage pour tout le
+   monde (retire de Firebase) MAIS garde sa propre copie, juste redevenue
+   locale. Côté DESTINATAIRE (trip.receivedShare, reçu via
+   attachTripHistoryListener()), ça ne doit retirer QUE sa propre copie
+   locale — jamais toucher à Firebase, sous peine de supprimer aussi le
+   voyage chez le partageur d'origine, qui n'a rien demandé. */
 async function unshareTripFromHistory(trip){
+
+    if(trip.receivedShare){
+        saveTripHistory(loadTripHistory().filter(t=>t.id!==trip.id));
+        return;
+    }
 
     if(syncDb && syncCode){
         await syncAuthReady;
