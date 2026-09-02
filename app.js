@@ -6717,7 +6717,18 @@ async function fetchMultiDayWeather(lat,lon){
     const cache = loadWeatherCache();
     const cached = cache[cacheKey];
 
-    if(cached && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS){
+    /* "sunrise" sert de marqueur de forme : une entrée déjà en cache (TTL
+       3h) écrite par une version d'AVANT l'ajout de sunrise/humidity/
+       feelsLike n'a pas cette clé du tout. Sans ce contrôle, humidité et
+       ressenti resteraient invisibles (pas "undefined", juste absents,
+       voir plus bas) jusqu'à l'expiration naturelle du cache — jusqu'à 3h
+       après le déploiement. Signalé 2026-09-03 : re-fetch immédiat plutôt
+       que d'attendre. */
+    const cacheHasCurrentShape =
+        cached && cached.data && cached.data.days &&
+        cached.data.days[0] && cached.data.days[0].sunrise!==undefined;
+
+    if(cacheHasCurrentShape && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS){
         return cached.data;
     }
 
