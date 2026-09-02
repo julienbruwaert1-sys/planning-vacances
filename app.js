@@ -1480,16 +1480,6 @@ dragged = null;
                 popover.appendChild(reservationItem);
             }
 
-            const photoItem = document.createElement("button");
-            photoItem.type = "button";
-            photoItem.className = "activity-popover-item";
-            photoItem.textContent = "📷 Ajouter une photo ou vidéo";
-            photoItem.addEventListener("click",()=>{
-                closeActivityMenus();
-                openDayCameraView(currentDay,activity.id);
-            });
-            popover.appendChild(photoItem);
-
             const attachmentsItem = document.createElement("button");
             attachmentsItem.type = "button";
             attachmentsItem.className = "activity-popover-item";
