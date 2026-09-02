@@ -11602,6 +11602,21 @@ async function unshareTripFromHistory(trip){
         return;
     }
 
+    /* L'état local DOIT être mis à jour AVANT le retrait Firebase, pas après
+       (bug signalé 2026-09-02 : le voyage disparaissait entièrement au lieu
+       de juste redevenir local). Cause réelle : dès que .remove() atteint
+       Firebase, le listener continu attachTripHistoryListener() (actif sur
+       CET appareil aussi, pas que sur les destinataires) reçoit la mise à
+       jour et applique son filtre de nettoyage
+       "!t.shared || remote[t.id]" — si trip.shared valait encore true en
+       local à cet instant (état pas encore réécrit), remote[t.id] devenu
+       absent faisait échouer les deux conditions et le voyage était retiré
+       du localStorage. En écrivant shared:false ICI d'abord, ce filtre le
+       garde (!t.shared devient vrai) quel que soit le moment où le listener
+       se déclenche. */
+    trip.shared = false;
+    saveTripHistory(loadTripHistory().map(t=>t.id===trip.id ? {...t,shared:false} : t));
+
     if(syncDb && syncCode){
         await syncAuthReady;
         try{
@@ -11610,9 +11625,6 @@ async function unshareTripFromHistory(trip){
             console.error("Impossible de retirer le partage de ce voyage :",err);
         }
     }
-
-    trip.shared = false;
-    saveTripHistory(loadTripHistory().map(t=>t.id===trip.id ? {...t,shared:false} : t));
 }
 
 function buildCurrentTripSnapshot(){
