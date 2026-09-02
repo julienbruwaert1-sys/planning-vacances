@@ -493,7 +493,10 @@
 </div>
 <div class="activity-title-row">
 <h2 id="dayTitle"></h2>
+<div class="day-title-actions">
 <button id="dayTitleEditBtn" class="activity-edit-btn" type="button" title="Modifier le titre du jour" aria-label="Modifier le titre du jour">✏️</button>
+<button id="dayDuplicateBtn" class="activity-edit-btn" type="button" title="Dupliquer cette journée vers un autre jour" aria-label="Dupliquer cette journée vers un autre jour">📋</button>
+</div>
 </div>
 
 <div id="dayPhotoGallery" class="day-photo-gallery" hidden></div>
@@ -569,6 +572,10 @@ placeholder="Durée (optionnelle, ex. 2h)">
 type="text"
 id="activityNote"
 placeholder="Note (optionnelle)">
+<input
+type="text"
+id="activityTags"
+placeholder="Étiquettes, séparées par des virgules (ex. à ne pas rater, réservé)">
 <input
 type="url"
 id="activityReservationLink"

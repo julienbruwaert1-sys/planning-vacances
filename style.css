@@ -3215,9 +3215,37 @@ body.dark .activity small{
     padding:10px;
     border-radius:14px;
     margin-bottom:10px;
-    cursor:grab;
     flex-wrap:wrap;
     gap:8px;
+}
+
+/* Poignée de glisser-déposer (2026-09-02) — voir bindActivityDragHandle()
+   dans app.js. touch-action:none est indispensable : sans lui, le
+   pointerdown initial est immédiatement suivi d'un scroll de la page au
+   toucher au lieu de démarrer le glisser. */
+.activity-drag-handle{
+    cursor:grab;
+    touch-action:none;
+    color:#9AAAB4;
+    font-size:18px;
+    line-height:1;
+    padding:4px 6px;
+    flex-shrink:0;
+    user-select:none;
+}
+
+.activity.dragging{
+    z-index:50;
+    opacity:.85;
+    box-shadow:0 8px 24px rgba(51,64,74,.25);
+}
+
+.activity.drag-over-top{
+    box-shadow:inset 0 3px 0 0 #D2503B;
+}
+
+.activity.drag-over-bottom{
+    box-shadow:inset 0 -3px 0 0 #D2503B;
 }
 
 .activity::before{
@@ -3234,10 +3262,6 @@ body.dark .activity small{
 
 .activity:hover{
     background:#FCEEE8;
-}
-
-.activity.dragging{
-    opacity:.5;
 }
 
 .btn-group{
@@ -3416,6 +3440,13 @@ body.dark .activity-popover-item.danger:hover{
     align-items:flex-start;
     justify-content:space-between;
     gap:8px;
+}
+
+.day-title-actions{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    flex-shrink:0;
 }
 
 .activity-edit-btn{
@@ -4277,6 +4308,20 @@ body.dark #activities .day-slot-head::before{
 .duration-badge{
     background:#F1F7FB;
     color:#33404A;
+}
+
+.tag-badge{
+    font-size:12px;
+    padding:2px 8px;
+    border-radius:10px;
+    font-weight:bold;
+    background:#E8E3F5;
+    color:#7A5FB8;
+}
+
+body.dark .tag-badge{
+    background:#2A2044;
+    color:#C4A8FF;
 }
 
 .tricount-link-badge{
@@ -5714,6 +5759,10 @@ body.dark .activity:hover{
 
 body.dark .activity:focus-visible{
     outline-color:#3D7CFF;
+}
+
+body.dark .activity-drag-handle{
+    color:#7C8BAE;
 }
 
 body.dark .price-badge{

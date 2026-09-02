@@ -644,8 +644,6 @@ sanitizePlanningSlots();
 
 let currentDay = 1;
 
-let dragged = null;
-
 function savePlanning(){
     localStorage.setItem(
         "vacationPlanning",
@@ -739,6 +737,62 @@ document.getElementById("dayTitleEditBtn").addEventListener("click",()=>{
     renderTabs();
 });
 
+document.getElementById("dayDuplicateBtn").addEventListener("click",()=>{
+
+    const input = prompt(
+        `Dupliquer les activités de ce jour vers quel jour ? (1-${dayCount}, jour actuel : ${currentDay})`,
+        ""
+    );
+    if(input===null) return;
+
+    const targetDay = parseInt(input.trim(),10);
+
+    if(!Number.isInteger(targetDay) || targetDay<1 || targetDay>dayCount){
+        showToast(`Numéro de jour invalide (1-${dayCount} attendu).`,{type:"error"});
+        return;
+    }
+
+    if(targetDay===currentDay){
+        showToast("Choisis un jour différent du jour actuel.",{type:"error"});
+        return;
+    }
+
+    const performDuplicate = ()=>{
+        /* Nouveaux id (generateId(), pas une copie de l'id d'origine) pour
+           chaque activité dupliquée : les photos/documents/dépenses Tricount
+           liés sont tous indexés par activityId — garder le même id créerait
+           un lien fantôme entre deux activités désormais indépendantes sur
+           deux jours différents. */
+        const clone = section =>
+            ((planning[currentDay] && planning[currentDay][section]) || [])
+                .map(a=>({...a,id:generateId()}));
+
+        planning[targetDay] = {
+            matin: clone("matin"),
+            midi: clone("midi"),
+            apresMidi: clone("apresMidi"),
+            soir: clone("soir"),
+            title: (planning[currentDay] && planning[currentDay].title) || ""
+        };
+
+        savePlanning();
+        showToast(`Jour ${currentDay} dupliqué vers le jour ${targetDay}.`,{type:"success"});
+    };
+
+    const targetHasActivities = planning[targetDay] && ["matin","midi","apresMidi","soir"]
+        .some(s=>(planning[targetDay][s]||[]).length>0);
+
+    if(targetHasActivities){
+        showConfirmModal(
+            `Le jour ${targetDay} contient déjà des activités — elles seront remplacées par une copie du jour ${currentDay}. Continuer ?`,
+            performDuplicate,
+            {confirmLabel:"Remplacer",cancelLabel:"Annuler"}
+        );
+    }else{
+        performDuplicate();
+    }
+});
+
 document.getElementById("tripNameEditBtn").addEventListener("click",()=>{
 
     const newName = prompt("Nom du voyage :",tripName);
@@ -802,6 +856,12 @@ function addActivity(){
     document.getElementById("activityNote")
     .value.trim();
 
+    const tags =
+    document.getElementById("activityTags")
+    .value.split(",")
+    .map(t=>t.trim())
+    .filter((t,i,arr)=>t && arr.indexOf(t)===i);
+
     const price =
     priceRaw!=="" ? Math.max(0,parseFloat(priceRaw)) : null;
 
@@ -837,7 +897,7 @@ function addActivity(){
         const existing = list[index];
 
         const updated = Object.assign({},existing,{
-            name, type, address, price, priceCurrency, travelTime,
+            name, type, address, price, priceCurrency, travelTime, tags,
             time: time || null,
             duration: duration || null,
             note: note || null,
@@ -869,6 +929,7 @@ function addActivity(){
         price,
         priceCurrency,
         travelTime,
+        tags,
         time: time || null,
         duration: duration || null,
         note: note || null,
@@ -910,6 +971,7 @@ function fillActivityForm(activity,section){
     document.getElementById("activityTime").value = activity.time || "";
     document.getElementById("activityDuration").value = activity.duration || "";
     document.getElementById("activityNote").value = activity.note || "";
+    document.getElementById("activityTags").value = (activity.tags || []).join(", ");
 }
 
 function clearActivityForm(){
@@ -925,6 +987,7 @@ function clearActivityForm(){
     document.getElementById("activityTime").value="";
     document.getElementById("activityDuration").value="";
     document.getElementById("activityNote").value="";
+    document.getElementById("activityTags").value="";
 }
 
 function startEditActivity(section,index){
@@ -1064,6 +1127,102 @@ if (
     renderActivities();
 }
 
+/* Glisser-déposer réel (2026-09-02), en remplacement du HTML5 draggable
+   natif d'origine (souris uniquement — sans effet au toucher, donc
+   invisible sur téléphone, la plateforme principale de cette app). Les
+   Pointer Events unifient souris/tactile/stylet en une seule API : une
+   poignée dédiée (⠿, pas la carte entière) évite qu'un tap normal sur
+   l'activité (modifier, ouvrir le menu ⋮...) ne déclenche un glisser par
+   erreur. Les boutons ▲▼/"Déplacer vers…" existants restent en place,
+   c'est juste une alternative plus rapide — pas un remplacement. */
+function bindActivityDragHandle(handle,div,container){
+
+    let drag = null;
+
+    function clearIndicators(){
+        container.querySelectorAll(".activity.drag-over-top,.activity.drag-over-bottom")
+            .forEach(el=>el.classList.remove("drag-over-top","drag-over-bottom"));
+    }
+
+    function endDrag(){
+        if(!drag) return;
+        div.classList.remove("dragging");
+        div.style.transform = "";
+        clearIndicators();
+        drag = null;
+    }
+
+    handle.addEventListener("pointerdown",(e)=>{
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        drag = {
+            fromSection: div.dataset.section,
+            fromIndex: parseInt(div.dataset.index,10),
+            startY: e.clientY,
+            cards: Array.from(container.querySelectorAll(".activity")).filter(el=>el!==div),
+            slots: Array.from(container.querySelectorAll(".slot")),
+            target: null
+        };
+        div.classList.add("dragging");
+    });
+
+    handle.addEventListener("pointermove",(e)=>{
+        if(!drag) return;
+
+        div.style.transform = `translateY(${e.clientY-drag.startY}px)`;
+
+        clearIndicators();
+
+        const overCard = drag.cards.find(card=>{
+            const rect = card.getBoundingClientRect();
+            return e.clientY>=rect.top && e.clientY<=rect.bottom;
+        });
+
+        if(overCard){
+            const rect = overCard.getBoundingClientRect();
+            const before = e.clientY < rect.top+rect.height/2;
+            overCard.classList.add(before ? "drag-over-top" : "drag-over-bottom");
+            drag.target = {
+                section: overCard.dataset.section,
+                index: parseInt(overCard.dataset.index,10),
+                before
+            };
+            return;
+        }
+
+        // Aucune carte survolée : dépose en fin de section si le pointeur
+        // est au-dessus d'une section vide (ou après sa dernière carte).
+        const overSlot = drag.slots.find(slot=>{
+            const rect = slot.getBoundingClientRect();
+            return e.clientY>=rect.top && e.clientY<=rect.bottom;
+        });
+
+        drag.target = overSlot ? {section:overSlot.dataset.section,index:null} : null;
+    });
+
+    function finishDrag(){
+        if(!drag) return;
+        const {fromSection,fromIndex,target} = drag;
+        endDrag();
+
+        if(!target) return;
+
+        if(target.index===null){
+            if(target.section===fromSection) return;
+            moveActivity(fromSection,fromIndex,target.section);
+            return;
+        }
+
+        let toIndex = target.before ? target.index : target.index+1;
+        if(target.section===fromSection && (toIndex===fromIndex || toIndex===fromIndex+1)) return;
+
+        moveActivity(fromSection,fromIndex,target.section,toIndex);
+    }
+
+    handle.addEventListener("pointerup",finishDrag);
+    handle.addEventListener("pointercancel",endDrag);
+}
+
 function updateConverterCountryHeader(){
 
     const country = COUNTRIES[tripCountry];
@@ -1195,24 +1354,12 @@ function renderActivities(){
         document.createElement("div");
 
         slot.className="slot";
-
-        slot.addEventListener("dragover",e=>{
-            e.preventDefault();
-        });
-
-        slot.addEventListener("drop",e=>{
-            e.preventDefault();
-
-            if(!dragged) return;
-
-            moveActivity(
-    dragged.section,
-    dragged.index,
-    section.key
-);
-
-dragged = null;
-        });
+        /* Le drop sur une section vide (aucune carte à cibler) reste géré
+           par activityDragState.currentSection à la fin du glisser — voir
+           bindActivityDragHandle() plus bas. Pas de dragover/drop natifs
+           ici : tout le glisser-déposer passe désormais par les Pointer
+           Events (souris ET tactile), voir la poignée ⠿ sur chaque carte. */
+        slot.dataset.section = section.key;
 
         activities.forEach((activity,index)=>{
 
@@ -1222,8 +1369,9 @@ dragged = null;
             document.createElement("div");
 
             div.className="activity";
-            div.draggable=true;
             div.tabIndex=0;
+            div.dataset.section = section.key;
+            div.dataset.index = index;
             div.setAttribute(
                 "aria-label",
                 `${activity.name}, ${activity.type}. `
@@ -1244,52 +1392,11 @@ dragged = null;
                 }
             });
 
-            div.addEventListener("dragstart",()=>{
-
-                dragged={
-                    section:section.key,
-                    index:index
-                };
-
-                div.classList.add("dragging");
-            });
-
-            div.addEventListener("dragend",()=>{
-
-    div.classList.remove("dragging");
-    dragged = null;
-
-});
-
-            div.addEventListener("dragover",e=>{
-                e.preventDefault();
-            });
-
-            div.addEventListener("drop",e=>{
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                if(!dragged) return;
-
-                if(
-                    dragged.section===section.key
-                    &&
-                    dragged.index===index
-                ){
-                    dragged = null;
-                    return;
-                }
-
-                moveActivity(
-                    dragged.section,
-                    dragged.index,
-                    section.key,
-                    index
-                );
-
-                dragged = null;
-            });
+            const dragHandle = document.createElement("span");
+            dragHandle.className = "activity-drag-handle";
+            dragHandle.setAttribute("aria-hidden","true");
+            dragHandle.textContent = "⠿";
+            bindActivityDragHandle(dragHandle,div,container);
 
             const infoDiv = document.createElement("div");
 
@@ -1347,6 +1454,8 @@ dragged = null;
                 activity.duration
                 ||
                 linkedTricountCount>0
+                ||
+                (activity.tags && activity.tags.length>0)
             ){
 
                 const badgeRow = document.createElement("div");
@@ -1389,6 +1498,13 @@ dragged = null;
                     });
                     badgeRow.appendChild(tricountBadge);
                 }
+
+                (activity.tags || []).forEach(tag=>{
+                    const tagBadge = document.createElement("span");
+                    tagBadge.className = "tag-badge";
+                    tagBadge.textContent = `🏷️ ${tag}`;
+                    badgeRow.appendChild(tagBadge);
+                });
 
                 infoDiv.appendChild(badgeRow);
             }
@@ -1550,6 +1666,7 @@ dragged = null;
             menuWrap.appendChild(popover);
             btnGroup.appendChild(menuWrap);
 
+            div.appendChild(dragHandle);
             div.appendChild(infoDiv);
             div.appendChild(btnGroup);
 
