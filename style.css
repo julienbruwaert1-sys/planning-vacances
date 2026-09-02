@@ -1055,6 +1055,14 @@ body.dark .search-result-item:hover{
     margin-right:auto;
 }
 
+/* .form-toggle-btn pose display:flex — sans cette règle, l'attribut
+   [hidden] posé par JS (app.js, applyActiveMainTabDisplay) sur ce bouton
+   n'aurait aucun effet. Gotcha CSS hidden-vs-display déjà rencontrée
+   plusieurs fois cette session, appliquée ici proactivement. */
+.checklist-toggle-btn[hidden]{
+    display:none;
+}
+
 .checklist-toggle-btn:hover{
     background:#E8F0F6;
 }
@@ -1654,6 +1662,21 @@ body.has-bottom-nav .fullscreen-view{
    cette règle ne s'y appliquent) : comportement desktop inchangé. */
 body.has-bottom-nav #reservationsView,
 body.has-bottom-nav #albumView{
+    position:static;
+    overflow-y:visible;
+    overscroll-behavior-y:auto;
+}
+
+/* Réorganisation affichage PC (2026-09-02) : même raisonnement que
+   body.has-bottom-nav ci-dessus, transposé à la sidebar desktop.
+   Réservations/Album deviennent de vrais onglets cliquables depuis la
+   sidebar (avant, seul le menu du coin y menait, en overlay plein écran
+   par-dessus tout — la sidebar elle-même, en position:fixed z-index:900,
+   se retrouvait donc masquée par le z-index:2000 de .fullscreen-view).
+   En position:static, ces deux vues s'affichent dans le flux normal, sous
+   la sidebar toujours visible, comme n'importe quel autre onglet desktop. */
+body.has-sidebar #reservationsView,
+body.has-sidebar #albumView{
     position:static;
     overflow-y:visible;
     overscroll-behavior-y:auto;
@@ -2812,6 +2835,97 @@ body.dark .weather-icon-big.weather-spin{
 .weather-detail-row b{
     color:#33404A;
     font-weight:700;
+}
+
+/* Liste par heure sous la carte résumé (mockup B, vue Météo, 2026-09-02). */
+.weather-hour-list{
+    margin-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+    background:#FFFFFF;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+.weather-hour-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    background:#FFFFFF;
+    font-family:'Inter',Arial,sans-serif;
+}
+
+.weather-hour-row.now{
+    background:#F6D9D2;
+}
+
+.weather-hour-time{
+    font-size:11px;
+    font-weight:700;
+    color:#33404A;
+    width:26px;
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+}
+
+.weather-hour-icon{
+    font-size:15px;
+    width:20px;
+    flex-shrink:0;
+    text-align:center;
+}
+
+.weather-hour-cond{
+    flex:1;
+    min-width:0;
+    font-size:11px;
+    color:#9AAAB4;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.weather-hour-precip{
+    font-size:10.5px;
+    color:#3D7CFF;
+    flex-shrink:0;
+    width:38px;
+    text-align:right;
+}
+
+.weather-hour-temp{
+    font-size:12px;
+    font-weight:700;
+    color:#33404A;
+    flex-shrink:0;
+    width:28px;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+}
+
+body.dark .weather-hour-list{
+    background:#182238;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+body.dark .weather-hour-row{
+    background:#182238;
+}
+
+body.dark .weather-hour-row.now{
+    background:#3A2430;
+}
+
+body.dark .weather-hour-time,
+body.dark .weather-hour-temp{
+    color:#EAF0FB;
+}
+
+body.dark .weather-hour-cond{
+    color:#7C8BAE;
 }
 
 body.dark .weather-forecast-empty{
@@ -4225,6 +4339,109 @@ body.dark .activity-note{
     -webkit-backface-visibility:hidden;
 }
 
+/* Barre latérale PC (mockup B validé, réorganisation affichage PC,
+   2026-09-02) — remplace la pile Planning+Convertisseur toujours visibles
+   + le menu du coin comme seule porte d'entrée vers Réservations/Album :
+   mêmes 5 sections que le bandeau du bas mobile, reprend directement
+   activeMainTab/setActiveMainTab()/applyActiveMainTabDisplay(), voir
+   app.js. N'existe que sur desktop (masquée via .hidden en JS, comme
+   #bottomNav côté mobile — desktopSidebar.hidden = !desktop). */
+.desktop-sidebar{
+    position:fixed;
+    top:0;
+    left:0;
+    bottom:0;
+    width:180px;
+    background:#FFFFFF;
+    border-right:1px solid rgba(51,64,74,.08);
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    padding:16px 10px;
+    gap:2px;
+}
+
+.desktop-sidebar[hidden]{
+    display:none;
+}
+
+.desktop-sidebar-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    padding:10px 12px;
+    border:none;
+    background:none;
+    border-radius:10px;
+    font-family:'Inter',Arial,sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    color:#33404A;
+    cursor:pointer;
+    text-align:left;
+}
+
+.desktop-sidebar-item:hover{
+    background:#F1F7FB;
+}
+
+.desktop-sidebar-item.active{
+    background:#F6D9D2;
+    color:#D2503B;
+}
+
+.dsi-icon{
+    font-size:17px;
+    flex-shrink:0;
+    width:20px;
+    text-align:center;
+}
+
+.desktop-sidebar-bottom{
+    margin-top:auto;
+    padding-top:10px;
+    border-top:1px solid rgba(51,64,74,.08);
+    display:flex;
+    gap:8px;
+}
+
+/* Les panneaux (.options-menu-panel/.date-panel) s'ouvrent normalement
+   vers le bas depuis un bouton en haut à droite — ici le déclencheur est
+   en bas d'une colonne à gauche, donc ils doivent s'ouvrir vers le HAUT
+   et s'étendre vers la DROITE (pas "right:0", qui les ferait déborder
+   hors de la fenêtre puisque la sidebar est déjà le bord gauche). */
+.desktop-sidebar-bottom .options-menu-panel,
+.desktop-sidebar-bottom .date-panel{
+    top:auto;
+    bottom:calc(100% + 8px);
+    left:0;
+    right:auto;
+}
+
+body.dark .desktop-sidebar{
+    background:#182238;
+    border-right-color:rgba(234,240,251,.08);
+}
+
+body.dark .desktop-sidebar-item{
+    color:#EAF0FB;
+}
+
+body.dark .desktop-sidebar-item:hover{
+    background:#0A1020;
+}
+
+body.dark .desktop-sidebar-item.active{
+    background:#3A2430;
+    color:#E9705C;
+}
+
+body.dark .desktop-sidebar-bottom{
+    border-top-color:rgba(234,240,251,.08);
+}
+
+
 .corner-menu-item{
     position:relative;
 }
@@ -5155,6 +5372,15 @@ body.mobile-mode .icon-btn{
 }
 /* Mode PC forcé — reste en mise en page large même sur petit écran */
 body.desktop-mode{padding:20px!important;}
+
+/* Laisse la place à la sidebar PC (has-sidebar togglé en JS comme
+   has-bottom-nav côté mobile, voir updateBottomNavVisibility()) —
+   DOIT rester après la règle body.desktop-mode ci-dessus : même
+   spécificité et même !important, donc c'est l'ORDRE dans le fichier qui
+   décide laquelle l'emporte pour padding-left en cas de conflit. */
+body.has-sidebar{
+    padding-left:210px!important;
+}
 body.desktop-mode h1{font-size:28px!important;}
 body.desktop-mode .day-content{padding:20px!important;}
 body.desktop-mode .form{
@@ -5847,17 +6073,20 @@ body.dark.theme-noel .map-day-sheet{
 }
 
 body.theme-noel .weather-card,
-body.theme-noel .weather-summary-card{
+body.theme-noel .weather-summary-card,
+body.theme-noel .weather-hour-list{
     background:linear-gradient(135deg,#EDF5EE,#FFFFFF);
 }
 
 body.dark.theme-noel .weather-card,
-body.dark.theme-noel .weather-summary-card{
+body.dark.theme-noel .weather-summary-card,
+body.dark.theme-noel .weather-hour-list{
     background:linear-gradient(135deg,#132A22,#0B1A15);
 }
 
 body.theme-noel .activity,
-body.theme-noel .map-day-sheet-row-item{
+body.theme-noel .map-day-sheet-row-item,
+body.theme-noel .weather-hour-row{
     background:#EDF5EE;
 }
 
@@ -5866,7 +6095,8 @@ body.theme-noel .activity:hover{
 }
 
 body.dark.theme-noel .activity,
-body.dark.theme-noel .map-day-sheet-row-item{
+body.dark.theme-noel .map-day-sheet-row-item,
+body.dark.theme-noel .weather-hour-row{
     background:#132A22;
 }
 
@@ -6168,17 +6398,20 @@ body.dark.theme-ghibli .map-day-sheet{
 }
 
 body.theme-ghibli .weather-card,
-body.theme-ghibli .weather-summary-card{
+body.theme-ghibli .weather-summary-card,
+body.theme-ghibli .weather-hour-list{
     background:linear-gradient(135deg,#E7EFDA,#FFFDF7);
 }
 
 body.dark.theme-ghibli .weather-card,
-body.dark.theme-ghibli .weather-summary-card{
+body.dark.theme-ghibli .weather-summary-card,
+body.dark.theme-ghibli .weather-hour-list{
     background:linear-gradient(135deg,#2A3A2E,#1A241D);
 }
 
 body.theme-ghibli .activity,
-body.theme-ghibli .map-day-sheet-row-item{
+body.theme-ghibli .map-day-sheet-row-item,
+body.theme-ghibli .weather-hour-row{
     background:#E7EFDA;
 }
 
@@ -6187,7 +6420,8 @@ body.theme-ghibli .activity:hover{
 }
 
 body.dark.theme-ghibli .activity,
-body.dark.theme-ghibli .map-day-sheet-row-item{
+body.dark.theme-ghibli .map-day-sheet-row-item,
+body.dark.theme-ghibli .weather-hour-row{
     background:#2A3A2E;
 }
 
@@ -6646,17 +6880,20 @@ body.dark.theme-halloween .map-day-sheet{
 }
 
 body.theme-halloween .weather-card,
-body.theme-halloween .weather-summary-card{
+body.theme-halloween .weather-summary-card,
+body.theme-halloween .weather-hour-list{
     background:linear-gradient(135deg,#F3DCC0,#FFF8EC);
 }
 
 body.dark.theme-halloween .weather-card,
-body.dark.theme-halloween .weather-summary-card{
+body.dark.theme-halloween .weather-summary-card,
+body.dark.theme-halloween .weather-hour-list{
     background:linear-gradient(135deg,#332440,#241A28);
 }
 
 body.theme-halloween .activity,
-body.theme-halloween .map-day-sheet-row-item{
+body.theme-halloween .map-day-sheet-row-item,
+body.theme-halloween .weather-hour-row{
     background:#F3DCC0;
 }
 
@@ -6665,7 +6902,8 @@ body.theme-halloween .activity:hover{
 }
 
 body.dark.theme-halloween .activity,
-body.dark.theme-halloween .map-day-sheet-row-item{
+body.dark.theme-halloween .map-day-sheet-row-item,
+body.dark.theme-halloween .weather-hour-row{
     background:#332440;
 }
 

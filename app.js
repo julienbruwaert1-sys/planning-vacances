@@ -206,6 +206,18 @@ function priceCurrencyIcon(symbol){
    appelle updateBottomNavVisibility() dès le chargement initial. */
 const bottomNav = document.getElementById("bottomNav");
 const bottomNavTabs = bottomNav.querySelectorAll(".bottom-nav-tab");
+/* Barre latérale PC (réorganisation affichage PC, mockup B, 2026-09-02) —
+   déclarée ici pour la même raison que bottomNav/bottomNavTabs juste
+   au-dessus : updateBottomNavVisibility() la référence dès le tout premier
+   appel (via updateDatePlacement(), plus bas). */
+const desktopSidebar = document.getElementById("desktopSidebar");
+const desktopSidebarItems = desktopSidebar.querySelectorAll(".desktop-sidebar-item");
+const desktopSidebarBottom = document.getElementById("desktopSidebarBottom");
+/* checklistToggle : même raison, déclaré ici (et pas plus bas avec le
+   reste de la section Checklist) car applyActiveMainTabDisplay() (plus
+   bas) le référence désormais, et applyActiveMainTabDisplay() est elle
+   aussi appelée dès ce premier appel à updateBottomNavVisibility(). */
+const checklistToggle = document.getElementById("checklistToggle");
 const planningTabContent = document.getElementById("planningTabContent");
 const budgetTabContent = document.getElementById("budgetTabContent");
 const profileTabContent = document.getElementById("profileTabContent");
@@ -328,6 +340,7 @@ if(tripName){
     appTitle.textContent = appTitleEmoji()+" "+tripName;
 }
 
+const cornerMenu = document.querySelector(".corner-menu");
 const optionsMenuItem = document.getElementById("optionsMenuItem");
 const syncMenuItem = document.getElementById("syncMenuItem");
 const displaySettingsContent = document.getElementById("displaySettingsContent");
@@ -4011,11 +4024,14 @@ function isAnyFullscreenViewOpen(){
    ouvertes par-dessus le Planning sans changer activeMainTab ; voir
    planning_only_ui_visibility_rule en mémoire pour cet historique). Appelée
    depuis updateCountdownBanner(), déjà le point central appelé à chaque
-   navigation. Invisible de toute façon sur desktop (bottomNav y est
-   entièrement masqué), donc pas besoin d'y traiter le cas où
-   Réservations/Album y est ouverte via le menu du coin. */
+   navigation. Met aussi à jour la sidebar PC (2026-09-02, réorganisation
+   affichage PC) — desktop a maintenant les mêmes 5 onglets que mobile,
+   plus besoin d'ignorer ce cas comme avant l'ajout de la sidebar. */
 function updateBottomNavActiveState(){
     bottomNavTabs.forEach(btn=>{
+        btn.classList.toggle("active",btn.dataset.mainTab===activeMainTab);
+    });
+    desktopSidebarItems.forEach(btn=>{
         btn.classList.toggle("active",btn.dataset.mainTab===activeMainTab);
     });
 }
@@ -4026,7 +4042,14 @@ function updateCountdownBanner(){
 
     appTitleRow.hidden = activeMainTab!=="planning" || isAnyFullscreenViewOpen();
 
-    if(!isDesktopContext() && (activeMainTab!=="planning" || isAnyFullscreenViewOpen())){
+    /* Le contournement "!isDesktopContext()" a disparu (2026-09-02) : avant
+       la sidebar PC, desktop restait toujours sur activeMainTab==="planning"
+       en pratique (rien d'autre ne pouvait le faire changer), donc masquer
+       le compte à rebours en dehors de Planning n'était utile que sur
+       mobile. Maintenant que desktop change aussi réellement d'onglet, la
+       même règle doit s'appliquer partout — sinon le bandeau resterait
+       affiché par-dessus Réservations/Convertisseur/Album/Profil sur PC. */
+    if(activeMainTab!=="planning" || isAnyFullscreenViewOpen()){
         countdownBanner.hidden = true;
         jumpTodayBtn.hidden = true;
         return;
@@ -4381,7 +4404,6 @@ closeFormDrawer();
 
 const CHECKLIST_STORAGE_KEY = "travelChecklist";
 
-const checklistToggle = document.getElementById("checklistToggle");
 const checklistToggleLabel = document.getElementById("checklistToggleLabel");
 const checklistView = document.getElementById("checklistView");
 const checklistBackBtn = document.getElementById("checklistBackBtn");
@@ -4807,6 +4829,15 @@ function applyActiveMainTabDisplay(tab){
     profileTabContent.hidden = tab!=="profile";
     reservationsView.hidden = tab!=="reservations";
     albumView.hidden = tab!=="album";
+    /* checklistToggle n'est PAS un enfant DOM de planningTabContent (c'est
+       un sibling de niveau racine, voir HTML) — sur mobile ça ne se
+       remarquait pas (toujours display:none via body.has-bottom-nav,
+       l'accès passe par Profil), mais depuis la sidebar desktop (2026-09-02)
+       Réservations/Convertisseur/Album/Profil sont de vrais onglets
+       desktop eux aussi : sans ce masquage explicite, le bouton restait
+       affiché par-dessus ces onglets. Sans effet sur mobile (déjà masqué
+       par CSS quoi qu'il arrive). */
+    checklistToggle.hidden = tab!=="planning";
     updateCountdownBanner();
     if(tab==="profile") renderProfileStats();
     if(tab==="reservations") renderReservations();
@@ -4852,13 +4883,22 @@ function updateProfileConsolidation(desktop){
         optionsMenuPanel.appendChild(displaySettingsContent);
         optionsMenuPanel.appendChild(dataSettingsContent);
         syncPanel.appendChild(syncPanelContent);
+        // Réorganisation affichage PC (2026-09-02) : les deux déclencheurs
+        // (⋮ et synchro) rejoignent le bas de la sidebar au lieu du popup en
+        // coin, qui n'existe plus sur desktop. desktopProfileMenuItem reste
+        // masqué (retiré, pas supprimé) : la sidebar donne un accès direct à
+        // Profil, ce popover séparé n'a plus de raison d'être.
+        desktopSidebarBottom.appendChild(optionsMenuItem);
+        desktopSidebarBottom.appendChild(syncMenuItem);
         optionsMenuItem.hidden = false;
         syncMenuItem.hidden = false;
-        desktopProfileMenuItem.hidden = false;
+        desktopProfileMenuItem.hidden = true;
     }else{
         displaySettingsSlot.appendChild(displaySettingsContent);
         dataSettingsSlot.appendChild(dataSettingsContent);
         syncPanelSlot.appendChild(syncPanelContent);
+        cornerMenu.appendChild(optionsMenuItem);
+        cornerMenu.appendChild(syncMenuItem);
         optionsMenuItem.hidden = true;
         syncMenuItem.hidden = true;
         desktopProfileMenuItem.hidden = true;
@@ -4879,15 +4919,16 @@ function updateBottomNavVisibility(){
 
     bottomNav.hidden = desktop;
     document.body.classList.toggle("has-bottom-nav",!desktop);
+    desktopSidebar.hidden = !desktop;
+    document.body.classList.toggle("has-sidebar",desktop);
     updateProfileConsolidation(desktop);
 
-    if(desktop){
-        planningTabContent.hidden = false;
-        budgetTabContent.hidden = false;
-        profileTabContent.hidden = true;
-    }else{
-        applyActiveMainTabDisplay(activeMainTab);
-    }
+    // Réorganisation affichage PC (2026-09-02) : desktop utilise maintenant
+    // la même logique d'affichage d'onglet que mobile (applyActiveMainTabDisplay
+    // est déjà générique sur les 5 sections), au lieu d'empiler
+    // Planning+Convertisseur en permanence — voir desktop_sidebar_pc_layout
+    // en mémoire.
+    applyActiveMainTabDisplay(activeMainTab);
 
     syncBottomNavHeight();
 }
@@ -4914,7 +4955,7 @@ function closeAllFullscreenViews(){
     localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
 }
 
-bottomNavTabs.forEach(btn=>{
+[...bottomNavTabs,...desktopSidebarItems].forEach(btn=>{
     btn.addEventListener("click",(e)=>{
 
         e.stopPropagation();
@@ -6019,6 +6060,7 @@ async function fetchMultiDayWeather(lat,lon){
         "https://api.open-meteo.com/v1/forecast?latitude="+lat
         + "&longitude="+lon
         + "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max"
+        + "&hourly=temperature_2m,weathercode,precipitation_probability"
         + "&timezone=auto&forecast_days="+WEATHER_FORECAST_DAYS;
 
     const response = await fetchWithTimeout(url,8000);
@@ -6033,13 +6075,31 @@ async function fetchMultiDayWeather(lat,lon){
         throw new Error("Open-Meteo: pas de données");
     }
 
+    /* Regroupe les entrées horaires (un tableau plat sur les 7 jours, ex.
+       "2026-09-10T14:00") par date — mockup B (vue Météo, 2026-09-02) : liste
+       par heure sous le jour sélectionné. */
+    const hoursByDate = {};
+    if(data.hourly && data.hourly.time){
+        data.hourly.time.forEach((t,i)=>{
+            const date = t.slice(0,10);
+            if(!hoursByDate[date]) hoursByDate[date] = [];
+            hoursByDate[date].push({
+                hour: parseInt(t.slice(11,13),10),
+                code: data.hourly.weathercode[i],
+                temp: Math.round(data.hourly.temperature_2m[i]),
+                precipitation: data.hourly.precipitation_probability ? data.hourly.precipitation_probability[i] : null
+            });
+        });
+    }
+
     const days = data.daily.time.map((dateStr,i)=>({
         date: dateStr,
         code: data.daily.weathercode[i],
         max: Math.round(data.daily.temperature_2m_max[i]),
         min: Math.round(data.daily.temperature_2m_min[i]),
         precipitation: data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[i] : null,
-        wind: data.daily.windspeed_10m_max ? Math.round(data.daily.windspeed_10m_max[i]) : null
+        wind: data.daily.windspeed_10m_max ? Math.round(data.daily.windspeed_10m_max[i]) : null,
+        hours: hoursByDate[dateStr] || []
     }));
 
     cache[cacheKey] = {data:days,timestamp:Date.now()};
@@ -6171,6 +6231,59 @@ function drawWeatherForecast(){
     }
 
     weatherForecastContent.appendChild(summary);
+
+    /* Liste par heure (mockup B validé, 2026-09-02) : "|| []" au cas où une
+       entrée déjà en cache (avant cet ajout, TTL 3h) n'a pas encore
+       .hours — dégrade juste en "rien à afficher", pas de plantage. Pour
+       AUJOURD'HUI, ne montre que les heures à venir (une heure déjà passée
+       n'a aucun intérêt) ; pour un autre jour, les 24h au complet. */
+    const hours = selected.hours || [];
+    const isToday = weatherForecastSelectedIndex===0;
+    const nowHour = new Date().getHours();
+
+    const relevantHours = hours.filter(h=>!isToday || h.hour>=nowHour);
+
+    if(relevantHours.length){
+        const hourList = document.createElement("div");
+        hourList.className = "weather-hour-list";
+
+        relevantHours.forEach(h=>{
+            const info = weatherInfoFor(h.code);
+
+            const row = document.createElement("div");
+            row.className = "weather-hour-row";
+            if(isToday && h.hour===nowHour) row.classList.add("now");
+
+            const hourEl = document.createElement("span");
+            hourEl.className = "weather-hour-time";
+            hourEl.textContent = `${h.hour}h`;
+
+            const iconEl = document.createElement("span");
+            iconEl.className = "weather-hour-icon";
+            iconEl.textContent = info.icon;
+
+            const condEl = document.createElement("span");
+            condEl.className = "weather-hour-cond";
+            condEl.textContent = info.label;
+
+            const precipEl = document.createElement("span");
+            precipEl.className = "weather-hour-precip";
+            precipEl.textContent = (h.precipitation!==null && h.precipitation>0) ? `💧${h.precipitation}%` : "";
+
+            const tempEl = document.createElement("span");
+            tempEl.className = "weather-hour-temp";
+            tempEl.textContent = `${h.temp}°`;
+
+            row.appendChild(hourEl);
+            row.appendChild(iconEl);
+            row.appendChild(condEl);
+            row.appendChild(precipEl);
+            row.appendChild(tempEl);
+            hourList.appendChild(row);
+        });
+
+        weatherForecastContent.appendChild(hourList);
+    }
 }
 
 async function renderWeatherForecast(){
