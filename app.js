@@ -5537,7 +5537,29 @@ if(window.ResizeObserver){
     new ResizeObserver(syncBottomNavHeight).observe(bottomNav);
 }
 
+/* Tout menu/popover ANCRÉ (par opposition aux vues plein écran ci-dessous) :
+   optionsMenuPanel, syncPanel, desktopProfilePanel, searchPanel (+ son
+   categoryFilterDropdown), mapMorePanel, choicePopover. Chacun se ferme déjà
+   tout seul sur un clic à l'extérieur (listeners document dédiés), MAIS les
+   boutons qui changent de vue (onglets du bas, sidebar PC,
+   [data-profile-view], .profile-back) appellent stopPropagation() pour leur
+   propre logique — le clic n'atteint donc jamais ces listeners "extérieur",
+   et un menu resté ouvert restait visuellement coincé par-dessus la
+   nouvelle vue (signalé 2026-09-03, y compris depuis Réservations).
+   Fonction séparée de closeAllFullscreenViews() (appelée par elle) pour
+   pouvoir aussi être appelée seule depuis .profile-back, qui ne passe pas
+   par closeAllFullscreenViews(). */
+function closeAllMenus(){
+    closeOptionsMenu();
+    closeSearchPanel();
+    if(!syncPanel.hidden) syncPanel.hidden = true;
+    if(!desktopProfilePanel.hidden) desktopProfilePanel.hidden = true;
+    if(!mapMorePanel.hidden) mapMorePanel.hidden = true;
+    closeChoicePopover();
+}
+
 function closeAllFullscreenViews(){
+    closeAllMenus();
     if(!checklistView.hidden) closeChecklistView();
     document.querySelectorAll(".profile-sub-view").forEach(view=>{
         if(!view.hidden) view.hidden = true;
@@ -9634,6 +9656,7 @@ profileSearchInput.addEventListener("input",filterProfileList);
    l'ancien comportement (juste se cacher) reste correct et inchangé. */
 document.querySelectorAll(".profile-back").forEach(btn=>{
     btn.addEventListener("click",()=>{
+        closeAllMenus();
         const view = btn.closest(".profile-sub-view");
         if(!isDesktopContext() && (view===reservationsView || view===albumView)){
             setActiveMainTab("planning");
@@ -11839,8 +11862,6 @@ function startNewTrip(){
     replacingExistingTrip = true;
 
     closeAllFullscreenViews();
-    optionsMenuPanel.hidden = true;
-    desktopProfilePanel.hidden = true;
 
     document.getElementById("welcomeTripName").value = "";
     document.getElementById("welcomeStartDate").value = "";
