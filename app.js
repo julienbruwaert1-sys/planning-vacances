@@ -1819,6 +1819,7 @@ function buildPrintView(){
 
     const printView = document.getElementById("printView");
     printView.innerHTML = "";
+    printView.classList.remove("trip-book");
 
     const title = document.createElement("h1");
     title.textContent = "🌴 Planification de Vacances";
@@ -1923,6 +1924,186 @@ printBtn.addEventListener("click",()=>{
     buildPrintView();
     // CAPACITOR : window.print() n'existe pas dans une WebView Android —
     // voir la note "Impression / export PDF" en haut du fichier.
+    window.print();
+});
+
+/* Carnet de voyage (mockup A validé, 2026-09-02) : réutilise le même
+   #printView / window.print() qu'"Exporter en PDF" — juste une mise en
+   page bien plus riche (couverture, photos par jour, statistiques) au lieu
+   du texte brut. Async (contrairement à buildPrintView()) : les photos
+   vivent en IndexedDB, jamais accessibles de façon synchrone. */
+let tripBookObjectUrls = [];
+
+async function buildTripBookView(){
+
+    tripBookObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    tripBookObjectUrls = [];
+
+    const printView = document.getElementById("printView");
+    printView.innerHTML = "";
+    printView.classList.add("trip-book");
+
+    const cover = document.createElement("div");
+    cover.className = "trip-book-cover";
+
+    const coverIcon = document.createElement("div");
+    coverIcon.className = "trip-book-cover-icon";
+    coverIcon.textContent = appTitleEmoji();
+    cover.appendChild(coverIcon);
+
+    const coverTitle = document.createElement("h1");
+    coverTitle.textContent = tripName || "Mon voyage";
+    cover.appendChild(coverTitle);
+
+    const coverSub = document.createElement("p");
+    const subParts = [];
+    if(dateForDay(1) && dateForDay(dayCount)){
+        subParts.push(`${formatDayDateShort(1)} – ${formatDayDateShort(dayCount)}`);
+    }
+    subParts.push(`${dayCount} jour${dayCount>1 ? "s" : ""}`);
+    coverSub.textContent = subParts.join(" · ");
+    cover.appendChild(coverSub);
+
+    printView.appendChild(cover);
+
+    const sections = [
+        {key:"matin",label:"🌅 Matin"},
+        {key:"midi",label:"🍽️ Midi"},
+        {key:"apresMidi",label:"☀️ Après-midi"},
+        {key:"soir",label:"🌙 Soir"}
+    ];
+
+    for(let day=1;day<=dayCount;day++){
+
+        const dayData = planning[day];
+        if(!dayData) continue;
+
+        const dateLabel = formatDayDate(day);
+        let heading = `Jour ${day}`;
+        if(dateLabel) heading += ` — ${dateLabel}`;
+        if(dayData.title) heading += ` — ${dayData.title}`;
+
+        const h2 = document.createElement("h2");
+        h2.textContent = heading;
+        printView.appendChild(h2);
+
+        let dayHasActivity = false;
+
+        sections.forEach(section=>{
+
+            const list = dayData[section.key] || [];
+            if(list.length===0) return;
+
+            dayHasActivity = true;
+
+            const h3 = document.createElement("h3");
+            h3.textContent = section.label;
+            printView.appendChild(h3);
+
+            list.forEach(activity=>{
+
+                const row = document.createElement("div");
+                row.className = "print-activity";
+
+                const nameLine = document.createElement("div");
+                nameLine.textContent =
+                (icons[activity.type] || "📌") + " "
+                + (activity.time ? activity.time + " – " : "")
+                + activity.name;
+                row.appendChild(nameLine);
+
+                const metaParts = [];
+                if(activity.address) metaParts.push(activity.address);
+                if(activity.price!==null && activity.price!==undefined){
+                    metaParts.push(`${activity.price.toFixed(2)} ${activityPriceSymbol(activity)}`);
+                }
+                if(activity.travelTime!==null && activity.travelTime!==undefined){
+                    metaParts.push(`${activity.travelTime} min de trajet`);
+                }
+                if(activity.duration){
+                    metaParts.push(`Durée : ${activity.duration}`);
+                }
+
+                if(metaParts.length>0){
+                    const meta = document.createElement("div");
+                    meta.className = "print-activity-meta";
+                    meta.textContent = metaParts.join(" · ");
+                    row.appendChild(meta);
+                }
+
+                printView.appendChild(row);
+            });
+        });
+
+        if(!dayHasActivity){
+            const empty = document.createElement("div");
+            empty.className = "print-activity-meta";
+            empty.textContent = "Aucune activité planifiée.";
+            printView.appendChild(empty);
+        }
+
+        try{
+            const dayPhotos = await getDayPhotos(day);
+            const printable = dayPhotos.filter(p=>mediaTypeFromBlob(p.blob)!=="video").slice(0,6);
+            if(printable.length){
+                const grid = document.createElement("div");
+                grid.className = "trip-book-photo-grid";
+                printable.forEach(photo=>{
+                    const url = URL.createObjectURL(photo.blob);
+                    tripBookObjectUrls.push(url);
+                    const img = document.createElement("img");
+                    img.src = url;
+                    grid.appendChild(img);
+                });
+                printView.appendChild(grid);
+            }
+        }catch(err){
+            // Photos indisponibles sur cet appareil (IndexedDB absent/plein) :
+            // le carnet continue sans photos pour ce jour, pas une erreur
+            // bloquante pour le reste de l'export.
+        }
+    }
+
+    let totalPrice = 0;
+    let activityCount = 0;
+    Object.keys(planning).forEach(d=>{
+        ["matin","midi","apresMidi","soir"].forEach(slot=>{
+            (planning[d][slot] || []).forEach(a=>{
+                activityCount++;
+                if(a.price!==null && a.price!==undefined) totalPrice += activityPriceInBase(a);
+            });
+        });
+    });
+
+    const statsHeading = document.createElement("h2");
+    statsHeading.textContent = "📊 Statistiques du voyage";
+    printView.appendChild(statsHeading);
+
+    const statsGrid = document.createElement("div");
+    statsGrid.className = "trip-book-stats-grid";
+    [
+        [`${totalPrice.toFixed(2)} ${CURRENCIES[baseCurrency].symbol}`,"Budget total"],
+        [String(activityCount),"Activités"],
+        [String(dayCount),"Jours de voyage"]
+    ].forEach(([value,label])=>{
+        const stat = document.createElement("div");
+        stat.className = "trip-book-stat";
+        const v = document.createElement("div");
+        v.className = "v";
+        v.textContent = value;
+        const l = document.createElement("div");
+        l.className = "l";
+        l.textContent = label;
+        stat.appendChild(v);
+        stat.appendChild(l);
+        statsGrid.appendChild(stat);
+    });
+    printView.appendChild(statsGrid);
+}
+
+document.getElementById("tripBookBtn").addEventListener("click",async ()=>{
+    showToast("Génération du carnet de voyage…",{duration:2000});
+    await buildTripBookView();
     window.print();
 });
 
@@ -4131,6 +4312,155 @@ function formatDateForTripDay(startDateStr,dayNumber){
     });
 }
 
+/* Calendrier mensuel (mockup A validé, 2026-09-02) : un aperçu du mois
+   entier avec un point coloré par type d'activité présent ce jour-là,
+   en plus de la vue par jour existante. Nécessite une vraie date de
+   départ (dateForDay() renvoie null sans ça) — sans quoi "Jour 3" n'a
+   aucune date calendaire à laquelle s'accrocher. */
+function renderMonthCalendarView(){
+
+    const container = document.getElementById("monthCalendarContent");
+    container.innerHTML = "";
+
+    const first = dateForDay(1);
+    const last = dateForDay(dayCount);
+
+    if(!first || !last){
+        const msg = document.createElement("p");
+        msg.className = "profile-hint";
+        msg.textContent = "Définis une date de départ (Profil → Dates & devise) pour voir le calendrier mensuel.";
+        container.appendChild(msg);
+        return;
+    }
+
+    // Date (clé YYYY-MM-DD, fuseau local) -> numéro de jour du voyage.
+    const dateToDay = {};
+    for(let i=1;i<=dayCount;i++){
+        const d = dateForDay(i);
+        if(d) dateToDay[toISODateLocal(d)] = i;
+    }
+
+    const todayKey = toISODateLocal(new Date());
+
+    const legendTypes = new Set();
+
+    let monthCursor = new Date(first.getFullYear(),first.getMonth(),1);
+    const endCursor = new Date(last.getFullYear(),last.getMonth(),1);
+
+    while(monthCursor<=endCursor){
+        container.appendChild(buildMonthCalendarGrid(monthCursor,dateToDay,todayKey,legendTypes));
+        monthCursor = new Date(monthCursor.getFullYear(),monthCursor.getMonth()+1,1);
+    }
+
+    if(legendTypes.size){
+        const legend = document.createElement("div");
+        legend.className = "cal-legend";
+        legendTypes.forEach(type=>{
+            const item = document.createElement("span");
+            const dot = document.createElement("i");
+            dot.style.background = typeColors[type] || "#999";
+            item.appendChild(dot);
+            item.appendChild(document.createTextNode(type));
+            legend.appendChild(item);
+        });
+        container.appendChild(legend);
+    }
+}
+
+function buildMonthCalendarGrid(monthDate,dateToDay,todayKey,legendTypes){
+
+    const wrap = document.createElement("div");
+    wrap.className = "cal-month";
+
+    const heading = document.createElement("div");
+    heading.className = "cal-month-heading";
+    heading.textContent = monthDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+    wrap.appendChild(heading);
+
+    const grid = document.createElement("div");
+    grid.className = "cal-grid";
+
+    ["L","M","M","J","V","S","D"].forEach(d=>{
+        const dow = document.createElement("div");
+        dow.className = "cal-dow";
+        dow.textContent = d;
+        grid.appendChild(dow);
+    });
+
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const daysInMonth = new Date(year,month+1,0).getDate();
+    const firstWeekday = (new Date(year,month,1).getDay()+6)%7; // 0=lundi
+
+    for(let i=0;i<firstWeekday;i++){
+        const empty = document.createElement("div");
+        empty.className = "cal-cell empty";
+        grid.appendChild(empty);
+    }
+
+    for(let day=1;day<=daysInMonth;day++){
+        const cellDate = new Date(year,month,day);
+        const key = toISODateLocal(cellDate);
+        const tripDay = dateToDay[key];
+
+        const cell = document.createElement("div");
+        cell.className = "cal-cell";
+        if(key===todayKey) cell.classList.add("today");
+        if(!tripDay) cell.classList.add("outside-trip");
+
+        const num = document.createElement("span");
+        num.textContent = day;
+        cell.appendChild(num);
+
+        if(tripDay){
+            const types = new Set();
+            ["matin","midi","apresMidi","soir"].forEach(slot=>{
+                (planning[tripDay] && planning[tripDay][slot] || []).forEach(a=>{
+                    types.add(a.type);
+                    legendTypes.add(a.type);
+                });
+            });
+
+            if(types.size){
+                const dots = document.createElement("span");
+                dots.className = "cal-dots";
+                Array.from(types).slice(0,4).forEach(type=>{
+                    const dot = document.createElement("i");
+                    dot.className = "cal-dot";
+                    dot.style.background = typeColors[type] || "#999";
+                    dots.appendChild(dot);
+                });
+                cell.appendChild(dots);
+            }
+
+            cell.setAttribute("role","button");
+            cell.tabIndex = 0;
+            cell.setAttribute("aria-label",`Aller au jour ${tripDay}`);
+            const jumpToDay = ()=>{
+                currentDay = tripDay;
+                renderTabs();
+                renderActivities();
+                document.getElementById("monthCalendarView").hidden = true;
+                localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
+                setActiveMainTab("planning");
+                updateCountdownBanner();
+            };
+            cell.addEventListener("click",jumpToDay);
+            cell.addEventListener("keydown",(e)=>{
+                if(e.key==="Enter" || e.key===" "){
+                    e.preventDefault();
+                    jumpToDay();
+                }
+            });
+        }
+
+        grid.appendChild(cell);
+    }
+
+    wrap.appendChild(grid);
+    return wrap;
+}
+
 function isAnyFullscreenViewOpen(){
     return !!document.querySelector(".fullscreen-view:not([hidden])");
 }
@@ -5411,7 +5741,11 @@ function renderReservations(){
 
     const days = Object.keys(byDay).map(d=>parseInt(d,10)).sort((a,b)=>a-b);
 
+    const dateChipsRow = document.getElementById("reservationsDateChips");
+    dateChipsRow.innerHTML = "";
+
     if(days.length===0){
+        dateChipsRow.hidden = true;
         const empty = document.createElement("div");
         empty.className = "search-result-item";
         empty.textContent = "Aucune réservation enregistrée pour l'instant.";
@@ -5419,10 +5753,30 @@ function renderReservations(){
         return;
     }
 
+    /* Frise de dates (mockup B validé, 2026-09-02) : un raccourci pour
+       sauter directement à un jour au lieu de défiler toute la liste — la
+       liste elle-même était déjà triée chronologiquement (days.sort), pas
+       besoin d'y toucher. */
+    dateChipsRow.hidden = days.length<2;
+    days.forEach(day=>{
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "resv-datechip";
+        chip.textContent = formatDayDateShort(day) || `Jour ${day}`;
+        chip.addEventListener("click",()=>{
+            dateChipsRow.querySelectorAll(".resv-datechip").forEach(c=>c.classList.remove("active"));
+            chip.classList.add("active");
+            const target = document.getElementById("resv-day-"+day);
+            if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+        });
+        dateChipsRow.appendChild(chip);
+    });
+
     days.forEach(day=>{
 
         const dayGroup = document.createElement("div");
         dayGroup.className = "album-day-group";
+        dayGroup.id = "resv-day-"+day;
         if(isDayCollapsed(RESERVATIONS_COLLAPSE_KEY,currentTripId,day)) dayGroup.classList.add("collapsed");
 
         const dayHeading = document.createElement("div");
@@ -6385,7 +6739,11 @@ function drawWeatherForecast(){
 
             const precipEl = document.createElement("span");
             precipEl.className = "weather-hour-precip";
-            precipEl.textContent = (h.precipitation!==null && h.precipitation>0) ? `💧${h.precipitation}%` : "";
+            /* Affiché même à 0% (2026-09-02) — cohérent avec le résumé du
+               jour juste au-dessus, qui lui l'a toujours affiché sans
+               condition de seuil. Le cacher à 0% donnait l'impression d'une
+               donnée manquante par moments plutôt que d'un vrai 0%. */
+            precipEl.textContent = h.precipitation!==null ? `💧${h.precipitation}%` : "";
 
             const tempEl = document.createElement("span");
             tempEl.className = "weather-hour-temp";
@@ -6673,6 +7031,9 @@ const photoLightboxClose = document.getElementById("photoLightboxClose");
 const photoLightboxDelete = document.getElementById("photoLightboxDelete");
 const photoLightboxSave = document.getElementById("photoLightboxSave");
 const photoLightboxCounter = document.getElementById("photoLightboxCounter");
+const photoLightboxCaption = document.getElementById("photoLightboxCaption");
+const photoLightboxProgress = document.getElementById("photoLightboxProgress");
+const photoLightboxPlayToggle = document.getElementById("photoLightboxPlayToggle");
 
 let pendingPhotoDay = null;
 let pendingPhotoActivityId = null;
@@ -6680,6 +7041,9 @@ let dayPhotoObjectUrls = [];
 let openLightboxPhotoId = null;
 let lightboxGroup = [];
 let lightboxIndex = 0;
+let lightboxAutoplayTimer = null;
+const LIGHTBOX_AUTOPLAY_MS = 4000;
+let lightboxOwnObjectUrls = [];
 
 function openDayPhotoPicker(day,activityId){
     pendingPhotoDay = day;
@@ -7181,10 +7545,16 @@ async function renderDayPhotos(){
 
     dayPhotoGallery.hidden = false;
 
+    const dayDateLabel = formatDayDateShort(currentDay) || `Jour ${currentDay}`;
     const group = photos.map(photo=>{
         const url = URL.createObjectURL(photo.blob);
         dayPhotoObjectUrls.push(url);
-        return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob)};
+        const activity = photo.activityId ? findActivityById(currentDay,photo.activityId,planning) : null;
+        return {
+            id:photo.id, url, type:mediaTypeFromBlob(photo.blob),
+            caption: activity ? `${icons[activity.type] || ""} ${activity.name}`.trim() : "",
+            dateLabel: dayDateLabel
+        };
     });
 
     photos.forEach((photo,i)=>{
@@ -7718,10 +8088,12 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
             const row = document.createElement("div");
             row.className = "album-thumb-row";
 
+            const groupCaption = activity ? `${icons[activity.type] || ""} ${activity.name}`.trim() : "";
+            const groupDateLabel = formatDayDateShort(day) || `Jour ${day}`;
             const groupUrls = groupPhotos.map(photo=>{
                 const url = URL.createObjectURL(photo.blob);
                 objectUrls.push(url);
-                return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob)};
+                return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob), caption:groupCaption, dateLabel:groupDateLabel};
             });
 
             const visible = groupPhotos.slice(0,4);
@@ -7783,7 +8155,12 @@ function renderCompactPhotoGrid(container,photos,objectUrls,emptyMessage){
     const urls = sorted.map(photo=>{
         const url = URL.createObjectURL(photo.blob);
         objectUrls.push(url);
-        return {id:photo.id, url, type:mediaTypeFromBlob(photo.blob)};
+        const activity = (photo.day && photo.activityId) ? findActivityById(photo.day,photo.activityId,planning) : null;
+        return {
+            id:photo.id, url, type:mediaTypeFromBlob(photo.blob),
+            caption: activity ? `${icons[activity.type] || ""} ${activity.name}`.trim() : "",
+            dateLabel: photo.day ? (formatDayDateShort(photo.day) || `Jour ${photo.day}`) : ""
+        };
     });
 
     sorted.forEach((photo,i)=>{
@@ -7856,6 +8233,44 @@ albumGridToggle.addEventListener("click",()=>{
     albumGridToggle.classList.toggle("active",albumGridModeActive);
     albumGridToggle.setAttribute("aria-pressed",String(albumGridModeActive));
     renderAlbumView();
+});
+
+document.getElementById("albumSlideshowBtn").addEventListener("click",async ()=>{
+
+    let photos;
+    try{
+        photos = await getTripPhotos(currentTripId);
+    }catch(err){
+        showToast("Impossible de charger l'album sur cet appareil.",{type:"error"});
+        return;
+    }
+
+    const typeFilter = albumTypeFilter.value || null;
+    if(typeFilter){
+        photos = photos.filter(photo=>{
+            const activity = photo.activityId ? findActivityById(photo.day,photo.activityId,planning) : null;
+            return activity && activity.type===typeFilter;
+        });
+    }
+
+    if(!photos.length){
+        showToast("Aucune photo à afficher pour l'instant.",{type:"error"});
+        return;
+    }
+
+    const ownObjectUrls = [];
+    const group = photos.map(photo=>{
+        const url = URL.createObjectURL(photo.blob);
+        ownObjectUrls.push(url);
+        const activity = photo.activityId ? findActivityById(photo.day,photo.activityId,planning) : null;
+        return {
+            id:photo.id, url, type:mediaTypeFromBlob(photo.blob),
+            caption: activity ? `${icons[activity.type] || ""} ${activity.name}`.trim() : "",
+            dateLabel: photo.day ? (formatDayDateShort(photo.day) || `Jour ${photo.day}`) : ""
+        };
+    });
+
+    openPhotoLightbox(group[0].id,group[0].url,group,{autoplay:true,ownObjectUrls});
 });
 
 /* --- Historique des voyages --- */
@@ -8115,6 +8530,46 @@ function restoreTrip(trip){
     location.reload();
 }
 
+/* Diaporama (mockup B validé, 2026-09-02) : légende (nom d'activité + date,
+   si connus — voir les appelants d'openPhotoLightbox()) + barres de
+   progression façon "Stories" + lecture automatique optionnelle. Toujours
+   le même lightbox qu'avant (pas une vue séparée), juste enrichi — ouvrir
+   une seule photo continue de fonctionner à l'identique, ces éléments
+   restent simplement masqués quand lightboxGroup.length<=1. */
+function stopLightboxAutoplay(){
+    if(lightboxAutoplayTimer){
+        clearInterval(lightboxAutoplayTimer);
+        lightboxAutoplayTimer = null;
+    }
+    photoLightboxPlayToggle.textContent = "▶️";
+    photoLightboxPlayToggle.setAttribute("aria-label","Lancer la lecture automatique");
+}
+
+function startLightboxAutoplay(){
+    if(lightboxGroup.length<=1) return;
+    stopLightboxAutoplay();
+    lightboxAutoplayTimer = setInterval(()=>{
+        showLightboxAt(lightboxIndex+1);
+    },LIGHTBOX_AUTOPLAY_MS);
+    photoLightboxPlayToggle.textContent = "⏸️";
+    photoLightboxPlayToggle.setAttribute("aria-label","Mettre en pause la lecture automatique");
+}
+
+function renderLightboxProgress(){
+    photoLightboxProgress.innerHTML = "";
+    if(lightboxGroup.length<=1){
+        photoLightboxProgress.hidden = true;
+        return;
+    }
+    photoLightboxProgress.hidden = false;
+    lightboxGroup.forEach((entry,i)=>{
+        const bar = document.createElement("i");
+        if(i<lightboxIndex) bar.className = "done";
+        else if(i===lightboxIndex) bar.className = "current";
+        photoLightboxProgress.appendChild(bar);
+    });
+}
+
 function showLightboxAt(index){
     if(!lightboxGroup.length) return;
     lightboxIndex = (index + lightboxGroup.length) % lightboxGroup.length;
@@ -8136,13 +8591,31 @@ function showLightboxAt(index){
 
     photoLightboxCounter.hidden = lightboxGroup.length<=1;
     photoLightboxCounter.textContent = `${lightboxIndex+1} / ${lightboxGroup.length}`;
+
+    if(entry.caption || entry.dateLabel){
+        photoLightboxCaption.hidden = false;
+        photoLightboxCaption.querySelector(".name").textContent = entry.caption || "";
+        photoLightboxCaption.querySelector(".meta").textContent = entry.dateLabel || "";
+    }else{
+        photoLightboxCaption.hidden = true;
+    }
+
+    photoLightboxPlayToggle.hidden = lightboxGroup.length<=1;
+    renderLightboxProgress();
 }
 
-function openPhotoLightbox(id,url,group){
+function openPhotoLightbox(id,url,group,options){
     lightboxGroup = (group && group.length) ? group : [{id,url,type:"image"}];
     const startIndex = lightboxGroup.findIndex(p=>p.id===id);
     showLightboxAt(startIndex===-1 ? 0 : startIndex);
     photoLightbox.hidden = false;
+    /* "Lancer le diaporama" (bouton Album) crée son propre lot d'URL
+       blob:, indépendant de celles déjà affichées comme vignettes — évite
+       de coupler leur durée de vie à albumObjectUrls, dont le prochain
+       renderAlbumView() pourrait révoquer les URLs alors même que le
+       diaporama les affiche encore. Révoquées à la fermeture ci-dessous. */
+    lightboxOwnObjectUrls = (options && options.ownObjectUrls) || [];
+    if(options && options.autoplay) startLightboxAutoplay();
 }
 
 function closePhotoLightbox(){
@@ -8151,9 +8624,17 @@ function closePhotoLightbox(){
     photoLightboxVideo.removeAttribute("src");
     openLightboxPhotoId = null;
     lightboxGroup = [];
+    stopLightboxAutoplay();
+    lightboxOwnObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+    lightboxOwnObjectUrls = [];
 }
 
 photoLightboxClose.addEventListener("click",closePhotoLightbox);
+
+photoLightboxPlayToggle.addEventListener("click",()=>{
+    if(lightboxAutoplayTimer) stopLightboxAutoplay();
+    else startLightboxAutoplay();
+});
 
 photoLightbox.addEventListener("click",(e)=>{
     if(e.target===photoLightbox) closePhotoLightbox();
@@ -8162,8 +8643,8 @@ photoLightbox.addEventListener("click",(e)=>{
 document.addEventListener("keydown",(e)=>{
     if(photoLightbox.hidden) return;
     if(e.key==="Escape") closePhotoLightbox();
-    if(e.key==="ArrowLeft") showLightboxAt(lightboxIndex-1);
-    if(e.key==="ArrowRight") showLightboxAt(lightboxIndex+1);
+    if(e.key==="ArrowLeft"){ stopLightboxAutoplay(); showLightboxAt(lightboxIndex-1); }
+    if(e.key==="ArrowRight"){ stopLightboxAutoplay(); showLightboxAt(lightboxIndex+1); }
 });
 
 let lightboxTouchStartX = null;
@@ -8186,6 +8667,7 @@ function handleLightboxTouchEnd(e){
     if(lightboxGroup.length<=1) return;
     if(Math.abs(dx)<40 || Math.abs(dx)<Math.abs(dy)) return;
 
+    stopLightboxAutoplay();
     if(dx<0) showLightboxAt(lightboxIndex+1);
     else showLightboxAt(lightboxIndex-1);
 }
@@ -8823,6 +9305,7 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         if(row.dataset.profileView==="albumView") renderAlbumView();
         if(row.dataset.profileView==="tripHistoryView") renderTripHistoryView();
         if(row.dataset.profileView==="weatherForecastView") renderWeatherForecast();
+        if(row.dataset.profileView==="monthCalendarView") renderMonthCalendarView();
         if(row.dataset.profileView==="devicesView") attachDevicesPresenceListener();
         updateCountdownBanner();
     });

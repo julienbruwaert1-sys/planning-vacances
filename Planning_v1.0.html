@@ -157,10 +157,16 @@
 </div>
 
 <div id="photoLightbox" class="photo-lightbox" hidden>
+<div id="photoLightboxProgress" class="lightbox-progress-row" hidden></div>
+<button id="photoLightboxPlayToggle" class="lightbox-play-toggle" type="button" aria-label="Lecture automatique" hidden>▶️</button>
 <button id="photoLightboxClose" class="photo-lightbox-close" type="button" aria-label="Fermer la photo">✕</button>
 <span id="photoLightboxCounter" class="photo-lightbox-counter" hidden></span>
 <img id="photoLightboxImage" class="photo-lightbox-image" alt="Photo du jour">
 <video id="photoLightboxVideo" class="photo-lightbox-image" controls playsinline hidden></video>
+<div id="photoLightboxCaption" class="lightbox-caption-overlay" hidden>
+<div class="name"></div>
+<div class="meta"></div>
+</div>
 <div class="photo-lightbox-actions">
 <button id="photoLightboxSave" class="photo-lightbox-save" type="button">💾 Enregistrer</button>
 <button id="photoLightboxDelete" class="photo-lightbox-delete" type="button">🗑️ Supprimer</button>
@@ -262,6 +268,7 @@
 <div class="menu-divider"></div>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
 <button id="printBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF / Imprimer" aria-label="Exporter le planning en PDF"><span class="menu-item-icon">🖨️</span><span class="menu-item-label">Exporter en PDF</span></button>
+<button id="tripBookBtn" class="menu-item" type="button" role="menuitem" title="Exporter un carnet de voyage illustré (planning, photos, statistiques)" aria-label="Exporter le carnet de voyage en PDF"><span class="menu-item-icon">📖</span><span class="menu-item-label">Carnet de voyage (PDF)</span></button>
 <button id="exportIcsBtn" class="menu-item" type="button" role="menuitem" title="Exporter vers le calendrier (.ics)" aria-label="Exporter le planning vers le calendrier"><span class="menu-item-icon">🗓️</span><span class="menu-item-label">Exporter vers le calendrier</span></button>
 <button id="exportDataBtn" class="menu-item" type="button" role="menuitem" title="Exporter mes données (sauvegarde JSON)" aria-label="Exporter mes données en JSON"><span class="menu-item-icon">💾</span><span class="menu-item-label">Exporter mes données</span></button>
 <p id="backupReminderHint" class="menu-hint"></p>
@@ -474,6 +481,7 @@
 <div class="day-select-wrap">
 <label for="daySelect">📅 Jour :</label>
 <select id="daySelect"></select>
+<button type="button" class="icon-btn" id="monthCalendarBtn" title="Calendrier mensuel" aria-label="Ouvrir le calendrier mensuel" data-profile-view="monthCalendarView">📆</button>
 </div>
 <div class="day-content">
 <!-- Interactive depuis l'ajout de la vue "Météo des prochains jours" (voir
@@ -771,6 +779,16 @@ Masquer les éléments cochés
 
 </div>
 
+<div id="monthCalendarView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>📆 Calendrier</h2>
+</div>
+<div class="fullscreen-body">
+<div id="monthCalendarContent"></div>
+</div>
+</div>
+
 <div id="weatherForecastView" class="fullscreen-view profile-sub-view" hidden>
 <div class="fullscreen-header">
 <button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
@@ -788,6 +806,7 @@ Masquer les éléments cochés
 <h2>🔗 Réservations</h2>
 </div>
 <div class="fullscreen-body">
+<div id="reservationsDateChips" class="resv-datechip-row" hidden></div>
 <div class="profile-section">
 <div id="reservationsList"></div>
 </div>
@@ -853,6 +872,7 @@ Masquer les éléments cochés
 <option>Pratique</option>
 </select>
 <button type="button" id="albumGridToggle" class="map-country-toggle" aria-pressed="false">▦ Vue grille compacte</button>
+<button type="button" id="albumSlideshowBtn" class="map-country-toggle">🖼️ Lancer le diaporama</button>
 </div>
 <div class="fullscreen-body">
 <div id="albumContent" class="album-content"></div>
