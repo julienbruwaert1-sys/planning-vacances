@@ -1378,6 +1378,7 @@ function renderActivities(){
                 + "Ctrl + flèche haut ou bas pour réordonner."
             );
             div.style.setProperty("--type-color",typeColors[activity.type] || "#999");
+            if(activity.done) div.classList.add("done");
 
             div.addEventListener("keydown",(e)=>{
 
@@ -1390,6 +1391,21 @@ function renderActivities(){
                     e.preventDefault();
                     moveByOffset(section.key,index,1);
                 }
+            });
+
+            /* Double-tap = "marquer fait" (mockup A validé, 2026-09-02) —
+               geste jusqu'ici inutilisé sur la carte. Le dblclick natif
+               couvre souris ET tactile (le double-tap déclenche déjà un
+               vrai dblclick sur mobile, la zoom-au-double-tap par défaut du
+               navigateur étant déjà neutralisée par le viewport meta de
+               l'app). Ignoré sur les éléments interactifs de la carte
+               (poignée, boutons, select) pour ne pas interférer avec leur
+               propre double-clic éventuel. */
+            div.addEventListener("dblclick",(e)=>{
+                if(e.target.closest("button,select,.activity-drag-handle")) return;
+                activity.done = !activity.done;
+                savePlanning();
+                renderActivities();
             });
 
             const dragHandle = document.createElement("span");
@@ -1424,6 +1440,13 @@ function renderActivities(){
             const titleRow = document.createElement("div");
             titleRow.className = "activity-title-row";
             titleRow.appendChild(strong);
+            if(activity.done){
+                const doneBadge = document.createElement("span");
+                doneBadge.className = "activity-done-badge";
+                doneBadge.textContent = "✓";
+                doneBadge.title = "Fait";
+                titleRow.appendChild(doneBadge);
+            }
             titleRow.appendChild(editBtn);
 
             const small = document.createElement("small");

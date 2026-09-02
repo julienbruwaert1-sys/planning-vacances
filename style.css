@@ -3409,6 +3409,51 @@ body.dark .activity small{
     box-shadow:0 8px 24px rgba(51,64,74,.25);
 }
 
+/* Double-tap "marquer fait" (2026-09-02, mockup A) */
+
+.activity.done{
+    background:#EAF3EC;
+}
+
+.activity.done:hover{
+    background:#E0EEE3;
+}
+
+.activity.done .activity-title-row strong{
+    text-decoration:line-through;
+    color:#9AAAB4;
+}
+
+.activity-done-badge{
+    flex:none;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#2F8F5B;
+    color:#FFFFFF;
+    font-size:11px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+body.dark .activity.done{
+    background:#0E3A26;
+}
+
+body.dark .activity.done:hover{
+    background:#183526;
+}
+
+body.dark .activity.done .activity-title-row strong{
+    color:#7C8BAE;
+}
+
+body.dark .activity-done-badge{
+    background:#3FA873;
+}
+
 .activity.drag-over-top{
     box-shadow:inset 0 3px 0 0 #D2503B;
 }
@@ -6472,6 +6517,13 @@ body.theme-noel .weather-hour-row{
     background:#EDF5EE;
 }
 
+/* Vert plus saturé que #EDF5EE (le fond de carte du thème lui-même,
+   déjà verdâtre) : sinon la carte "faite" ne se distinguerait presque
+   plus des autres à l'œil sous ce thème précis. */
+body.theme-noel .activity.done{
+    background:#CFE8D6;
+}
+
 body.theme-noel .activity:hover{
     background:#FBEDEC;
 }
@@ -6484,6 +6536,16 @@ body.dark.theme-noel .weather-hour-row{
 
 body.dark.theme-noel .activity:hover{
     background:#1B3A2E;
+}
+
+/* .activity.done a une spécificité plus faible (2 classes) que
+   body.dark.theme-X .activity (3 classes) : sans cette redite, le fond
+   "fait" resterait invisible sous un thème saisonnier sombre — même
+   gotcha que css_theme_card_coverage_gotcha, ✓ + le texte barré restaient
+   les seuls indices visibles. Même teinte partout (2026-09-02) : c'est un
+   indicateur d'état, pas une carte de contenu à accorder au thème. */
+body.dark.theme-noel .activity.done{
+    background:#0E3A26;
 }
 
 /* Audit de contraste (2026-09-02) : #7C8BAE (texte secondaire standard en
@@ -6810,6 +6872,10 @@ body.theme-ghibli .weather-hour-row{
     background:#E7EFDA;
 }
 
+body.theme-ghibli .activity.done{
+    background:#CFE8D6;
+}
+
 body.theme-ghibli .activity:hover{
     background:#DCE9C7;
 }
@@ -6823,6 +6889,10 @@ body.dark.theme-ghibli .weather-hour-row{
 body.dark.theme-ghibli .activity small,
 body.dark.theme-ghibli .activity-note{
     color:#9AAAB4;
+}
+
+body.dark.theme-ghibli .activity.done{
+    background:#0E3A26;
 }
 
 body.dark.theme-ghibli .activity:hover{
@@ -7297,6 +7367,10 @@ body.theme-halloween .weather-hour-row{
     background:#F3DCC0;
 }
 
+body.theme-halloween .activity.done{
+    background:#CFE8D6;
+}
+
 body.theme-halloween .activity:hover{
     background:#EFCDA4;
 }
@@ -7310,6 +7384,10 @@ body.dark.theme-halloween .weather-hour-row{
 body.dark.theme-halloween .activity small,
 body.dark.theme-halloween .activity-note{
     color:#9AAAB4;
+}
+
+body.dark.theme-halloween .activity.done{
+    background:#0E3A26;
 }
 
 body.dark.theme-halloween .activity:hover{
