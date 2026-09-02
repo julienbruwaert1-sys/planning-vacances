@@ -50,6 +50,11 @@ select:focus-visible{
     outline-offset:2px;
 }
 
+.day-slot-head:focus-visible{
+    outline:2px solid #D2503B;
+    outline-offset:2px;
+}
+
 /* Notifications toast */
 
 .toast-container{
@@ -4571,6 +4576,34 @@ body.dark #activities::before{
     font-size:15px;
     font-weight:700;
     margin:18px 0 10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    cursor:pointer;
+}
+
+/* Repliage Matin/Midi/Après-midi/Soir (2026-09-02) */
+
+.day-slot-toggle{
+    color:#9AAAB4;
+    display:flex;
+    flex-shrink:0;
+}
+
+.day-slot-toggle svg{
+    transition:transform .2s ease;
+}
+
+.day-slot-section.collapsed .day-slot-toggle svg{
+    transform:rotate(-90deg);
+}
+
+.day-slot-section.collapsed .slot{
+    display:none;
+}
+
+body.dark .day-slot-toggle{
+    color:#7C8BAE;
 }
 
 #activities .day-slot-head::before{
@@ -6157,7 +6190,8 @@ body.dark .activity:hover{
     background:#1F2C4A;
 }
 
-body.dark .activity:focus-visible{
+body.dark .activity:focus-visible,
+body.dark .day-slot-head:focus-visible{
     outline-color:#3D7CFF;
 }
 
@@ -6419,6 +6453,7 @@ body.theme-noel button:focus-visible,
 body.theme-noel input:focus-visible,
 body.theme-noel select:focus-visible,
 body.theme-noel .activity:focus-visible,
+body.theme-noel .day-slot-head:focus-visible,
 body.theme-noel .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
     outline-color:#B3261E;
 }
@@ -6797,6 +6832,7 @@ body.theme-ghibli button:focus-visible,
 body.theme-ghibli input:focus-visible,
 body.theme-ghibli select:focus-visible,
 body.theme-ghibli .activity:focus-visible,
+body.theme-ghibli .day-slot-head:focus-visible,
 body.theme-ghibli .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
     outline-color:#5B7B4F;
 }
@@ -7292,6 +7328,7 @@ body.theme-halloween button:focus-visible,
 body.theme-halloween input:focus-visible,
 body.theme-halloween select:focus-visible,
 body.theme-halloween .activity:focus-visible,
+body.theme-halloween .day-slot-head:focus-visible,
 body.theme-halloween .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
     outline-color:#E27A3F;
 }

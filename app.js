@@ -1270,6 +1270,19 @@ function activityHasAttachments(day,activityId){
     return !!activityAttachmentCounts[day+":"+activityId];
 }
 
+/* Repliage des sections Matin/Midi/Après-midi/Soir (2026-09-02) — clé
+   distincte de ALBUM_COLLAPSE_KEY/RESERVATIONS_COLLAPSE_KEY (déclarées
+   bien plus bas dans le fichier, section Album/Réservations) pour ne pas
+   lier leur état de repliage à celui du Planning. Réutilise isDayCollapsed()/
+   toggleDayCollapsed() telles quelles : elles ne font que .includes()/
+   .indexOf() sur un tableau, une clé composite "jour-section" (ex. "3-matin")
+   fonctionne aussi bien qu'un simple numéro de jour. Déclarée ici (avant sa
+   section "normale" plus bas, comme ALBUM_COLLAPSE_KEY) parce que
+   renderActivities() est appelée dès le chargement initial (ligne ~4829),
+   bien avant que le fichier n'atteigne la déclaration de ALBUM_COLLAPSE_KEY
+   — même TDZ que déjà rencontré plusieurs fois cette session. */
+const PLANNING_SLOT_COLLAPSE_KEY = "planningCollapsedSlots";
+
 function renderActivities(){
 
     const container =
@@ -1346,9 +1359,58 @@ function renderActivities(){
 
         const sectionDiv =
         document.createElement("div");
+        sectionDiv.className = "day-slot-section";
 
-        sectionDiv.innerHTML=
-        `<h3 class="day-slot-head">${section.label}</h3>`;
+        const slotCollapseKey = `${currentDay}-${section.key}`;
+        const isCollapsed = isDayCollapsed(PLANNING_SLOT_COLLAPSE_KEY,currentTripId,slotCollapseKey);
+
+        const head = document.createElement("h3");
+        head.className = "day-slot-head";
+        head.setAttribute("role","button");
+        head.tabIndex = 0;
+        head.setAttribute("aria-expanded",String(!isCollapsed));
+
+        const headLabel = document.createElement("span");
+        headLabel.textContent = section.label;
+        head.appendChild(headLabel);
+
+        /* Chevron : même balisage SVG que .album-day-toggle (Album/
+           Réservations) pour rester visuellement cohérent — voir
+           renderPhotoGroups()/renderReservations(). */
+        const toggleIcon = document.createElement("span");
+        toggleIcon.className = "day-slot-toggle";
+        const svgNS = "http://www.w3.org/2000/svg";
+        const chevronSvg = document.createElementNS(svgNS,"svg");
+        chevronSvg.setAttribute("width","15");
+        chevronSvg.setAttribute("height","15");
+        chevronSvg.setAttribute("viewBox","0 0 20 20");
+        chevronSvg.setAttribute("fill","none");
+        chevronSvg.setAttribute("stroke","currentColor");
+        chevronSvg.setAttribute("stroke-width","2");
+        chevronSvg.setAttribute("stroke-linecap","round");
+        chevronSvg.setAttribute("stroke-linejoin","round");
+        const chevronPath = document.createElementNS(svgNS,"path");
+        chevronPath.setAttribute("d","M5 8l5 5 5-5");
+        chevronSvg.appendChild(chevronPath);
+        toggleIcon.appendChild(chevronSvg);
+        head.appendChild(toggleIcon);
+
+        const toggleSlot = ()=>{
+            sectionDiv.classList.toggle("collapsed");
+            const nowCollapsed = sectionDiv.classList.contains("collapsed");
+            head.setAttribute("aria-expanded",String(!nowCollapsed));
+            toggleDayCollapsed(PLANNING_SLOT_COLLAPSE_KEY,currentTripId,slotCollapseKey);
+        };
+        head.addEventListener("click",toggleSlot);
+        head.addEventListener("keydown",(e)=>{
+            if(e.key==="Enter" || e.key===" "){
+                e.preventDefault();
+                toggleSlot();
+            }
+        });
+
+        if(isCollapsed) sectionDiv.classList.add("collapsed");
+        sectionDiv.appendChild(head);
 
         const slot =
         document.createElement("div");
