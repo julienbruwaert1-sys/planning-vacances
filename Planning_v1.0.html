@@ -263,7 +263,6 @@
 
 <div class="settings-tab-group" data-tab="donnees">
 <div class="menu-section-label">Importer</div>
-<button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier, un calendrier ou du texte collé" aria-label="Importer"><span class="menu-item-icon">📂</span><span class="menu-item-label">Importer un fichier</span></button>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt,.json,.ics" hidden>
 <button id="importIcsBtn" type="button" hidden></button>
 <button id="pasteImportBtn" type="button" hidden></button>
@@ -273,6 +272,7 @@
 
 <div class="menu-divider"></div>
 <button id="templateBtn" class="menu-item" type="button" role="menuitem" title="Télécharger le modèle" aria-label="Télécharger le modèle CSV"><span class="menu-item-icon">📄</span><span class="menu-item-label">Télécharger le modèle</span></button>
+<button id="importBtn" class="menu-item" type="button" role="menuitem" title="Importer un fichier, un calendrier ou du texte collé" aria-label="Importer"><span class="menu-item-icon">📥</span><span class="menu-item-label">Importer</span></button>
 <button id="exportBtn" class="menu-item" type="button" role="menuitem" title="Exporter en PDF, vers le calendrier ou mes données" aria-label="Exporter"><span class="menu-item-icon">📤</span><span class="menu-item-label">Exporter</span></button>
 <button id="printBtn" type="button" hidden></button>
 <button id="tripBookBtn" type="button" hidden></button>
@@ -422,7 +422,7 @@
 <option value="Australia/Sydney">Australie/Sydney</option>
 </select>
 </div>
-<p class="profile-hint">Pas encore utilisé pour recalculer le compte à rebours ou la météo — préparé pour une prochaine mise à jour.</p>
+<p class="profile-hint">Utilisé pour le compte à rebours, le calendrier et la météo — utile si le téléphone reste à l'heure de la maison pendant le voyage.</p>
 <div class="profile-field">
 <label for="countdownThresholdSelect">Afficher le compte à rebours</label>
 <select id="countdownThresholdSelect" aria-label="Seuil d'affichage du compte à rebours">

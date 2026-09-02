@@ -2414,7 +2414,7 @@ const templateBtn = document.getElementById("templateBtn");
    existante telle quelle, zéro duplication. */
 importBtn.addEventListener("click",(e)=>{
     e.stopPropagation();
-    openChoicePopover(importBtn,[
+    toggleChoicePopover(importBtn,[
         {icon:"📂",label:"Fichier (Excel, CSV, JSON…)",action:()=>importFile.click()},
         {icon:"📅",label:"Calendrier (.ics)",action:()=>importIcsBtn.click()},
         {icon:"📋",label:"Texte collé",action:()=>pasteImportBtn.click()}
@@ -2936,7 +2936,7 @@ const tripBookBtn = document.getElementById("tripBookBtn");
 
 exportBtn.addEventListener("click",(e)=>{
     e.stopPropagation();
-    openChoicePopover(exportBtn,[
+    toggleChoicePopover(exportBtn,[
         {icon:"🖨️",label:"PDF (planning)",action:()=>printBtn.click()},
         {icon:"📖",label:"Carnet de voyage (PDF)",action:()=>tripBookBtn.click()},
         {icon:"🗓️",label:"Calendrier (.ics)",action:()=>exportIcsBtn.click()},
@@ -4231,7 +4231,39 @@ tripTimezoneSelect.value = localStorage.getItem(TRIP_TIMEZONE_KEY) || "";
 tripTimezoneSelect.addEventListener("change",()=>{
     localStorage.setItem(TRIP_TIMEZONE_KEY,tripTimezoneSelect.value);
     pushToSync();
+    updateCountdownBanner();
 });
+
+/* "Maintenant" dans le fuseau du voyage plutôt que celui, potentiellement
+   différent, de l'appareil — cas concret : le téléphone reste à l'heure
+   de la maison pendant tout le séjour (beaucoup de gens ne le rebasculent
+   jamais). "" ("Fuseau automatique (appareil)", valeur par défaut) ne
+   change rien : new Date() lit déjà l'heure de l'appareil, exactement ce
+   qui est demandé comme comportement par défaut. Construit une Date dont
+   les getters locaux (getHours/getDate/...) lisent directement les champs
+   de la zone choisie — même logique que le reste du fichier
+   (today.setHours(0,0,0,0), new Date(startDate+"T00:00:00")) : ces
+   comparaisons ne portent que sur des jours/heures civils, jamais sur un
+   instant UTC précis à la seconde près, donc pas besoin d'un vrai calcul
+   d'offset. */
+function getTripNow(){
+    const tz = localStorage.getItem(TRIP_TIMEZONE_KEY);
+    if(!tz) return new Date();
+    try{
+        const parts = new Intl.DateTimeFormat("en-US",{
+            timeZone:tz,
+            year:"numeric",month:"2-digit",day:"2-digit",
+            hour:"2-digit",minute:"2-digit",second:"2-digit",
+            hour12:false
+        }).formatToParts(new Date());
+        const v = {};
+        parts.forEach(p=>{ if(p.type!=="literal") v[p.type]=p.value; });
+        const hour = v.hour==="24" ? "00" : v.hour;
+        return new Date(`${v.year}-${v.month}-${v.day}T${hour}:${v.minute}:${v.second}`);
+    }catch(err){
+        return new Date();
+    }
+}
 
 const COUNTDOWN_THRESHOLD_KEY = "countdownThresholdDays";
 let countdownThresholdDays = parseInt(localStorage.getItem(COUNTDOWN_THRESHOLD_KEY),10) || 0;
@@ -4455,7 +4487,7 @@ function renderMonthCalendarView(){
         if(d) dateToDay[toISODateLocal(d)] = i;
     }
 
-    const todayKey = toISODateLocal(new Date());
+    const todayKey = toISODateLocal(getTripNow());
 
     const legendTypes = new Set();
 
@@ -4623,7 +4655,7 @@ function updateCountdownBanner(){
         return;
     }
 
-    const today = new Date();
+    const today = getTripNow();
     today.setHours(0,0,0,0);
 
     const base = new Date(startDate+"T00:00:00");
@@ -4673,7 +4705,7 @@ function jumpToToday(){
 
     if(!startDate) return;
 
-    const today = new Date();
+    const today = getTripNow();
     today.setHours(0,0,0,0);
 
     const base = new Date(startDate+"T00:00:00");
@@ -5690,7 +5722,7 @@ function renderProfileStats(){
     let daysRemainingText = "Date de départ non définie";
 
     if(startDate){
-        const today = new Date();
+        const today = getTripNow();
         today.setHours(0,0,0,0);
         const base = new Date(startDate+"T00:00:00");
 
@@ -5778,10 +5810,27 @@ function buildReservationCategories(day,activity,hasAttachments){
 }
 
 const choicePopover = document.getElementById("choicePopover");
+let choicePopoverAnchor = null;
 
 function closeChoicePopover(){
     choicePopover.hidden = true;
     choicePopover.innerHTML = "";
+    choicePopoverAnchor = null;
+}
+
+/* Comme openChoicePopover(), mais reappuyer sur le MÊME déclencheur pendant
+   qu'il est déjà ouvert referme le popover au lieu de le repeupler à
+   l'identique — Réservations n'en a pas besoin (une ligne à la fois,
+   fermée par un clic à l'extérieur), mais Importer/Exporter dans le menu ⋮
+   sont assez proches pour qu'un second appui accidentel sur le même bouton
+   attende visiblement une fermeture (2026-09-03). */
+function toggleChoicePopover(anchorEl,categories){
+    if(!choicePopover.hidden && choicePopoverAnchor===anchorEl){
+        closeChoicePopover();
+        return;
+    }
+    openChoicePopover(anchorEl,categories);
+    choicePopoverAnchor = anchorEl;
 }
 
 /* Ancré sur l'élément cliqué (position:fixed, calculée depuis son
@@ -6848,7 +6897,7 @@ function drawWeatherForecast(){
        n'a aucun intérêt) ; pour un autre jour, les 24h au complet. */
     const hours = selected.hours || [];
     const isToday = weatherForecastSelectedIndex===0;
-    const nowHour = new Date().getHours();
+    const nowHour = getTripNow().getHours();
 
     const relevantHours = hours.filter(h=>!isToday || h.hour>=nowHour);
 
