@@ -6171,6 +6171,19 @@ body.dark.theme-noel .activity:hover{
     background:#1B3A2E;
 }
 
+/* Audit de contraste (2026-09-02) : #7C8BAE (texte secondaire standard en
+   mode sombre) tombe sous 4.5:1 sur ces fonds de carte thémés, plus clairs
+   que le fond sombre par défaut (#182238) pour lequel cette couleur avait
+   été réglée à l'origine — encore une variante du gotcha "une carte thémée
+   hérite d'un texte pensé pour un autre fond", voir
+   css_theme_card_coverage_gotcha. #9AAAB4 (déjà la couleur secondaire du
+   mode clair, pas une teinte inventée) repasse au-dessus du seuil sur les
+   trois thèmes saisonniers. */
+body.dark.theme-noel .activity small,
+body.dark.theme-noel .activity-note{
+    color:#9AAAB4;
+}
+
 body.theme-noel #activities::before{
     background:#C9A227;
 }
@@ -6490,6 +6503,11 @@ body.dark.theme-ghibli .activity,
 body.dark.theme-ghibli .map-day-sheet-row-item,
 body.dark.theme-ghibli .weather-hour-row{
     background:#2A3A2E;
+}
+
+body.dark.theme-ghibli .activity small,
+body.dark.theme-ghibli .activity-note{
+    color:#9AAAB4;
 }
 
 body.dark.theme-ghibli .activity:hover{
@@ -6972,6 +6990,11 @@ body.dark.theme-halloween .activity,
 body.dark.theme-halloween .map-day-sheet-row-item,
 body.dark.theme-halloween .weather-hour-row{
     background:#332440;
+}
+
+body.dark.theme-halloween .activity small,
+body.dark.theme-halloween .activity-note{
+    color:#9AAAB4;
 }
 
 body.dark.theme-halloween .activity:hover{
