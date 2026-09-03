@@ -572,6 +572,27 @@ function renderCategoryTabs(){
     const container = document.getElementById("categoryFilterDropdown");
     container.innerHTML = "";
 
+    /* Ne liste que les types réellement présents dans le voyage (2026-09-04)
+       — même patron que populateMapTypeSelect() : sans ce filtre, les 11
+       types fixes s'affichaient tous, même ceux sans la moindre activité,
+       menant à des filtres qui vidaient systématiquement la liste. */
+    const presentTypes = new Set();
+    Object.keys(planning).forEach(day=>{
+        ["matin","midi","apresMidi","soir"].forEach(slot=>{
+            (planning[day][slot] || []).forEach(activity=>{
+                if(activity.type) presentTypes.add(activity.type);
+            });
+        });
+    });
+
+    /* Le filtre actif peut se retrouver sur un type qui n'a plus aucune
+       activité (dernière activité de ce type supprimée) — sa case n'est
+       alors plus affichée du tout, ce qui laisserait le filtre "coincé"
+       actif sans qu'aucun onglet ne le montre. On le réinitialise. */
+    if(activityTypeFilter && !presentTypes.has(activityTypeFilter)){
+        activityTypeFilter = "";
+    }
+
     categoryFilterBtn.classList.toggle("active",!!activityTypeFilter);
 
     const allTab = document.createElement("button");
@@ -590,6 +611,7 @@ function renderCategoryTabs(){
     container.appendChild(allTab);
 
     Object.keys(icons).forEach(type=>{
+        if(!presentTypes.has(type)) return;
 
         const tab = document.createElement("button");
         tab.type = "button";
@@ -625,13 +647,17 @@ document.addEventListener("click",(e)=>{
     }
 });
 
-renderCategoryTabs();
-
 let dayCount =
 parseInt(localStorage.getItem("dayCount"),10) || 7;
 
 const planning =
 JSON.parse(localStorage.getItem("vacationPlanning")) || {};
+
+/* Déplacé ici (2026-09-04) : renderCategoryTabs() lit désormais `planning`
+   (liste des types réellement présents) — appelée avant sa déclaration
+   plus haut, ça levait un ReferenceError (TDZ) dès le chargement, même
+   schéma déjà rencontré avec CURRENCIES/baseCurrency/activityAttachmentCounts. */
+renderCategoryTabs();
 
 function ensureDaysExist(){
     for(let i=1;i<=dayCount;i++){
@@ -4914,6 +4940,12 @@ function toggleSearchPanel(){
     const isOpen = !searchPanel.hidden;
     if(!isOpen){
         closeOptionsMenu();
+        /* Reconstruit la liste des types (2026-09-04) : renderCategoryTabs()
+           n'est pas ré-appelée à chaque ajout/suppression d'activité, donc
+           sans ce rafraîchissement à l'ouverture, un type ajouté/retiré
+           depuis la dernière fois n'apparaîtrait/disparaîtrait pas tant que
+           la page n'est pas rechargée. */
+        renderCategoryTabs();
     }
     searchPanel.hidden = isOpen;
     searchToggleBtn.hidden = !isOpen;
