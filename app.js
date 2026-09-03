@@ -35,9 +35,15 @@
      dans une WebView Capacitor (navigue parfois la WebView elle-même au
      lieu d'ouvrir un onglet/navigateur externe, ce qui ferait perdre l'état
      de l'appli).
-   - Impression / export PDF (printBtn, window.print()) : les WebView
-     Android n'implémentent pas window.print() par défaut. Un plugin natif
-     d'impression (ex. @capacitor-community/print) serait nécessaire.
+   - Impression / export PDF (printBtn/tripBookBtn, via printOrWarnIfNative()
+     juste en dessous) : les WebView Android n'implémentent pas
+     window.print() par défaut — les deux boutons affichent maintenant un
+     message clair au lieu de ne rien faire du tout en natif (2026-09-04).
+     Un vrai export PDF natif nécessiterait encore un plugin (ex.
+     @capacitor-community/print) ou de générer le PDF soi-même (ex. jsPDF,
+     fonctionnerait alors identique web/natif) — pas fait, décision
+     explicite pour rester sur window.print() côté web tant que la
+     conversion Android n'est pas un projet concret.
    - Géolocalisation (navigator.geolocation — toilettes à proximité, météo,
      "ma position" sur la carte) : l'API web standard fonctionne dans une
      WebView Capacitor, mais la boîte de dialogue de permission Android est
@@ -47,15 +53,16 @@
      émulateur (pas de branche isNativeApp() en attendant, changer
      directement navigator.geolocation.getCurrentPosition en Geolocation
      .getCurrentPosition() le jour venu).
-   - Bouton retour matériel Android : rien ne l'intercepte aujourd'hui (pas
-     d'écouteur popstate/history) — dans une appli empaquetée, appuyer sur
-     retour fermerait direct l'appli depuis n'importe quel écran plutôt que
-     de fermer la vue plein écran ouverte (Réservations, Album, Carte,
-     Historique, Checklist, Dates & devise, Aide, À propos, la vue caméra…)
-     ou le menu ouvert. À câbler avec @capacitor/app
-     (App.addListener('backButton', ...)) en réutilisant la logique déjà
-     là (closeAllFullscreenViews(), les boutons .profile-back/.back-btn,
-     closeOptionsMenu()) plutôt qu'en écrire une nouvelle.
+   - Bouton retour matériel Android : corrigé (2026-09-04, voir
+     handleBackNavigation() près de closeAllFullscreenViews()) — piège le
+     retour via history.pushState()/popstate (se réarme tant qu'il y a
+     quelque chose à fermer : modale/visionneuse/menu/vue plein écran/onglet
+     non-Planning), testable dès maintenant dans un navigateur normal.
+     Fonctionnera tel quel une fois empaqueté (la WebView Capacitor
+     déclenche déjà history.back() par défaut sur le bouton matériel tant
+     qu'aucun App.addListener('backButton',...) n'est enregistré) —
+     l'installer resterait une amélioration de robustesse, pas un
+     prérequis.
    - navigator.clipboard (copyTextToClipboard, ex. code de synchro) :
      fonctionne tel quel dans une WebView Capacitor (contexte sécurisé,
      capacitor://localhost) — pas de changement prévu, @capacitor/clipboard
@@ -91,15 +98,60 @@
      sur des frames de canvas, plus lent/moins fiable en conditions réelles
      qu'un plugin natif basé ML Kit (ex. @capacitor-mlkit/barcode-scanning).
    - Sauvegarde automatique sur le cloud du téléphone (voir le commentaire
-     détaillé près de exportDataBtn) : aucune API web n'écrit dans l'espace
-     de sauvegarde système — Android Auto Backup se configure côté natif
-     (AndroidManifest.xml) sans code JS, une vraie intégration Google
-     Drive serait un projet à part entière.
-   - Traduction par appareil photo : aucun point d'entrée dans le code
-     aujourd'hui (pas de fonctionnalité existante à faire évoluer). Demande
-     de l'OCR + traduction (ML Kit Translation côté natif, ou une API cloud
-     payante côté web) — pas raisonnable à préparer avant que la conversion
-     Android soit un projet concret avec un budget/une API cible choisie.
+     détaillé près de exportDataBtn) : deux approches bien distinctes, à ne
+     pas confondre. (1) Android Auto Backup : rien à écrire ici, ça se
+     configure ENTIÈREMENT côté natif (allowBackup + une règle XML dans
+     AndroidManifest.xml qui liste quoi inclure) — zéro JS possible ou
+     nécessaire, un futur backup automatique "gratuit" du stockage de
+     l'appli vers le compte Google de l'utilisateur, invisible pour le
+     code web. (2) Une vraie intégration Google Drive (choisir/uploader un
+     fichier de sauvegarde soi-même, OAuth, Drive API) : un projet séparé
+     à part entière, pas préparable sans décider d'abord du périmètre exact
+     (juste le JSON déjà exporté par exportDataBtn ? Aussi les photos/
+     documents IndexedDB ?) et du budget API. Sans objet tant que
+     document_sync_feature (2026-09-03, Firebase Storage) couvre déjà le
+     partage entre appareils appairés — Drive répondrait à un besoin
+     différent (sauvegarde perso hors appairage), à confirmer avant de
+     lancer quoi que ce soit dessus.
+   - Traduction par appareil photo (2026-09-04, aucun code existant, point
+     d'entrée à créer entièrement) : viserait un bouton quelque part
+     (Réglages ? Une activité ? Un nouveau raccourci caméra ?) qui capture
+     une photo, en extrait le texte (OCR) et le traduit à l'écran par-dessus
+     l'image. Deux voies possibles, à choisir plus tard : ML Kit Text
+     Recognition + Translation côté natif (gratuit, hors-ligne, mais
+     100% Capacitor — aucun équivalent web, donc rien de testable avant un
+     vrai projet Android) OU une API cloud payante (Google Cloud Vision +
+     Translation, ou équivalent) appelable depuis le web dès maintenant,
+     mais avec un coût par appel à budgéter. Pas raisonnable de coder l'un
+     ou l'autre sans cette décision — juste le noter comme un nouveau point
+     d'entrée à créer (pas une fonction existante à faire évoluer, contrairement
+     à tout le reste de cette liste).
+   - Authentification biométrique (2026-09-04, aucun code existant) :
+     l'appli n'a AUCUN concept de verrouillage aujourd'hui — s'ouvre
+     directement, sans mot de passe ni code. "Ajouter la biométrie"
+     suppose donc de construire d'abord un vrai écran de verrouillage (un
+     réglage "Verrouiller l'appli" dans Réglages & données, un écran
+     plein-écran affiché à l'ouverture/la reprise de l'appli tant qu'elle
+     n'est pas déverrouillée, une solution de repli — code PIN ? — si la
+     biométrie échoue/n'est pas configurée sur l'appareil) AVANT de
+     brancher le moindre plugin (ex. capacitor-native-biometric ou
+     @aparajita/capacitor-biometric-auth, aucun n'est officiel Capacitor).
+     Pas de code écrit ici : dépend d'abord d'une vraie décision produit
+     (protéger QUOI, dans quel scénario un tiers aurait accès au téléphone
+     déverrouillé mais pas à l'appli).
+   - Stockage sécurisé/chiffré (2026-09-04, aucun code existant) :
+     @capacitor/preferences (le stockage clé-valeur officiel Capacitor,
+     remplacerait localStorage) N'EST PAS chiffré par défaut — un vrai
+     stockage sécurisé demanderait un plugin dédié (ex.
+     capacitor-secure-storage-plugin, s'appuie sur Android Keystore).
+     Aujourd'hui, rien dans l'appli n'a vraiment besoin de ce niveau de
+     protection : le code de synchro n'est pas un secret au sens fort (accès
+     limité par les règles Firebase, pas par le secret du code lui-même),
+     et le reste (planning, checklist...) n'est pas sensible. À reconsidérer
+     seulement si une vraie donnée sensible apparaît un jour (ex. un
+     identifiant de connexion, si l'authentification biométrique ci-dessus
+     est construite et a besoin de stocker quelque chose entre les
+     sessions).
    - Nouveau JS/CSS/HTML : à chaque nouvelle fonction touchant caméra,
      téléchargement de fichier, impression, géolocalisation, presse-papier,
      partage, lien externe ou navigation (retour matériel), ajoute le même
@@ -108,6 +160,26 @@
      [[feedback_capacitor_prep_habit]] dans la mémoire. */
 function isNativeApp(){
     return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+/* Impression / export PDF (2026-09-04) : window.print() n'existe pas dans
+   une WebView Android — sans ce garde, les deux boutons ("Exporter en
+   PDF", "Carnet de voyage") ne feraient RIEN du tout une fois empaquetés,
+   sans le moindre message (voir la note "Impression / export PDF" plus
+   haut). Un vrai export PDF natif nécessiterait un plugin (ex.
+   @capacitor-community/print) ou de générer le PDF soi-même (ex. jsPDF) —
+   pas fait ici, décision explicite : garder window.print() pour le web
+   (fonctionne très bien) et rendre l'indisponibilité EXPLICITE en
+   attendant, plutôt que de refaire toute la génération du carnet. */
+function printOrWarnIfNative(){
+    if(isNativeApp()){
+        showToast(
+            "L'impression n'est pas encore disponible dans l'appli — utilise Exporter > Mes données, ou ouvre la version web pour imprimer.",
+            {type:"error",duration:6000}
+        );
+        return;
+    }
+    window.print();
 }
 
 /* Déclarées tôt (var, pas de TDZ) : savePlanning()/saveChecklist() appellent
@@ -2076,9 +2148,7 @@ function buildPrintView(){
 
 printBtn.addEventListener("click",()=>{
     buildPrintView();
-    // CAPACITOR : window.print() n'existe pas dans une WebView Android —
-    // voir la note "Impression / export PDF" en haut du fichier.
-    window.print();
+    printOrWarnIfNative();
 });
 
 /* Carnet de voyage (mockup A validé, 2026-09-02) : réutilise le même
@@ -2258,7 +2328,7 @@ async function buildTripBookView(){
 document.getElementById("tripBookBtn").addEventListener("click",async ()=>{
     showToast("Génération du carnet de voyage…",{duration:2000});
     await buildTripBookView();
-    window.print();
+    printOrWarnIfNative();
 });
 
 /* --- Devise du prix d'une activité : "départ" ou "arrivée" du
@@ -5661,6 +5731,61 @@ function closeAllFullscreenViews(){
     detachDevicesPresenceListener();
     localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
 }
+
+/* --- Bouton retour Android / geste retour navigateur ---
+   Signalé lors de l'audit de préparation Android (2026-09-03) : rien
+   n'interceptait le retour, qui fermerait l'appli entière depuis
+   n'importe quel écran au lieu de fermer la vue/le menu/la fenêtre
+   ouverte. Solution testable dès maintenant en web (history.pushState +
+   popstate, pattern standard pour "piéger" le retour dans une SPA) — un
+   seul point d'ancrage plutôt que d'instrumenter chaque bouton qui ouvre
+   quelque chose : à chaque retour, handleBackNavigation() vérifie l'état
+   RÉEL du DOM à cet instant (rien à suivre en amont, donc rien à oublier
+   de câbler pour une future vue/un futur menu qui suit déjà les patrons
+   .hidden/isAnyFullscreenViewOpen() existants).
+
+   CAPACITOR : le bouton matériel Android, tant qu'aucun listener
+   App.addListener('backButton',...) n'est enregistré, déclenche déjà PAR
+   DÉFAUT history.back() dans la WebView — ce mécanisme fonctionnera donc
+   tel quel une fois empaqueté, SANS ajouter @capacitor/app. L'installer
+   plus tard resterait une amélioration de robustesse (ce comportement par
+   défaut n'est pas officiellement garanti par la documentation Capacitor),
+   pas un prérequis bloquant. */
+function handleBackNavigation(){
+
+    if(!modalOverlay.hidden){ modalCancel.click(); return true; }
+    if(!attachmentLightbox.hidden){ closeAttachmentLightbox(); return true; }
+    if(!photoLightbox.hidden){ closePhotoLightbox(); return true; }
+    if(!attachmentsModal.hidden){ closeAttachmentsModal(); return true; }
+
+    if(
+        isAnyFullscreenViewOpen() ||
+        !optionsMenuPanel.hidden || !searchPanel.hidden || !syncPanel.hidden ||
+        !desktopProfilePanel.hidden || !mapMorePanel.hidden || !choicePopover.hidden
+    ){
+        closeAllFullscreenViews();
+        return true;
+    }
+
+    if(activeMainTab!=="planning"){
+        closeAllFullscreenViews();
+        setActiveMainTab("planning");
+        return true;
+    }
+
+    // Rien à fermer : laisse le comportement par défaut se produire (sortir
+    // de l'appli / quitter la page), voir le ré-armement conditionnel plus
+    // bas — pas de history.pushState() ici.
+    return false;
+}
+
+history.pushState({planningBackTrap:true},"",location.href);
+
+window.addEventListener("popstate",()=>{
+    if(handleBackNavigation()){
+        history.pushState({planningBackTrap:true},"",location.href);
+    }
+});
 
 [...bottomNavTabs,...desktopSidebarItems].forEach(btn=>{
     btn.addEventListener("click",(e)=>{
