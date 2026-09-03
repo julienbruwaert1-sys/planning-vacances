@@ -118,6 +118,18 @@ select:focus-visible{
     padding:20px;
 }
 
+/* La modale de CONFIRMATION (#modalOverlay) partage .modal-overlay avec
+   #attachmentsModal (même z-index:3500) — à égalité, l'ordre du DOM
+   décide, et #attachmentsModal vient après #modalOverlay dans le HTML :
+   confirmer une suppression de document affichait donc la boîte de
+   confirmation DERRIÈRE la liste des documents (signalé 2026-09-04),
+   invisible mais toujours cliquable en dessous. Doit aussi passer
+   au-dessus de #attachmentLightbox (z-index:3600, voir plus bas) puisque
+   showConfirmModal() peut aussi être déclenchée depuis la visionneuse. */
+#modalOverlay{
+    z-index:3700;
+}
+
 .modal-overlay[hidden]{
     display:none;
 }
