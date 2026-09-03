@@ -671,12 +671,8 @@ function createTabs(){
         opt.value = i;
 
         const title = planning[i] && planning[i].title;
-        const dateLabel = typeof formatDayDate==="function"
-            ? formatDayDate(i)
-            : "";
 
         let label = `Jour ${i}`;
-        if(dateLabel) label += ` — ${dateLabel}`;
         if(title) label += ` — ${title}`;
 
         opt.textContent = label;
@@ -4411,35 +4407,43 @@ function dateForDay(dayNumber){
     return d;
 }
 
+/* fr-FR met les jours/mois en minuscules par défaut ("dim. 18 oct.") — mis
+   en majuscule sur demande explicite (2026-09-03), partout où une date est
+   affichée. Majuscule après le début de la chaîne ET après chaque espace
+   (pas seulement au tout début) pour couvrir jour ET mois en un passage. */
+function capitalizeFrenchDate(str){
+    return str.replace(/(^|\s)\p{L}/gu,m=>m.toUpperCase());
+}
+
 function formatDayDate(dayNumber){
 
     const d = dateForDay(dayNumber);
     if(!d) return "";
 
-    return d.toLocaleDateString("fr-FR",{
+    return capitalizeFrenchDate(d.toLocaleDateString("fr-FR",{
         weekday:"long",
         day:"numeric",
         month:"long"
-    });
+    }));
 }
 
 /* Réservé au titre du jour au-dessus des activités (renderTabs()) — mockup
-   C validé. Ne remplace PAS formatDayDate() partout : le menu déroulant de
-   sélection du jour, la vue Réservations et l'export PDF gardent le format
-   long existant sur demande explicite ("laisse le jour 1 pour le titre du
-   jour dans le menu déroulant"), donc une fonction séparée plutôt qu'un
-   paramètre optionnel sur formatDayDate() qui aurait risqué d'être oublié à
-   l'un des autres appels. */
+   C validé. Ne remplace PAS formatDayDate() partout : la vue Réservations
+   et l'export PDF gardent le format long existant (le menu déroulant de
+   sélection du jour n'affiche plus de date du tout depuis 2026-09-03),
+   donc une fonction séparée plutôt qu'un paramètre optionnel sur
+   formatDayDate() qui aurait risqué d'être oublié à l'un des autres
+   appels. */
 function formatDayDateShort(dayNumber){
 
     const d = dateForDay(dayNumber);
     if(!d) return "";
 
-    return d.toLocaleDateString("fr-FR",{
+    return capitalizeFrenchDate(d.toLocaleDateString("fr-FR",{
         weekday:"short",
         day:"numeric",
         month:"short"
-    });
+    }));
 }
 
 function formatDateForTripDay(startDateStr,dayNumber){
@@ -4452,11 +4456,11 @@ function formatDateForTripDay(startDateStr,dayNumber){
     const d = new Date(base);
     d.setDate(d.getDate() + (dayNumber - 1));
 
-    return d.toLocaleDateString("fr-FR",{
+    return capitalizeFrenchDate(d.toLocaleDateString("fr-FR",{
         weekday:"long",
         day:"numeric",
         month:"long"
-    });
+    }));
 }
 
 /* Calendrier mensuel (mockup A validé, 2026-09-02) : un aperçu du mois
@@ -4521,7 +4525,7 @@ function buildMonthCalendarGrid(monthDate,dateToDay,todayKey,legendTypes){
 
     const heading = document.createElement("div");
     heading.className = "cal-month-heading";
-    heading.textContent = monthDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+    heading.textContent = capitalizeFrenchDate(monthDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"}));
     wrap.appendChild(heading);
 
     const grid = document.createElement("div");
@@ -6572,7 +6576,7 @@ function showWeatherCard(dayData,dateObj,label){
     weatherTemps.appendChild(maxSpan);
     weatherTemps.appendChild(document.createTextNode(` / ${dayData.min}°`));
 
-    weatherDayDate.textContent = dateObj.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+    weatherDayDate.textContent = capitalizeFrenchDate(dateObj.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}));
     weatherPlace.textContent = label || "";
 }
 
@@ -6821,7 +6825,7 @@ function drawWeatherForecast(){
 
         const dayLabel = document.createElement("div");
         dayLabel.className = "weather-chip-day";
-        dayLabel.textContent = i===0 ? "Auj." : dateObj.toLocaleDateString("fr-FR",{weekday:"short"});
+        dayLabel.textContent = i===0 ? "Auj." : capitalizeFrenchDate(dateObj.toLocaleDateString("fr-FR",{weekday:"short"}));
         chip.appendChild(dayLabel);
 
         const icon = document.createElement("div");
@@ -6878,7 +6882,7 @@ function drawWeatherForecast(){
     dayLine.className = "weather-summary-day";
     dayLine.textContent =
         (weatherForecastSelectedIndex===0 ? "Aujourd'hui — " : "")
-        + selectedDate.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+        + capitalizeFrenchDate(selectedDate.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}));
     summaryText.appendChild(dayLine);
 
     top.appendChild(summaryText);
@@ -6957,7 +6961,10 @@ function drawWeatherForecast(){
         label.className = "weather-detail-hourly-label";
         const labelB = document.createElement("b");
         labelB.textContent = `${hourData.hour}h`;
-        label.append("À ",labelB," :");
+        /* Espace insécable avant les ":" (2026-09-03) : un espace normal
+           laissait le navigateur couper la ligne juste avant, isolant le
+           ":" tout seul sous "À 14h" dans ce span étroit. */
+        label.append("À ",labelB," :");
         hourlyRow.appendChild(label);
 
         if(hourData.precipitation!=null){
@@ -11687,6 +11694,18 @@ function loadTripHistory(){
     }
     if(!Array.isArray(history)) return [];
 
+    let changed = false;
+
+    /* Le voyage ACTIF ne doit jamais apparaître dans son propre historique
+       (signalé 2026-09-03) — quelle que soit la façon dont il s'y est
+       retrouvé (résidu d'avant le garde de attachTripHistoryListener, ou
+       tout autre chemin), on l'en retire ici à la lecture plutôt que
+       d'exiger que chaque point d'écriture s'en souvienne. */
+    if(currentTripId && history.some(t=>t && t.id===currentTripId)){
+        history = history.filter(t=>!t || t.id!==currentTripId);
+        changed = true;
+    }
+
     const byId = new Map();
     history.forEach(trip=>{
         if(!trip || !trip.id) return;
@@ -11697,11 +11716,14 @@ function loadTripHistory(){
     });
 
     if(byId.size!==history.length){
-        const deduped = history
+        history = history
             .map(trip=>trip && trip.id ? byId.get(trip.id) : trip)
             .filter((trip,index,arr)=>arr.findIndex(t=>t===trip)===index);
-        localStorage.setItem(TRIP_HISTORY_KEY,JSON.stringify(deduped));
-        return deduped;
+        changed = true;
+    }
+
+    if(changed){
+        localStorage.setItem(TRIP_HISTORY_KEY,JSON.stringify(history));
     }
 
     return history;
