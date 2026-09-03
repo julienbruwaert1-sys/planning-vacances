@@ -1004,13 +1004,30 @@ function startEditActivity(section,index){
     document.getElementById("activityName").focus();
 }
 
-function deleteActivity(section,index){
+async function deleteActivity(section,index){
 
     const activity = planning[currentDay][section][index];
     const dayAtDeletion = currentDay;
 
+    /* Signalé 2026-09-03 : supprimer une activité ne touchait jamais ses
+       photos liées (IndexedDB) — elles restaient, mais retombaient
+       silencieusement dans "Sans activité" de l'Album (leur activityId ne
+       correspond plus à rien). Pas de suppression en cascade des photos
+       (garde les souvenirs), juste un avertissement avant de confirmer. */
+    let linkedPhotoCount = 0;
+    try{
+        const dayPhotos = await getDayPhotos(dayAtDeletion);
+        linkedPhotoCount = dayPhotos.filter(p=>p.activityId===activity.id).length;
+    }catch(err){
+        console.error("Impossible de vérifier les photos liées à l'activité :",err);
+    }
+
+    const photoWarning = linkedPhotoCount
+        ? ` ${linkedPhotoCount===1 ? "1 photo restera" : `${linkedPhotoCount} photos resteront`} dans l'Album sans activité liée.`
+        : "";
+
     showConfirmModal(
-        `Supprimer « ${activity.name} » ?`,
+        `Supprimer « ${activity.name} » ?${photoWarning}`,
         ()=>{
 
             function finishDeleteActivity(){
