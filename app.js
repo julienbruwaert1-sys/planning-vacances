@@ -1022,12 +1022,26 @@ async function deleteActivity(section,index){
         console.error("Impossible de vérifier les photos liées à l'activité :",err);
     }
 
+    /* Même logique que pour les photos ci-dessus, étendue aux documents
+       (2026-09-03) — désormais potentiellement partagés dans le cloud, un
+       document orphelin y resterait aussi bien sans qu'aucune interface ne
+       permette d'y revenir. */
+    let linkedAttachmentCount = 0;
+    try{
+        linkedAttachmentCount = (await getActivityAttachments(dayAtDeletion,activity.id)).length;
+    }catch(err){
+        console.error("Impossible de vérifier les documents liés à l'activité :",err);
+    }
+
     const photoWarning = linkedPhotoCount
         ? ` ${linkedPhotoCount===1 ? "1 photo restera" : `${linkedPhotoCount} photos resteront`} dans l'Album sans activité liée.`
         : "";
+    const attachmentWarning = linkedAttachmentCount
+        ? ` ${linkedAttachmentCount===1 ? "1 document restera" : `${linkedAttachmentCount} documents resteront`} lié(s) à une activité supprimée.`
+        : "";
 
     showConfirmModal(
-        `Supprimer « ${activity.name} » ?${photoWarning}`,
+        `Supprimer « ${activity.name} » ?${photoWarning}${attachmentWarning}`,
         ()=>{
 
             function finishDeleteActivity(){
@@ -7119,6 +7133,12 @@ const PHOTO_DB_NAME = "planningPhotosDB";
 const PHOTO_STORE_NAME = "photos";
 let photoDBPromise = null;
 
+/* Documents partagés (2026-09-03) : garde-fou de taille avant tentative
+   d'upload cloud — évite qu'une sélection accidentelle (vidéo, etc.) ne
+   génère un coût Storage récurrent. La sauvegarde locale, elle, n'est
+   jamais bloquée par cette limite. */
+const ATTACHMENT_MAX_UPLOAD_BYTES = 20*1024*1024;
+
 function openPhotoDB(){
     if(photoDBPromise) return photoDBPromise;
     photoDBPromise = new Promise((resolve,reject)=>{
@@ -7260,6 +7280,25 @@ async function deleteTripPhotos(tripId){
     for(const record of records){
         await deleteDayPhoto(record.id);
     }
+
+    /* Nettoyage cloud best-effort (2026-09-03) : sans ça, des documents
+       partagés supprimés localement resteraient orphelins dans Firebase
+       Storage + l'index RTDB, invisibles et inatteignables depuis l'appli.
+       Ne doit jamais bloquer/faire échouer la suppression du voyage
+       elle-même (try/catch englobant). */
+    if(syncDb && syncStorage && syncCode){
+        try{
+            await syncAuthReady;
+            if(syncCode){
+                const dirRef = syncStorage.ref(`attachments/${syncCode}/${tripId}`);
+                const listing = await dirRef.listAll();
+                await Promise.all(listing.items.map(item=>item.delete()));
+                await syncDb.ref(`trips/${syncCode}/attachmentsIndex/${tripId}`).remove();
+            }
+        }catch(err){
+            console.error("Nettoyage cloud des documents du voyage impossible :",err);
+        }
+    }
 }
 
 async function deleteDayPhoto(id){
@@ -7274,23 +7313,55 @@ async function deleteDayPhoto(id){
 
 /* --- Documents d'activité (PDF, billets, réservations...) ---
    Même store IndexedDB que les photos (kind:"attachment" les distingue,
-   voir getDayPhotos()/getTripPhotos() plus haut) — pas synchronisées entre
-   appareils, exactement comme les photos : un fichier choisi sur le
-   téléphone n'a pas de sens à réapparaître comme "présent" sur un autre
-   appareil qui ne l'a pas réellement. fileName conservé (contrairement aux
-   photos, où le nom n'a jamais d'importance) pour l'afficher dans la liste
-   et le retrouver après un window.open() de l'URL objet. */
+   voir getDayPhotos()/getTripPhotos() plus haut). Contrairement aux
+   PHOTOS (qui restent volontairement 100% locales), les documents SE
+   partagent entre appareils appairés depuis 2026-09-03 : le fichier lui-
+   même est uploadé vers Firebase Storage (attachments/{syncCode}/{tripId}/
+   {cloudId}) et son existence annoncée aux autres appareils via un index
+   léger RTDB (trips/{syncCode}/attachmentsIndex/{tripId}), voir
+   uploadAttachmentToCloud()/attachTripAttachmentsListener() plus bas.
+   Téléchargement paresseux : un autre appareil ne récupère le fichier
+   qu'au moment où son utilisateur tape dessus (downloadAndOpenAttachment()),
+   jamais automatiquement en arrière-plan. fileName conservé (contrairement
+   aux photos, où le nom n'a jamais d'importance) pour l'afficher dans la
+   liste et le retrouver après un window.open() de l'URL objet. */
 async function addActivityAttachment(day,activityId,file){
+
+    const record = {
+        day, activityId, tripId:currentTripId,
+        kind:"attachment", fileName:file.name || "document",
+        blob:file, timestamp:Date.now(),
+        /* cloudId : identifiant STABLE inter-appareils, généré ici et
+           jamais réutilisé — distinct de "id" (auto-increment IndexedDB
+           local à CET appareil, inutilisable comme clé Storage/RTDB). */
+        cloudId: generateId(),
+        cloudSynced: false
+    };
+
     const db = await openPhotoDB();
-    return new Promise((resolve,reject)=>{
+    const localId = await new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
-        tx.objectStore(PHOTO_STORE_NAME).add({
-            day, activityId, tripId:currentTripId,
-            kind:"attachment", fileName:file.name || "document",
-            blob:file, timestamp:Date.now()
-        });
-        tx.oncomplete = ()=>resolve();
+        const addReq = tx.objectStore(PHOTO_STORE_NAME).add(record);
+        tx.oncomplete = ()=>resolve(addReq.result);
         tx.onerror = ()=>reject(tx.error);
+    });
+    record.id = localId;
+
+    if(file.size > ATTACHMENT_MAX_UPLOAD_BYTES){
+        showToast(
+            "Document trop volumineux pour être partagé (max 20 Mo) — conservé localement uniquement.",
+            {type:"error"}
+        );
+        return;
+    }
+
+    /* Fire-and-forget : la sauvegarde locale ci-dessus a déjà réussi et ne
+       doit JAMAIS dépendre du réseau. uploadAttachmentToCloud() gère déjà
+       ses propres erreurs en interne, ce .catch() est juste un filet pour
+       ne jamais laisser une rejection non gérée si un cas imprévu lui
+       échappait. */
+    uploadAttachmentToCloud(record).catch(err=>{
+        console.error("Upload du document vers le cloud impossible :",err);
     });
 }
 
@@ -7302,9 +7373,250 @@ async function getActivityAttachments(day,activityId){
         req.onsuccess = ()=>resolve(req.result);
         req.onerror = ()=>reject(req.error);
     });
-    return dayRecords.filter(r=>
+    const localAttachments = dayRecords.filter(r=>
         r.tripId===currentTripId && r.kind==="attachment" && r.activityId===activityId
     );
+
+    /* Fusion local ∪ distant, dédupliquée par cloudId (2026-09-03) : sans
+       ce filtre, un document déjà téléchargé sur cet appareil apparaîtrait
+       deux fois (une fois comme enregistrement local normal, une fois
+       comme "stub" venu de l'index distant qui, lui, ne disparaît jamais
+       juste parce qu'UN appareil a téléchargé le fichier). */
+    const localCloudIds = new Set(localAttachments.filter(r=>r.cloudId).map(r=>r.cloudId));
+    const remoteStubs = Object.entries(remoteAttachmentsIndex)
+        .filter(([cloudId,meta])=>meta.day===day && meta.activityId===activityId && !localCloudIds.has(cloudId))
+        .map(([cloudId,meta])=>({
+            cloudId, day, activityId, fileName:meta.fileName, kind:"attachment",
+            timestamp:meta.timestamp, size:meta.size, contentType:meta.contentType,
+            pending:true
+        }));
+
+    return localAttachments.concat(remoteStubs);
+}
+
+/* --- Documents partagés : upload/téléchargement/suppression cloud ---
+   Tout ce qui suit est spécifique aux documents (jamais les photos, qui
+   restent 100% locales par choix explicite) : upload réel du fichier vers
+   Firebase Storage + annonce légère de son existence via RTDB, pour que
+   les autres appareils appairés puissent le voir puis le télécharger à la
+   demande. Chaque fonction reste best-effort et n'empêche jamais l'action
+   locale correspondante de réussir (ajout/suppression marchent toujours
+   hors ligne ou sans appairage — seul le partage cloud est optionnel). */
+
+async function markAttachmentCloudSynced(id){
+    const db = await openPhotoDB();
+    return new Promise((resolve,reject)=>{
+        const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+        const store = tx.objectStore(PHOTO_STORE_NAME);
+        const getReq = store.get(id);
+        getReq.onsuccess = ()=>{
+            const record = getReq.result;
+            if(record){
+                record.cloudSynced = true;
+                store.put(record);
+            }
+        };
+        tx.oncomplete = ()=>resolve();
+        tx.onerror = ()=>reject(tx.error);
+    });
+}
+
+async function uploadAttachmentToCloud(record){
+    if(!syncDb || !syncStorage || !syncCode || !currentTripId) return;
+
+    await syncAuthReady;
+    if(!syncCode) return; // délié pendant l'attente
+
+    const path = `attachments/${syncCode}/${currentTripId}/${record.cloudId}`;
+    await syncStorage.ref(path).put(record.blob,{contentType:record.blob.type || "application/octet-stream"});
+
+    await syncDb.ref(`trips/${syncCode}/attachmentsIndex/${currentTripId}/${record.cloudId}`).set({
+        day: record.day, activityId: record.activityId, fileName: record.fileName,
+        kind: "attachment", size: record.blob.size, contentType: record.blob.type || "",
+        timestamp: record.timestamp, deviceId: syncDeviceId
+    });
+
+    if(record.id!==undefined) await markAttachmentCloudSynced(record.id);
+}
+
+/* Filet de sécurité pour un ajout fait hors-ligne (ou pendant une coupure
+   momentanée) : le fichier reste local-only indéfiniment tant que rien ne
+   retente l'upload. Appelée au retour de connexion (.info/connected, voir
+   plus bas) et à chaque (ré)attachement du listener d'index. */
+async function retryPendingAttachmentUploads(){
+    if(!syncDb || !syncStorage || !syncCode || !currentTripId) return;
+
+    let records;
+    try{
+        records = await getAllPhotos();
+    }catch(err){
+        console.error("Impossible de lister les documents en attente d'envoi :",err);
+        return;
+    }
+
+    const pending = records.filter(r=>
+        r.tripId===currentTripId && r.kind==="attachment" && r.cloudId && !r.cloudSynced
+    );
+
+    for(const record of pending){
+        try{
+            await uploadAttachmentToCloud(record);
+        }catch(err){
+            console.error("Reprise d'envoi du document impossible :",err);
+        }
+    }
+}
+
+async function deleteCloudAttachment(cloudId){
+    if(!syncDb || !syncStorage || !syncCode || !currentTripId) return;
+    await syncAuthReady;
+    if(!syncCode) return;
+    await syncStorage.ref(`attachments/${syncCode}/${currentTripId}/${cloudId}`).delete();
+    await syncDb.ref(`trips/${syncCode}/attachmentsIndex/${currentTripId}/${cloudId}`).remove();
+}
+
+/* Supprime une ligne "☁️ pas encore téléchargée" — aucun enregistrement
+   local à effacer, seulement le fichier distant + son entrée d'index. */
+async function deleteCloudOnlyAttachment(cloudId,day,activityId){
+    try{
+        await deleteCloudAttachment(cloudId);
+    }catch(err){
+        console.error("Suppression du document distant impossible :",err);
+        showToast("Suppression impossible — réessaie plus tard.",{type:"error"});
+        return;
+    }
+    delete remoteAttachmentsIndex[cloudId];
+    await refreshActivityAttachmentCounts();
+    renderActivities();
+    if(!reservationsView.hidden) renderReservations();
+    if(attachmentsModalDay===day && attachmentsModalActivityId===activityId) renderAttachmentsList();
+}
+
+/* Un document supprimé par un autre appareil doit aussi disparaître d'ici
+   s'il avait déjà été téléchargé — sinon il resterait indéfiniment
+   "présent" localement alors qu'il n'existe plus nulle part ailleurs.
+   N'efface jamais un document ajouté localement sans cloudId (jamais
+   partagé, donc jamais concerné). */
+async function cascadeDeleteLocalByCloudIds(cloudIds){
+    const cloudIdSet = new Set(cloudIds);
+    let records;
+    try{
+        records = await getAllPhotos();
+    }catch(err){
+        console.error("Impossible de nettoyer les documents supprimés à distance :",err);
+        return;
+    }
+    const toRemove = records.filter(r=>
+        r.tripId===currentTripId && r.kind==="attachment" && r.cloudId && cloudIdSet.has(r.cloudId)
+    );
+    for(const record of toRemove){
+        await deleteDayPhoto(record.id);
+    }
+}
+
+/* Téléchargement paresseux : appelé uniquement quand l'utilisateur tape
+   sur une ligne "☁️" dans la liste des documents d'une activité (jamais
+   automatiquement). Une fois le fichier récupéré, il devient un
+   enregistrement local normal (cloudId conservé pour la déduplication),
+   mis en cache définitivement — pas de re-téléchargement au prochain
+   affichage. */
+async function downloadAndOpenAttachment(cloudId,day,activityId){
+
+    if(!syncStorage){
+        showToast("Téléchargement impossible : synchronisation indisponible.",{type:"error"});
+        if(attachmentsModalDay===day && attachmentsModalActivityId===activityId) renderAttachmentsList();
+        return;
+    }
+
+    const meta = remoteAttachmentsIndex[cloudId];
+    if(!meta){
+        showToast("Ce document n'est plus disponible.",{type:"error"});
+        if(attachmentsModalDay===day && attachmentsModalActivityId===activityId) renderAttachmentsList();
+        return;
+    }
+
+    try{
+        await syncAuthReady;
+        const path = `attachments/${syncCode}/${currentTripId}/${cloudId}`;
+        const url = await syncStorage.ref(path).getDownloadURL();
+        const resp = await fetch(url);
+        if(!resp.ok) throw new Error("HTTP "+resp.status);
+        const blob = await resp.blob();
+        const file = new File([blob],meta.fileName,{type:meta.contentType || blob.type});
+
+        const db = await openPhotoDB();
+        await new Promise((resolve,reject)=>{
+            const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
+            tx.objectStore(PHOTO_STORE_NAME).add({
+                day, activityId, tripId:currentTripId, kind:"attachment",
+                fileName:meta.fileName, blob:file, timestamp:meta.timestamp,
+                cloudId, cloudSynced:true
+            });
+            tx.oncomplete = resolve;
+            tx.onerror = ()=>reject(tx.error);
+        });
+
+        await refreshActivityAttachmentCounts();
+        renderActivities();
+        if(!reservationsView.hidden) renderReservations();
+
+        if(attachmentsModalDay===day && attachmentsModalActivityId===activityId){
+            await renderAttachmentsList();
+            const entry = lastAttachmentsGroup.find(g=>g.cloudId===cloudId);
+            if(entry) openAttachmentLightbox(entry.id,lastAttachmentsGroup);
+        }
+    }catch(err){
+        console.error("Téléchargement du document impossible :",err);
+        showToast("Téléchargement du document impossible.",{type:"error"});
+        if(attachmentsModalDay===day && attachmentsModalActivityId===activityId) renderAttachmentsList();
+    }
+}
+
+function detachTripAttachmentsListener(){
+    if(attachmentsIndexRef){
+        attachmentsIndexRef.off();
+        attachmentsIndexRef = null;
+    }
+}
+
+/* Miroir de attachTripHistoryListener() (plus bas dans ce fichier), mais
+   pour l'index léger des documents partagés — jamais les fichiers
+   eux-mêmes. Indépendant de syncAutoEnabled comme la présence/l'historique :
+   recevoir un nouveau document est un événement ponctuel, pas un flux
+   continu qu'on voudrait couper séparément. Doit être ré-appelée si
+   currentTripId change SANS rechargement de page — seul adoptRemoteTrip()
+   est dans ce cas (voir son propre commentaire). */
+async function attachTripAttachmentsListener(){
+
+    detachTripAttachmentsListener();
+    if(!syncDb || !syncCode || !currentTripId) return;
+
+    await syncAuthReady;
+    if(!syncCode) return; // délié pendant l'attente
+
+    attachmentsIndexRef = syncDb.ref(`trips/${syncCode}/attachmentsIndex/${currentTripId}`);
+
+    attachmentsIndexRef.on("value",async (snapshot)=>{
+
+        const previous = remoteAttachmentsIndex;
+        const next = snapshot.val() || {};
+        remoteAttachmentsIndex = next;
+
+        const removedCloudIds = Object.keys(previous).filter(id=>!(id in next));
+        if(removedCloudIds.length){
+            await cascadeDeleteLocalByCloudIds(removedCloudIds);
+        }
+
+        await refreshActivityAttachmentCounts();
+        renderActivities();
+        if(!reservationsView.hidden) renderReservations();
+        if(!attachmentsModal.hidden) renderAttachmentsList();
+
+    },(err)=>{
+        console.error("Erreur d'écoute des documents partagés :",err);
+    });
+
+    retryPendingAttachmentUploads();
 }
 
 /* Photos prises avant l'introduction de currentTripId (voyage multiple) :
@@ -7917,6 +8229,11 @@ const attachmentsModalCloseBtn = document.getElementById("attachmentsModalCloseB
 let attachmentsModalDay = null;
 let attachmentsModalActivityId = null;
 let attachmentsObjectUrls = [];
+/* Dernier groupe (documents déjà locaux uniquement, voir plus bas) construit
+   par renderAttachmentsList() — réutilisé par downloadAndOpenAttachment()
+   pour ouvrir la visionneuse sur l'entrée qui vient d'être téléchargée
+   sans reconstruire un second jeu d'URL objet en double. */
+let lastAttachmentsGroup = [];
 
 async function renderAttachmentsList(){
 
@@ -7947,19 +8264,60 @@ async function renderAttachmentsList(){
     /* Un seul groupe construit ici (pas re-dérivé au clic) : les URL objet
        et les entrées de groupe doivent rester en phase — reconstruire le
        groupe séparément au clic risquerait de désynchroniser l'URL d'une
-       entrée avec son blob si l'ordre de attachments changeait entre-temps. */
-    const group = attachments.map(att=>{
-        const url = URL.createObjectURL(att.blob);
-        attachmentsObjectUrls.push(url);
-        return { id:att.id, url, type:attachmentFileType(att.blob), fileName:att.fileName };
-    });
+       entrée avec son blob si l'ordre de attachments changeait entre-temps.
+       Les entrées "pending" (pas encore téléchargées sur CET appareil, voir
+       getActivityAttachments()) n'ont pas de blob : exclues de ce groupe,
+       qui ne doit alimenter la visionneuse qu'avec des documents réellement
+       présents localement. */
+    const group = attachments
+        .filter(att=>!att.pending)
+        .map(att=>{
+            const url = URL.createObjectURL(att.blob);
+            attachmentsObjectUrls.push(url);
+            return { id:att.id, url, type:attachmentFileType(att.blob), fileName:att.fileName, cloudId:att.cloudId };
+        });
+    lastAttachmentsGroup = group;
 
-    attachments.forEach((att,i)=>{
-
-        const entry = group[i];
+    attachments.forEach(att=>{
 
         const row = document.createElement("div");
         row.className = "attachment-row";
+
+        if(att.pending){
+
+            /* Document annoncé par un autre appareil (index RTDB) mais pas
+               encore téléchargé ici — téléchargement paresseux au clic,
+               voir downloadAndOpenAttachment(). */
+            const openBtn = document.createElement("button");
+            openBtn.type = "button";
+            openBtn.className = "attachment-open-btn attachment-pending";
+            openBtn.textContent = `☁️ ${att.fileName}`;
+            openBtn.addEventListener("click",async ()=>{
+                if(openBtn.classList.contains("attachment-downloading")) return;
+                openBtn.classList.add("attachment-downloading");
+                openBtn.textContent = `⏳ ${att.fileName}`;
+                await downloadAndOpenAttachment(att.cloudId,attachmentsModalDay,attachmentsModalActivityId);
+            });
+            row.appendChild(openBtn);
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "attachment-remove";
+            removeBtn.textContent = "✕";
+            removeBtn.setAttribute("aria-label",`Supprimer ${att.fileName}`);
+            removeBtn.addEventListener("click",()=>{
+                showConfirmModal(
+                    `Supprimer « ${att.fileName} » ?`,
+                    ()=>deleteCloudOnlyAttachment(att.cloudId,attachmentsModalDay,attachmentsModalActivityId)
+                );
+            });
+            row.appendChild(removeBtn);
+
+            attachmentsList.appendChild(row);
+            return;
+        }
+
+        const entry = group.find(g=>g.id===att.id);
 
         /* Bouton (pas <a target="_blank">) : ouvre le nouveau visualiseur
            avec navigation gauche/droite entre les documents de CETTE
@@ -7982,6 +8340,11 @@ async function renderAttachmentsList(){
                 `Supprimer « ${att.fileName} » ?`,
                 async ()=>{
                     await deleteDayPhoto(att.id);
+                    if(att.cloudId){
+                        deleteCloudAttachment(att.cloudId).catch(err=>{
+                            console.error("Suppression cloud du document impossible :",err);
+                        });
+                    }
                     renderAttachmentsList();
                     await refreshActivityAttachmentCounts();
                     renderActivities();
@@ -8024,12 +8387,26 @@ async function refreshActivityAttachmentCounts(){
         return;
     }
     const counts = {};
+    const localCloudIds = new Set();
     records.forEach(r=>{
         if(r.tripId===currentTripId && r.kind==="attachment"){
             const key = r.day+":"+r.activityId;
             counts[key] = (counts[key]||0)+1;
+            if(r.cloudId) localCloudIds.add(r.cloudId);
         }
     });
+
+    /* Fusion local ∪ distant, dédupliquée par cloudId — même règle que dans
+       getActivityAttachments() : un document déjà téléchargé ici ne doit
+       pas être compté deux fois (une fois via le scan local ci-dessus, une
+       fois via l'index distant, qui ne disparaît pas juste parce qu'UN
+       appareil a téléchargé le fichier). */
+    Object.entries(remoteAttachmentsIndex).forEach(([cloudId,meta])=>{
+        if(localCloudIds.has(cloudId)) return;
+        const key = meta.day+":"+meta.activityId;
+        counts[key] = (counts[key]||0)+1;
+    });
+
     activityAttachmentCounts = counts;
 }
 
@@ -8148,13 +8525,18 @@ attachmentLightboxDelete.addEventListener("click",()=>{
     if(openAttachmentLightboxId===null) return;
 
     const idToDelete = openAttachmentLightboxId;
-    const fileName = attachmentLightboxGroup[attachmentLightboxIndex].fileName;
+    const { fileName, cloudId } = attachmentLightboxGroup[attachmentLightboxIndex];
 
     showConfirmModal(
         `Supprimer « ${fileName} » ?`,
         async ()=>{
             try{
                 await deleteDayPhoto(idToDelete);
+                if(cloudId){
+                    deleteCloudAttachment(cloudId).catch(err=>{
+                        console.error("Suppression cloud du document impossible :",err);
+                    });
+                }
                 closeAttachmentLightbox();
                 renderAttachmentsList();
                 await refreshActivityAttachmentCounts();
@@ -10864,6 +11246,19 @@ const firebaseConfig = {
    appairé"), au lieu de tout arrêter. */
 let syncDb = null;
 
+/* Stockage cloud des pièces jointes (documents partagés, 2026-09-03) — voir
+   uploadAttachmentToCloud()/attachTripAttachmentsListener() plus bas dans
+   ce fichier. null tant que firebase.storage() n'a pas réussi (dégrade
+   comme syncDb=null : chaque appelant garde sur sa présence). */
+let syncStorage = null;
+
+/* Cache plat {cloudId: {day,activityId,fileName,kind,size,contentType,
+   timestamp,deviceId}} des documents partagés par d'autres appareils —
+   jamais le fichier lui-même, juste ses métadonnées. Remplacé en bloc à
+   chaque "value" du listener attachTripAttachmentsListener(). */
+let remoteAttachmentsIndex = {};
+let attachmentsIndexRef = null;
+
 /* Se règle sur la promesse de connexion anonyme ci-dessous — résolue (pas
    rejetée) une fois la TENTATIVE de connexion terminée, qu'elle ait
    réussi ou non. Chaque fonction qui écrit/lit réellement sur Firebase
@@ -10881,6 +11276,17 @@ let syncAuthReady = Promise.resolve();
 try{
     firebase.initializeApp(firebaseConfig);
     syncDb = firebase.database();
+
+    /* Documents partagés (2026-09-03) : upload réel des pièces jointes vers
+       Firebase Storage, cf. storage.rules — dans son propre try imbriqué
+       comme l'auth juste en dessous, pour la même raison : vendor/firebase-
+       storage-compat.js pourrait manquer/échouer sans que ça invalide syncDb
+       (planning/checklist/tricount... continuent de fonctionner sans). */
+    try{
+        syncStorage = firebase.storage();
+    }catch(err){
+        console.error("Module de stockage Firebase indisponible :",err);
+    }
 
     /* Connexion anonyme (2026-09-02) : aucun écran de connexion, aucun mot
        de passe — juste une identité par appareil que le SDK crée et
@@ -11218,7 +11624,10 @@ if(syncDb){
     syncDb.ref(".info/connected").on("value",(snap)=>{
         firebaseConnected = snap.val()===true;
         updateSyncConnectionStatus();
-        if(firebaseConnected && syncCode) updateDevicePresence();
+        if(firebaseConnected && syncCode){
+            updateDevicePresence();
+            retryPendingAttachmentUploads();
+        }
     });
 }else{
     /* Firebase indisponible dès l'init (voir le try/catch plus haut) :
@@ -11599,6 +12008,16 @@ function adoptRemoteTrip(remoteTripId){
     knownSectionMeta = {};
     saveKnownSectionMeta();
     refreshOpenPhotoViews();
+    /* Seul chemin de changement de currentTripId qui ne fait PAS de
+       location.reload() (voir les autres : welcomeCreateBtn, restoreTrip()...)
+       — le listener des documents partagés est keyé par tripId dans son
+       chemin RTDB, donc il faut le ré-attacher explicitement ici plutôt que
+       compter sur un rechargement de page pour le faire. */
+    attachTripAttachmentsListener();
+    refreshActivityAttachmentCounts().then(()=>{
+        renderActivities();
+        if(!reservationsView.hidden) renderReservations();
+    });
 }
 
 function pushToSync(){
@@ -12235,8 +12654,10 @@ function startSyncListener(){
     if(syncAutoEnabled) attachPlanningListener();
     // Indépendant de syncAutoEnabled, comme la présence juste au-dessus :
     // recevoir un voyage archivé partagé est un événement ponctuel, pas
-    // un flux continu qu'on voudrait pouvoir couper séparément.
+    // un flux continu qu'on voudrait pouvoir couper séparément. Même
+    // logique pour les documents partagés.
     attachTripHistoryListener();
+    attachTripAttachmentsListener();
 }
 
 async function attachPlanningListener(){
@@ -12497,6 +12918,8 @@ function clearSyncState(){
     removeOwnPresence(syncCode);
     detachDevicesPresenceListener();
     detachTripHistoryListener();
+    detachTripAttachmentsListener();
+    remoteAttachmentsIndex = {};
     syncCode = "";
     localStorage.removeItem(SYNC_CODE_KEY);
     lastPushedPayload = null;

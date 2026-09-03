@@ -1,0 +1,7 @@
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /attachments/{code}/{tripId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

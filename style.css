@@ -230,6 +230,18 @@ body.dark .paste-import-textarea{
     flex-shrink:0;
 }
 
+/* Document annoncé par un autre appareil (index RTDB) mais pas encore
+   téléchargé sur celui-ci — voir downloadAndOpenAttachment() (2026-09-03). */
+.attachment-open-btn.attachment-pending{
+    color:#9AAAB4;
+    font-style:italic;
+}
+
+.attachment-open-btn.attachment-downloading{
+    cursor:wait;
+    opacity:.6;
+}
+
 .attachments-empty{
     font-size:12.5px;
     color:#9AAAB4;
@@ -246,6 +258,10 @@ body.dark .attachment-open-btn{
 }
 
 body.dark .attachment-remove{
+    color:#7C8BAE;
+}
+
+body.dark .attachment-open-btn.attachment-pending{
     color:#7C8BAE;
 }
 
