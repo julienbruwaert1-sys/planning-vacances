@@ -7535,15 +7535,23 @@ async function downloadAndOpenAttachment(cloudId,day,activityId){
         return;
     }
 
+    /* Étape courante (2026-09-04) : "Failed to fetch" seul ne dit pas SI
+       c'est getDownloadURL() (l'appel réseau du SDK vers l'API Firebase)
+       ou le fetch() du fichier lui-même qui échoue — deux causes très
+       différentes à diagnostiquer. Inclus dans le message d'erreur. */
+    let step = "authentification";
     try{
         await syncAuthReady;
         const path = `attachments/${syncCode}/${currentTripId}/${cloudId}`;
+        step = "obtention du lien";
         const url = await syncStorage.ref(path).getDownloadURL();
+        step = "récupération du fichier";
         const resp = await fetch(url);
         if(!resp.ok) throw new Error("HTTP "+resp.status);
         const blob = await resp.blob();
         const file = new File([blob],meta.fileName,{type:meta.contentType || blob.type});
 
+        step = "sauvegarde locale";
         const db = await openPhotoDB();
         await new Promise((resolve,reject)=>{
             const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
@@ -7572,7 +7580,7 @@ async function downloadAndOpenAttachment(cloudId,day,activityId){
            encore propagées, objet introuvable, CORS...) sans ouvrir les
            outils de dev — hors de portée sur téléphone. */
         const detail = (err && (err.code || err.message)) || "erreur inconnue";
-        showToast(`Téléchargement du document impossible (${detail}).`,{type:"error",duration:6000});
+        showToast(`Téléchargement du document impossible — étape « ${step} » (${detail}).`,{type:"error",duration:8000});
         if(attachmentsModalDay===day && attachmentsModalActivityId===activityId) renderAttachmentsList();
     }
 }
