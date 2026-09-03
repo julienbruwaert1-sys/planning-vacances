@@ -61,9 +61,20 @@
      capacitor://localhost) — pas de changement prévu, @capacitor/clipboard
      resterait un filet de secours seulement si ça se révèle peu fiable en
      usage réel.
-   - <input type="file"> (importFile/importIcsFile/dayPhotoInput) : ouvre
-     déjà le sélecteur natif Android dans une WebView Capacitor, rien à
-     changer.
+   - <input type="file"> (importFile/importIcsFile/dayPhotoInput/
+     attachmentFileInput) : ouvre déjà le sélecteur natif Android dans une
+     WebView Capacitor, rien à changer.
+   - Documents partagés entre appareils (2026-09-03, uploadAttachmentToCloud/
+     downloadAndOpenAttachment/attachTripAttachmentsListener, Firebase
+     Storage) : fetch()/XHR vers un domaine externe (firebasestorage.
+     googleapis.com), comme les appels Auth/Realtime Database déjà en place
+     — fonctionne tel quel dans la WebView par défaut de Capacitor (même
+     moteur/mêmes règles CORS qu'un navigateur, storage.rules + cors.json
+     déjà configurés côté Firebase). Attention seulement si un jour le
+     plugin @capacitor/http (qui contourne CORS en faisant la requête côté
+     natif) est introduit ailleurs dans l'appli : il faudrait alors vérifier
+     que ces trois fonctions restent sur fetch()/XHR classique, pas la
+     bascule automatique.
    - Retour haptique (triggerHaptic, navigator.vibrate) : fonctionne déjà en
      web/Android, mais jamais sur iOS (Safari/WKWebView n'a pas l'API
      Vibration) — @capacitor/haptics couvrirait aussi iOS avec de vrais
