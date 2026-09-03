@@ -7567,7 +7567,12 @@ async function downloadAndOpenAttachment(cloudId,day,activityId){
         }
     }catch(err){
         console.error("Téléchargement du document impossible :",err);
-        showToast("Téléchargement du document impossible.",{type:"error"});
+        /* Message détaillé (2026-09-04) : le générique précédent ne donnait
+           aucune piste pour diagnostiquer un vrai échec (règles Storage pas
+           encore propagées, objet introuvable, CORS...) sans ouvrir les
+           outils de dev — hors de portée sur téléphone. */
+        const detail = (err && (err.code || err.message)) || "erreur inconnue";
+        showToast(`Téléchargement du document impossible (${detail}).`,{type:"error",duration:6000});
         if(attachmentsModalDay===day && attachmentsModalActivityId===activityId) renderAttachmentsList();
     }
 }
