@@ -12636,21 +12636,22 @@ function applySyncData(data,isInitialLoad){
            appairage/chargement de page : c'est attendu, pas une
            "nouveauté" que l'utilisateur doit remarquer. Pas non plus si un
            voyage différent vient d'être adopté (tripSwapped) : son propre
-           toast dédié a déjà été montré plus haut, celui-ci ferait doublon. */
-        if(!isInitialLoad && !tripSwapped){
-            if(conflictBackup){
-                showToast(
-                    "⚠️ Cette donnée a aussi été modifiée sur l'autre appareil — tes changements récents ont peut-être été remplacés.",
-                    {
-                        type:"error",
-                        duration:9000,
-                        actionLabel:"Restaurer",
-                        onAction:restoreSyncConflictBackup
-                    }
-                );
-            }else{
-                showToast("Mis à jour depuis un autre appareil.",{duration:3500});
-            }
+           toast dédié a déjà été montré plus haut, celui-ci ferait doublon.
+           Le toast "Mis à jour depuis un autre appareil." (cas sans
+           conflit) a été retiré à la demande de l'utilisateur (2026-09-04)
+           — 🟢 Synchronisé ci-dessus suffit comme indicateur discret,
+           le conflit ci-dessous reste affiché (c'est un avertissement
+           actionnable, pas une simple notification). */
+        if(!isInitialLoad && !tripSwapped && conflictBackup){
+            showToast(
+                "⚠️ Cette donnée a aussi été modifiée sur l'autre appareil — tes changements récents ont peut-être été remplacés.",
+                {
+                    type:"error",
+                    duration:9000,
+                    actionLabel:"Restaurer",
+                    onAction:restoreSyncConflictBackup
+                }
+            );
         }
     }
 }
