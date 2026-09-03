@@ -5330,8 +5330,16 @@ function renderChecklistSuggestions(){
 
     checklistSuggestEl.innerHTML = "";
 
+    /* Vérif générale 2026-09-03 : checklist est appelé sans condition au
+       chargement (renderChecklist() plus bas dans le fichier) — un item
+       malformé (sync/import ancien format, edge case non prévu) faisait
+       planter .toLowerCase() ici, ce qui interrompait l'exécution du
+       script à ce point précis et laissait tout ce qui est déclaré plus
+       loin dans app.js (const/let après cette ligne) en TDZ pour le reste
+       de la session. Un seul item cassé ne doit jamais pouvoir invalider
+       la moitié de l'appli. */
     const existingLabels =
-    checklist.map(i=>i.label.toLowerCase());
+    checklist.filter(i=>i && typeof i.label==="string").map(i=>i.label.toLowerCase());
 
     checklistSuggestions
         .filter(s=>!existingLabels.includes(s.label.toLowerCase()))
@@ -5577,6 +5585,11 @@ function closeAllMenus(){
     if(!desktopProfilePanel.hidden) desktopProfilePanel.hidden = true;
     if(!mapMorePanel.hidden) mapMorePanel.hidden = true;
     closeChoicePopover();
+    /* Menu "⋮" par activité (repéré lors de la vérif générale, 2026-09-03) :
+       même famille de bug que les autres — fermé seulement par un clic
+       document en dehors de .activity-menu-wrap, donc lui aussi bypassé
+       par un e.stopPropagation() ailleurs (changement d'onglet). */
+    closeActivityMenus();
 }
 
 function closeAllFullscreenViews(){
