@@ -4051,6 +4051,12 @@ const halloweenWisps = document.getElementById("halloweenWisps");
 const HALLOWEEN_LEAF_COUNT = 18;
 const HALLOWEEN_LEAF_CHARS = ["🍁","🍂"];
 const HALLOWEEN_WISP_COUNT = 10;
+const sakuraPetals = document.getElementById("sakuraPetals");
+const SAKURA_PETAL_COUNT = 20;
+const SAKURA_PETAL_CHARS = ["🌸","❁"];
+const momijiLeaves = document.getElementById("momijiLeaves");
+const MOMIJI_LEAF_COUNT = 18;
+const MOMIJI_LEAF_CHARS = ["🍁"];
 
 /* Le conteneur reste vide (donc invisible) tant que le thème n'est pas
    actif — voir la note dans style.css sur .noel-snow. Chaque flocon a sa
@@ -4152,6 +4158,50 @@ function updateHalloweenWisps(){
     }
 }
 
+/* Même principe que les flocons/feuilles ci-dessus, pour les pétales de
+   cerisier du thème Sakura. */
+function startSakuraPetals(){
+    if(sakuraPetals.childElementCount) return;
+    for(let i=0;i<SAKURA_PETAL_COUNT;i++){
+        const petal = document.createElement("span");
+        petal.textContent = SAKURA_PETAL_CHARS[i%SAKURA_PETAL_CHARS.length];
+        petal.style.left = `${Math.random()*100}%`;
+        petal.style.fontSize = `${8+Math.random()*8}px`;
+        petal.style.setProperty("--drift",`${(Math.random()*50)-25}px`);
+        petal.style.animationDuration = `${8+Math.random()*7}s`;
+        petal.style.animationDelay = `${Math.random()*10}s`;
+        sakuraPetals.appendChild(petal);
+    }
+}
+
+function stopSakuraPetals(){
+    sakuraPetals.textContent = "";
+}
+
+/* Même principe pour les feuilles d'érable du thème Momiji. */
+function startMomijiLeaves(){
+    if(momijiLeaves.childElementCount) return;
+    for(let i=0;i<MOMIJI_LEAF_COUNT;i++){
+        const leaf = document.createElement("span");
+        leaf.textContent = MOMIJI_LEAF_CHARS[i%MOMIJI_LEAF_CHARS.length];
+        leaf.style.left = `${Math.random()*100}%`;
+        leaf.style.fontSize = `${10+Math.random()*8}px`;
+        leaf.style.setProperty("--drift",`${(Math.random()*60)-30}px`);
+        leaf.style.animationDuration = `${9+Math.random()*8}s`;
+        leaf.style.animationDelay = `${Math.random()*10}s`;
+        momijiLeaves.appendChild(leaf);
+    }
+}
+
+function stopMomijiLeaves(){
+    momijiLeaves.textContent = "";
+}
+
+/* Le thème Néon n'a pas de particules générées en JS (contrairement aux
+   trois autres) : juste un scanner lumineux + une grille en filigrane,
+   tous les deux du CSS pur sur #neonScan (voir style.css) — rien à
+   démarrer/arrêter ici, la visibilité suit déjà body.theme-neon. */
+
 /* Emoji du titre et de l'icône "Ajouter une activité" : lus dans les
    fonctions qui les affectent (appTitleEmoji() est appelée à chaque endroit
    qui construit déjà le titre) plutôt que codés en dur "🌴"/"➕" à 4+
@@ -4160,6 +4210,9 @@ function appTitleEmoji(){
     if(document.body.classList.contains("theme-noel")) return "⛄";
     if(document.body.classList.contains("theme-ghibli")) return "🌳";
     if(document.body.classList.contains("theme-halloween")) return "🎃";
+    if(document.body.classList.contains("theme-sakura")) return "🌸";
+    if(document.body.classList.contains("theme-momiji")) return "🍁";
+    if(document.body.classList.contains("theme-neon")) return "🌆";
     return "🌴";
 }
 
@@ -4167,6 +4220,9 @@ function currentThemeAddIcon(){
     if(document.body.classList.contains("theme-noel")) return "⛄";
     if(document.body.classList.contains("theme-ghibli")) return "🌳";
     if(document.body.classList.contains("theme-halloween")) return "🎃";
+    if(document.body.classList.contains("theme-sakura")) return "🌸";
+    if(document.body.classList.contains("theme-momiji")) return "🍁";
+    if(document.body.classList.contains("theme-neon")) return "🌆";
     return "➕";
 }
 
@@ -4186,9 +4242,14 @@ function applySelectedTheme(choice){
     document.body.classList.toggle("theme-noel",choice==="noel");
     document.body.classList.toggle("theme-ghibli",choice==="ghibli");
     document.body.classList.toggle("theme-halloween",choice==="halloween");
+    document.body.classList.toggle("theme-sakura",choice==="sakura");
+    document.body.classList.toggle("theme-momiji",choice==="momiji");
+    document.body.classList.toggle("theme-neon",choice==="neon");
     if(choice==="noel") startNoelSnow(); else stopNoelSnow();
     if(choice==="ghibli") startGhibliLeaves(); else stopGhibliLeaves();
     if(choice==="halloween") startHalloweenLeaves(); else stopHalloweenLeaves();
+    if(choice==="sakura") startSakuraPetals(); else stopSakuraPetals();
+    if(choice==="momiji") startMomijiLeaves(); else stopMomijiLeaves();
     updateGhibliFireflies();
     updateHalloweenWisps();
 }

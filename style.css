@@ -7735,3 +7735,759 @@ body.theme-halloween .halloween-pumpkin-spirit{
 @media (prefers-reduced-motion: reduce){
     .halloween-pumpkin-spirit{ animation:none; }
 }
+
+/* ================= Thème saisonnier "Sakura" =================
+   Même structure et même liste de sélecteurs que les thèmes Noël/Forêt
+   enchantée/Halloween ci-dessus — palette rose poudré/blanc crème,
+   mutuellement exclusif avec les autres theme-* (un seul choisi à la
+   fois). Pas de mascotte/bandeau dédié (contrairement à Halloween) :
+   juste la décoration animée + la palette, comme montré dans le mockup
+   validé. */
+
+body.theme-sakura a:focus-visible,
+body.theme-sakura button:focus-visible,
+body.theme-sakura input:focus-visible,
+body.theme-sakura select:focus-visible,
+body.theme-sakura .activity:focus-visible,
+body.theme-sakura .day-slot-head:focus-visible,
+body.theme-sakura .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#E0699A;
+}
+
+body.theme-sakura .date-tab.active,
+body.theme-sakura .jump-today-btn,
+body.theme-sakura .countdown-banner,
+body.theme-sakura .help-report-icon-copy:hover,
+body.theme-sakura .profile-stat-value,
+body.theme-sakura .bottom-nav-tab.active,
+body.theme-sakura .activity-photo-btn,
+body.theme-sakura .checklist-chip,
+body.theme-sakura .tricount-link-badge,
+body.theme-sakura .tricount-receipt-btn,
+body.theme-sakura .tricount-add-participant-btn,
+body.theme-sakura .welcome-eyebrow{
+    color:#D45C88;
+}
+
+body.theme-sakura .help-notes-send-btn,
+body.theme-sakura .map-country-toggle.active,
+body.theme-sakura .map-poi-search-btn,
+body.theme-sakura .checklist-template-chip.active,
+body.theme-sakura .form-toggle-btn,
+body.theme-sakura button.add,
+body.theme-sakura .search-filter-btn.active,
+body.theme-sakura .tricount-currency-option.active,
+body.theme-sakura .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
+    background:#E893B5;
+}
+
+body.theme-sakura .map-country-toggle.active,
+body.theme-sakura .checklist-template-chip.active,
+body.theme-sakura .tricount-currency-option.active{
+    border-color:#E893B5;
+}
+
+body.theme-sakura .checklist-hide-toggle input,
+body.theme-sakura .checklist-item input[type="checkbox"],
+body.theme-sakura .tricount-split-check input[type="checkbox"]{
+    accent-color:#E893B5;
+}
+
+body.theme-sakura .checklist-progress-fill{
+    background:linear-gradient(90deg,#E893B5,#F7B8CE);
+}
+
+body.theme-sakura{
+    background:#FDF2F6;
+}
+
+body.dark.theme-sakura{
+    background:#241820;
+}
+
+body.theme-sakura #welcomeView{
+    background:#FDF2F6;
+}
+
+body.dark.theme-sakura #welcomeView{
+    background:#241820;
+}
+
+body.theme-sakura .fullscreen-view,
+body.theme-sakura .fullscreen-header,
+body.theme-sakura .mobile-tab-header{
+    background:#FDF2F6;
+}
+
+body.dark.theme-sakura .fullscreen-view,
+body.dark.theme-sakura .fullscreen-header,
+body.dark.theme-sakura .mobile-tab-header{
+    background:#241820;
+}
+
+body.theme-sakura .profile-section{
+    background:#FBE1EB;
+}
+
+body.dark.theme-sakura .profile-section{
+    background:#33202C;
+}
+
+body.theme-sakura .day-content,
+body.theme-sakura .converter-card,
+body.theme-sakura .profile-list,
+body.theme-sakura .map-day-sheet{
+    background:#FBE1EB;
+}
+
+body.dark.theme-sakura .day-content,
+body.dark.theme-sakura .converter-card,
+body.dark.theme-sakura .profile-list,
+body.dark.theme-sakura .map-day-sheet{
+    background:#33202C;
+}
+
+body.theme-sakura .weather-card,
+body.theme-sakura .weather-summary-card,
+body.theme-sakura .weather-hour-list{
+    background:linear-gradient(135deg,#FBE1EB,#FFF6FA);
+}
+
+body.dark.theme-sakura .weather-card,
+body.dark.theme-sakura .weather-summary-card,
+body.dark.theme-sakura .weather-hour-list{
+    background:linear-gradient(135deg,#33202C,#241820);
+}
+
+body.theme-sakura .activity,
+body.theme-sakura .map-day-sheet-row-item,
+body.theme-sakura .weather-hour-row{
+    background:#FBE1EB;
+}
+
+body.theme-sakura .activity.done{
+    background:#CFE8D6;
+}
+
+body.theme-sakura .activity:hover{
+    background:#F5C9DA;
+}
+
+body.dark.theme-sakura .activity,
+body.dark.theme-sakura .map-day-sheet-row-item,
+body.dark.theme-sakura .weather-hour-row{
+    background:#33202C;
+}
+
+body.dark.theme-sakura .activity small,
+body.dark.theme-sakura .activity-note{
+    color:#9AAAB4;
+}
+
+body.dark.theme-sakura .activity.done{
+    background:#0E3A26;
+}
+
+body.dark.theme-sakura .activity:hover{
+    background:#3E2A38;
+}
+
+body.theme-sakura #activities::before{
+    background:#E893B5;
+}
+
+body.dark.theme-sakura #activities::before{
+    background:#4A3540;
+}
+
+body.theme-sakura #activities .day-slot-head{
+    color:#6B3B52;
+}
+
+body.dark.theme-sakura #activities .day-slot-head{
+    color:#F5D9E6;
+}
+
+/* Remplace le point plein par une petite fleur, même logique que le
+   flocon ❆ (Noël) / la feuille ❧ (Forêt enchantée) / la lune ☾
+   (Halloween). */
+body.theme-sakura #activities .day-slot-head::before{
+    content:"❀";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#D45C88;
+}
+
+body.dark.theme-sakura #activities .day-slot-head::before{
+    content:"❀";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#F7B8CE;
+}
+
+body.theme-sakura .date-tab.active,
+body.dark.theme-sakura .date-tab.active{
+    color:#D45C88;
+}
+
+body.dark.theme-sakura .date-tab.active{
+    background:#33202C;
+}
+
+body.dark.theme-sakura .bottom-nav-tab.active{
+    color:#F7B8CE;
+}
+
+body.dark.theme-sakura .activity-photo-btn{
+    color:#F7B8CE;
+}
+
+body.theme-sakura .fullscreen-header h2::before,
+body.theme-sakura .welcome-title::before{
+    content:"🌸 ";
+}
+
+body.theme-sakura .fullscreen-header h2::after,
+body.theme-sakura .welcome-title::after{
+    content:" 🌸";
+}
+
+/* Pétales qui tombent — même principe que .noel-snow/.ghibli-leaves/
+   .halloween-leaves (conteneur toujours présent mais vide tant que le
+   thème n'est pas actif), même z-index (3100). */
+.sakura-petals{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.sakura-petals span{
+    position:absolute;
+    top:-5%;
+    color:#EE9DC2;
+    opacity:.75;
+    animation:sakuraPetalFall linear infinite;
+}
+
+body.dark .sakura-petals span{
+    color:#B8698F;
+    opacity:.55;
+}
+
+@keyframes sakuraPetalFall{
+    to{
+        transform:translateY(105vh) translateX(var(--drift,0px)) rotate(220deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .sakura-petals span{
+        animation:none;
+        opacity:0;
+    }
+}
+
+/* ================= Thème saisonnier "Momiji" =================
+   Même structure que les thèmes ci-dessus — palette érable japonais
+   (rouge brique/orange/or), automne au Japon. */
+
+body.theme-momiji a:focus-visible,
+body.theme-momiji button:focus-visible,
+body.theme-momiji input:focus-visible,
+body.theme-momiji select:focus-visible,
+body.theme-momiji .activity:focus-visible,
+body.theme-momiji .day-slot-head:focus-visible,
+body.theme-momiji .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#C1440E;
+}
+
+body.theme-momiji .date-tab.active,
+body.theme-momiji .jump-today-btn,
+body.theme-momiji .countdown-banner,
+body.theme-momiji .help-report-icon-copy:hover,
+body.theme-momiji .profile-stat-value,
+body.theme-momiji .bottom-nav-tab.active,
+body.theme-momiji .activity-photo-btn,
+body.theme-momiji .checklist-chip,
+body.theme-momiji .tricount-link-badge,
+body.theme-momiji .tricount-receipt-btn,
+body.theme-momiji .tricount-add-participant-btn,
+body.theme-momiji .welcome-eyebrow{
+    color:#C1440E;
+}
+
+body.theme-momiji .help-notes-send-btn,
+body.theme-momiji .map-country-toggle.active,
+body.theme-momiji .map-poi-search-btn,
+body.theme-momiji .checklist-template-chip.active,
+body.theme-momiji .form-toggle-btn,
+body.theme-momiji button.add,
+body.theme-momiji .search-filter-btn.active,
+body.theme-momiji .tricount-currency-option.active,
+body.theme-momiji .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
+    background:#C1440E;
+}
+
+body.theme-momiji .map-country-toggle.active,
+body.theme-momiji .checklist-template-chip.active,
+body.theme-momiji .tricount-currency-option.active{
+    border-color:#C1440E;
+}
+
+body.theme-momiji .checklist-hide-toggle input,
+body.theme-momiji .checklist-item input[type="checkbox"],
+body.theme-momiji .tricount-split-check input[type="checkbox"]{
+    accent-color:#C1440E;
+}
+
+body.theme-momiji .checklist-progress-fill{
+    background:linear-gradient(90deg,#C1440E,#E08A2B);
+}
+
+body.theme-momiji{
+    background:#FBF0E6;
+}
+
+body.dark.theme-momiji{
+    background:#2A1C14;
+}
+
+body.theme-momiji #welcomeView{
+    background:#FBF0E6;
+}
+
+body.dark.theme-momiji #welcomeView{
+    background:#2A1C14;
+}
+
+body.theme-momiji .fullscreen-view,
+body.theme-momiji .fullscreen-header,
+body.theme-momiji .mobile-tab-header{
+    background:#FBF0E6;
+}
+
+body.dark.theme-momiji .fullscreen-view,
+body.dark.theme-momiji .fullscreen-header,
+body.dark.theme-momiji .mobile-tab-header{
+    background:#2A1C14;
+}
+
+body.theme-momiji .profile-section{
+    background:#F6DCC8;
+}
+
+body.dark.theme-momiji .profile-section{
+    background:#3D2A1C;
+}
+
+body.theme-momiji .day-content,
+body.theme-momiji .converter-card,
+body.theme-momiji .profile-list,
+body.theme-momiji .map-day-sheet{
+    background:#F6DCC8;
+}
+
+body.dark.theme-momiji .day-content,
+body.dark.theme-momiji .converter-card,
+body.dark.theme-momiji .profile-list,
+body.dark.theme-momiji .map-day-sheet{
+    background:#3D2A1C;
+}
+
+body.theme-momiji .weather-card,
+body.theme-momiji .weather-summary-card,
+body.theme-momiji .weather-hour-list{
+    background:linear-gradient(135deg,#F6DCC8,#FFF8EC);
+}
+
+body.dark.theme-momiji .weather-card,
+body.dark.theme-momiji .weather-summary-card,
+body.dark.theme-momiji .weather-hour-list{
+    background:linear-gradient(135deg,#3D2A1C,#2A1C14);
+}
+
+body.theme-momiji .activity,
+body.theme-momiji .map-day-sheet-row-item,
+body.theme-momiji .weather-hour-row{
+    background:#F6DCC8;
+}
+
+body.theme-momiji .activity.done{
+    background:#CFE8D6;
+}
+
+body.theme-momiji .activity:hover{
+    background:#F0C7A4;
+}
+
+body.dark.theme-momiji .activity,
+body.dark.theme-momiji .map-day-sheet-row-item,
+body.dark.theme-momiji .weather-hour-row{
+    background:#3D2A1C;
+}
+
+body.dark.theme-momiji .activity small,
+body.dark.theme-momiji .activity-note{
+    color:#9AAAB4;
+}
+
+body.dark.theme-momiji .activity.done{
+    background:#0E3A26;
+}
+
+body.dark.theme-momiji .activity:hover{
+    background:#4A3624;
+}
+
+body.theme-momiji #activities::before{
+    background:#C1440E;
+}
+
+body.dark.theme-momiji #activities::before{
+    background:#5A3E28;
+}
+
+body.theme-momiji #activities .day-slot-head{
+    color:#5A3018;
+}
+
+body.dark.theme-momiji #activities .day-slot-head{
+    color:#F2E0CC;
+}
+
+body.theme-momiji #activities .day-slot-head::before{
+    content:"❦";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#C1440E;
+}
+
+body.dark.theme-momiji #activities .day-slot-head::before{
+    content:"❦";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:15px;
+    line-height:1;
+    color:#E08A2B;
+}
+
+body.theme-momiji .date-tab.active,
+body.dark.theme-momiji .date-tab.active{
+    color:#C1440E;
+}
+
+body.dark.theme-momiji .date-tab.active{
+    background:#3D2A1C;
+}
+
+body.dark.theme-momiji .bottom-nav-tab.active{
+    color:#E08A2B;
+}
+
+body.dark.theme-momiji .activity-photo-btn{
+    color:#E08A2B;
+}
+
+body.theme-momiji .fullscreen-header h2::before,
+body.theme-momiji .welcome-title::before{
+    content:"🍁 ";
+}
+
+body.theme-momiji .fullscreen-header h2::after,
+body.theme-momiji .welcome-title::after{
+    content:" 🍁";
+}
+
+/* Feuilles d'érable qui tombent en tournoyant — même principe que les
+   autres thèmes. */
+.momiji-leaves{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.momiji-leaves span{
+    position:absolute;
+    top:-5%;
+    color:#C1440E;
+    opacity:.7;
+    animation:momijiLeafFall linear infinite;
+}
+
+body.dark .momiji-leaves span{
+    color:#E08A2B;
+    opacity:.55;
+}
+
+@keyframes momijiLeafFall{
+    to{
+        transform:translateY(105vh) translateX(var(--drift,0px)) rotate(260deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .momiji-leaves span{
+        animation:none;
+        opacity:0;
+    }
+}
+
+/* ================= Thème saisonnier "Néon" =================
+   Même structure que les thèmes ci-dessus, mais délibérément plus
+   radical : fond quasi noir même en mode clair (le néon ne fonctionne
+   pas sur blanc), deux teintes néon distinctes — cyan pour le texte/les
+   contours (bon contraste sur fond sombre), magenta pour les fonds
+   pleins (le texte blanc des boutons reste lisible dessus, contrairement
+   au cyan trop clair). Pas de particules qui tombent : un scanner
+   lumineux + une grille en filigrane, voir .neon-scan plus bas. */
+
+body.theme-neon a:focus-visible,
+body.theme-neon button:focus-visible,
+body.theme-neon input:focus-visible,
+body.theme-neon select:focus-visible,
+body.theme-neon .activity:focus-visible,
+body.theme-neon .day-slot-head:focus-visible,
+body.theme-neon .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#00E5FF;
+}
+
+body.theme-neon .date-tab.active,
+body.theme-neon .jump-today-btn,
+body.theme-neon .countdown-banner,
+body.theme-neon .help-report-icon-copy:hover,
+body.theme-neon .profile-stat-value,
+body.theme-neon .bottom-nav-tab.active,
+body.theme-neon .activity-photo-btn,
+body.theme-neon .checklist-chip,
+body.theme-neon .tricount-link-badge,
+body.theme-neon .tricount-receipt-btn,
+body.theme-neon .tricount-add-participant-btn,
+body.theme-neon .welcome-eyebrow{
+    color:#00E5FF;
+}
+
+body.theme-neon .help-notes-send-btn,
+body.theme-neon .map-country-toggle.active,
+body.theme-neon .map-poi-search-btn,
+body.theme-neon .checklist-template-chip.active,
+body.theme-neon .form-toggle-btn,
+body.theme-neon button.add,
+body.theme-neon .search-filter-btn.active,
+body.theme-neon .tricount-currency-option.active,
+body.theme-neon .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
+    background:#FF2E9A;
+}
+
+body.theme-neon .map-country-toggle.active,
+body.theme-neon .checklist-template-chip.active,
+body.theme-neon .tricount-currency-option.active{
+    border-color:#FF2E9A;
+}
+
+body.theme-neon .checklist-hide-toggle input,
+body.theme-neon .checklist-item input[type="checkbox"],
+body.theme-neon .tricount-split-check input[type="checkbox"]{
+    accent-color:#FF2E9A;
+}
+
+body.theme-neon .checklist-progress-fill{
+    background:linear-gradient(90deg,#FF2E9A,#7B2FF7);
+}
+
+body.theme-neon,
+body.dark.theme-neon{
+    background:#0A0A14;
+    color:#E9E9FF;
+}
+
+/* Fond bien plus sombre que tous les autres thèmes (y compris leur propre
+   variante "claire") : sans reset explicite, h1 (qui a sa propre couleur
+   fixe, contrairement à h2/h3 qui héritent normalement de body) restait
+   illisible — même correctif que body.dark h1 pour le mode sombre
+   classique. */
+body.theme-neon h1,
+body.dark.theme-neon h1{
+    color:#E9E9FF;
+}
+
+body.theme-neon #welcomeView,
+body.dark.theme-neon #welcomeView{
+    background:#0A0A14;
+}
+
+body.theme-neon .fullscreen-view,
+body.theme-neon .fullscreen-header,
+body.theme-neon .mobile-tab-header,
+body.dark.theme-neon .fullscreen-view,
+body.dark.theme-neon .fullscreen-header,
+body.dark.theme-neon .mobile-tab-header{
+    background:#0A0A14;
+}
+
+body.theme-neon .profile-section,
+body.dark.theme-neon .profile-section{
+    background:#15151F;
+}
+
+body.theme-neon .day-content,
+body.theme-neon .converter-card,
+body.theme-neon .profile-list,
+body.theme-neon .map-day-sheet,
+body.dark.theme-neon .day-content,
+body.dark.theme-neon .converter-card,
+body.dark.theme-neon .profile-list,
+body.dark.theme-neon .map-day-sheet{
+    background:#15151F;
+}
+
+body.theme-neon .weather-card,
+body.theme-neon .weather-summary-card,
+body.theme-neon .weather-hour-list,
+body.dark.theme-neon .weather-card,
+body.dark.theme-neon .weather-summary-card,
+body.dark.theme-neon .weather-hour-list{
+    background:linear-gradient(135deg,#15151F,#0A0A14);
+}
+
+body.theme-neon .activity,
+body.theme-neon .map-day-sheet-row-item,
+body.theme-neon .weather-hour-row,
+body.dark.theme-neon .activity,
+body.dark.theme-neon .map-day-sheet-row-item,
+body.dark.theme-neon .weather-hour-row{
+    background:#15151F;
+    box-shadow:0 0 0 1px rgba(0,229,255,.1);
+}
+
+body.theme-neon .activity.done,
+body.dark.theme-neon .activity.done{
+    background:#0E3A26;
+}
+
+body.theme-neon .activity:hover,
+body.dark.theme-neon .activity:hover{
+    background:#1D1D2E;
+}
+
+body.dark.theme-neon .activity small,
+body.dark.theme-neon .activity-note{
+    color:#8C8CB8;
+}
+
+body.theme-neon #activities::before,
+body.dark.theme-neon #activities::before{
+    background:#00E5FF;
+    box-shadow:0 0 8px rgba(0,229,255,.6);
+}
+
+body.theme-neon #activities .day-slot-head,
+body.dark.theme-neon #activities .day-slot-head{
+    color:#E9E9FF;
+}
+
+body.theme-neon #activities .day-slot-head::before,
+body.dark.theme-neon #activities .day-slot-head::before{
+    content:"◆";
+    background:none;
+    border:none;
+    width:auto;
+    height:auto;
+    font-size:12px;
+    line-height:1;
+    color:#00E5FF;
+    text-shadow:0 0 6px rgba(0,229,255,.8);
+}
+
+body.theme-neon .date-tab.active,
+body.dark.theme-neon .date-tab.active{
+    color:#00E5FF;
+    background:#15151F;
+}
+
+body.dark.theme-neon .bottom-nav-tab.active{
+    color:#00E5FF;
+}
+
+body.dark.theme-neon .activity-photo-btn{
+    color:#00E5FF;
+}
+
+body.theme-neon .fullscreen-header h2::before,
+body.theme-neon .welcome-title::before{
+    content:"🌆 ";
+}
+
+body.theme-neon .fullscreen-header h2::after,
+body.theme-neon .welcome-title::after{
+    content:" 🌆";
+}
+
+/* Scanner lumineux + grille en filigrane — pas de particules générées en
+   JS ici (voir app.js), tout est en CSS pur sur le conteneur toujours
+   présent #neonScan (même z-index 3100 que les autres décorations). */
+.neon-scan{
+    position:fixed;
+    inset:0;
+    z-index:3100;
+    overflow:hidden;
+    pointer-events:none;
+    display:none;
+}
+
+body.theme-neon .neon-scan{
+    display:block;
+}
+
+.neon-scan::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+        linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);
+    background-size:28px 28px;
+    -webkit-mask-image:linear-gradient(180deg,transparent,rgba(0,0,0,.7) 35%,transparent 80%);
+    mask-image:linear-gradient(180deg,transparent,rgba(0,0,0,.7) 35%,transparent 80%);
+}
+
+.neon-scan::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    height:120px;
+    top:-120px;
+    background:linear-gradient(180deg,transparent,rgba(0,229,255,.09),transparent);
+    animation:neonScanSweep 6s linear infinite;
+}
+
+@keyframes neonScanSweep{
+    to{
+        top:100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .neon-scan::after{
+        animation:none;
+        opacity:0;
+    }
+}
