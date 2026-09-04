@@ -94,6 +94,17 @@
      Lock API) : fonctionne déjà dans une WebView Capacitor sans plugin —
      @capacitor/keep-awake resterait un filet de secours si un test sur
      appareil réel montrait le contraire.
+   - Podomètre (fonctionnel 2026-09-05, @capgo/capacitor-pedometer —
+     statistique "Pas" dans Statistiques du voyage, voir
+     startTripStepTracking() juste après le bloc verrou par voyage) :
+     le capteur Android (TYPE_STEP_COUNTER) n'a pas d'historique
+     interrogeable "depuis telle date" — il ne compte QUE pendant que
+     l'appli écoute activement, remis à 0 à chaque nouvel appel de
+     startMeasurementUpdates() (donc à chaque redémarrage de l'appli
+     aussi). tripStepCount additionne les sessions successives plutôt
+     qu'un vrai suivi 24h/24 — limitation documentée dans le hint affiché
+     à l'utilisateur, pas un bug. Distance/cadence/étages sont iOS
+     uniquement, jamais exposés dans l'UI pour cette raison.
    - Export calendrier (exportIcsBtn, buildPlanningICS()) : génère un
      fichier .ics que l'utilisateur doit ouvrir manuellement — un plugin
      natif d'écriture calendrier (ex. @capacitor-community/calendar)
@@ -3889,6 +3900,14 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
             localStorage.removeItem("startDate");
             localStorage.removeItem(TRIP_TIMEZONE_KEY);
             localStorage.setItem("vacationPlanning",JSON.stringify({}));
+            /* Deux champs par voyage découverts non réinitialisés ici en
+               auditant ce même point pour le podomètre (2026-09-05) — le
+               nouveau voyage héritait silencieusement du verrou ET du
+               compteur de pas du précédent, même bug de fond que celui
+               corrigé sur restoreTrip()/buildCurrentTripSnapshot(). */
+            localStorage.removeItem(TRIP_STEP_COUNT_KEY);
+            currentTripLocked = false;
+            localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,"0");
         }
 
         localStorage.setItem(TRIP_NAME_KEY,name);
@@ -4672,6 +4691,59 @@ currentTripLockToggle.addEventListener("click",()=>{
         activate();
     }
 });
+
+/* --- Podomètre du voyage (2026-09-05, @capgo/capacitor-pedometer) ---
+   CAPACITOR : le capteur natif Android (TYPE_STEP_COUNTER) n'a pas
+   d'historique interrogeable "depuis telle date" — il ne compte QUE les
+   pas pris PENDANT que l'appli écoute activement, et startMeasurementUpdates()
+   redémarre ce décompte à 0 à chaque nouvel appel (donc à chaque
+   redémarrage de l'appli aussi). tripStepCount additionne donc les
+   sessions d'écoute successives (persisté à chaque évènement reçu),
+   PAS un vrai compteur 24h/24 depuis la date de départ : l'appli doit
+   avoir été ouverte pendant la marche pour que les pas comptent. Voir
+   le hint affiché dans renderProfileStats(). Distance/cadence/étages
+   (Measurement.distance etc.) sont iOS uniquement (voir isAvailable()),
+   jamais disponibles ici — pas exposés dans l'UI pour cette raison. */
+const TRIP_STEP_COUNT_KEY = "tripStepCount";
+
+let pedometerSessionBaseline = 0;
+let pedometerListening = false;
+
+async function startTripStepTracking(){
+
+    if(!isNativeApp() || !(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorPedometer)) return;
+    if(pedometerListening) return;
+    if(localStorage.getItem(TRIP_CREATED_KEY)!=="1") return;
+
+    const Pedometer = window.Capacitor.Plugins.CapacitorPedometer;
+
+    try{
+        const availability = await Pedometer.isAvailable();
+        if(!availability.stepCounting) return;
+
+        let permStatus = await Pedometer.checkPermissions();
+        if(permStatus.activityRecognition!=="granted"){
+            permStatus = await Pedometer.requestPermissions();
+        }
+        if(permStatus.activityRecognition!=="granted") return;
+
+        pedometerSessionBaseline = parseInt(localStorage.getItem(TRIP_STEP_COUNT_KEY),10) || 0;
+
+        await Pedometer.addListener("measurement",event=>{
+            const steps = pedometerSessionBaseline + (event.numberOfSteps || 0);
+            localStorage.setItem(TRIP_STEP_COUNT_KEY,String(steps));
+            const statsView = document.getElementById("tripStatsView");
+            if(statsView && !statsView.hidden) renderProfileStats();
+        });
+
+        await Pedometer.startMeasurementUpdates();
+        pedometerListening = true;
+    }catch(err){
+        console.error("Podomètre indisponible :",err);
+    }
+}
+
+startTripStepTracking();
 
 /* --- Réglages "Vue Planning" (Affichage → Vue Planning, 2026-09-02) ---
    Par défaut à true (comportement historique inchangé) : ce sont des
@@ -6409,8 +6481,18 @@ function renderProfileStats(){
         }
     }
 
-    const tripStepCount = localStorage.getItem("tripStepCount");
-    const tripDistanceKm = localStorage.getItem("tripDistanceKm");
+    /* Distance/cadence/étages ne sont jamais disponibles sur Android via
+       @capgo/capacitor-pedometer (iOS uniquement, voir startTripStepTracking())
+       — pas affichés du tout plutôt qu'un "0 km" en permanence trompeur.
+       Le hint diffère web/natif : sur le web, aucun capteur n'existe pour
+       de vrai ; sur Android, le capteur existe mais ne compte QUE pendant
+       que l'appli est ouverte (pas d'historique en arrière-plan), voir le
+       commentaire CAPACITOR au-dessus de startTripStepTracking(). */
+    const tripStepCount = localStorage.getItem(TRIP_STEP_COUNT_KEY);
+    const stepCountDisplay = tripStepCount ? Number(tripStepCount).toLocaleString("fr-FR") : "0";
+    const stepsHint = isNativeApp()
+        ? "🚶 Pas comptés pendant que Tabi Go était ouverte pendant la marche — le capteur ne garde pas d'historique en arrière-plan."
+        : "🚶 Comptage des pas disponible uniquement dans l'appli Android.";
 
     profileStatsEl.innerHTML = `
         <div class="profile-stat">
@@ -6426,15 +6508,11 @@ function renderProfileStats(){
             <span class="profile-stat-label">Jours de voyage</span>
         </div>
         <div class="profile-stat">
-            <span class="profile-stat-value">${tripStepCount || "0"}</span>
+            <span class="profile-stat-value">${stepCountDisplay}</span>
             <span class="profile-stat-label">Pas</span>
         </div>
-        <div class="profile-stat">
-            <span class="profile-stat-value">${tripDistanceKm || "0"} km</span>
-            <span class="profile-stat-label">Distance</span>
-        </div>
         <div class="profile-stat-full">${daysRemainingText}</div>
-        <div class="profile-stat-full profile-stat-hint">🚶 Pas et distance : à connecter à une application podomètre à partir de la date de départ (fonctionnalité à venir).</div>
+        <div class="profile-stat-full profile-stat-hint">${stepsHint}</div>
     `;
 }
 
@@ -10048,6 +10126,13 @@ async function restoreTrip(trip){
     localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(trip.checklistTemplates || []));
     localStorage.setItem(CURRENT_TRIP_ID_KEY,trip.id);
     localStorage.setItem(TRIP_CREATED_KEY,"1");
+    /* Même précaution que pour le verrou juste en dessous — trip.stepCount
+       absent (undefined) sur les voyages archivés avant l'existence du
+       podomètre retombe sur 0, pas une régression. Redémarre une nouvelle
+       session d'écoute avec ce total comme point de départ (voir
+       startTripStepTracking(), pas rappelé automatiquement ici :
+       location.reload() plus bas s'en charge au prochain démarrage). */
+    localStorage.setItem(TRIP_STEP_COUNT_KEY,String(trip.stepCount || 0));
     /* Bug signalé 2026-09-04 ("un voyage verrouillé restauré ne reste pas
        verrouillé") : trip.locked n'était jamais reporté sur
        currentTripLocked/CURRENT_TRIP_LOCKED_KEY, qui restait donc sur
@@ -13141,6 +13226,7 @@ function buildCurrentTripSnapshot(){
         // pas à son propre archivage (Nouveau voyage, restauration d'un
         // autre voyage...) — voir aussi restoreTrip() pour le sens inverse.
         locked: currentTripLocked,
+        stepCount: parseInt(localStorage.getItem(TRIP_STEP_COUNT_KEY),10) || 0,
         archivedAt: Date.now()
     };
 }
