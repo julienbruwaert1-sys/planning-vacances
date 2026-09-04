@@ -1141,17 +1141,13 @@ Masquer les éléments cochés
 <script src="vendor/qrcode.min.js"></script>
 <!-- @capacitor/camera (2026-09-04, qualité photo max sur Android) : ce
      build "unpkg" attend une variable globale capacitorExports plutôt
-     qu'un import de module — sur Android, window.Capacitor (déjà injecté
-     nativement) fournit .registerPlugin/.WebPlugin nécessaires ; sur le
-     web normal, un repli inoffensif garde Capacitor.Plugins.Camera absent
-     (rien ne doit planter ni rien ne doit s'enregistrer). Voir isNativeApp()
-     tout en haut d'app.js pour le reste de la convention CAPACITOR. -->
-<script>
-window.capacitorExports = window.Capacitor || {
-    registerPlugin: function(){ return {}; },
-    WebPlugin: function(){}
-};
-</script>
+     qu'un import de module. vendor/capacitor-core.js la fournit
+     correctement (voir son propre commentaire — un premier shim maison
+     ici a été retiré après avoir cassé silencieusement les 3 plugins
+     natifs, .WebPlugin manquant). Inoffensif sur le web normal, où
+     window.Capacitor n'existe pas encore. Voir isNativeApp() tout en
+     haut d'app.js pour le reste de la convention CAPACITOR. -->
+<script src="vendor/capacitor-core.js"></script>
 <script src="vendor/capacitor-camera.js"></script>
 <!-- @aparajita/capacitor-biometric-auth (2026-09-04, déverrouillage
      empreinte/visage pour le verrou par voyage) : dépend de @capacitor/app
