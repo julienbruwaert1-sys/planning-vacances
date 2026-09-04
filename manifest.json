@@ -1,6 +1,6 @@
 {
-  "name": "Planification de Vacances",
-  "short_name": "Vacances",
+  "name": "Tabi Go",
+  "short_name": "Tabi Go",
   "start_url": "./Planning_v1.0.html",
   "scope": "./",
   "display": "standalone",

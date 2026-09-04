@@ -2048,7 +2048,7 @@ function buildPrintView(){
     printView.classList.remove("trip-book");
 
     const title = document.createElement("h1");
-    title.textContent = "🌴 Planification de Vacances";
+    title.textContent = "🌴 Tabi Go";
     printView.appendChild(title);
 
     const sections = [
@@ -2991,7 +2991,7 @@ function buildPlanningICS(){
     const lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Planification de Vacances//FR",
+        "PRODID:-//Tabi Go//FR",
         "CALSCALE:GREGORIAN"
     ];
 
@@ -3960,8 +3960,8 @@ function applyAppIcon(key){
     appleTouchIconLink.href = meta.icon512;
 
     const manifest = {
-        name:"Planification de Vacances",
-        short_name:"Vacances",
+        name:"Tabi Go",
+        short_name:"Tabi Go",
         start_url:absUrl("./Planning_v1.0.html"),
         scope:absUrl("./"),
         display:"standalone",
