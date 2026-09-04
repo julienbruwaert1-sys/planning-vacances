@@ -3454,11 +3454,30 @@ body.dark .activity small{
     align-items:center;
     justify-content:space-between;
     background:#F1F7FB;
-    padding:10px;
+    padding:14px 10px 10px;
     border-radius:14px;
     margin-bottom:10px;
     flex-wrap:wrap;
     gap:8px;
+}
+
+/* Bandeau coloré par type (2026-09-04, choisi après mockup) : réutilise
+   --type-color, déjà posé par renderActivities() pour le point du rail
+   (.activity::before, sous ce bloc) — même couleur, deuxième endroit où
+   elle s'affiche. ::after (pas ::before, déjà pris par le point du rail).
+   Le rayon du haut doit matcher exactement celui de .activity pour que le
+   bandeau suive les coins arrondis sans overflow:hidden — indispensable
+   ici puisque overflow:hidden couperait le point du rail, positionné en
+   dehors de la carte (left:-17px). */
+.activity::after{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:4px;
+    border-radius:14px 14px 0 0;
+    background:var(--type-color,#999);
 }
 
 /* Poignée de glisser-déposer (2026-09-02) — voir bindActivityDragHandle()
@@ -3527,8 +3546,11 @@ body.dark .activity-done-badge{
     background:#3FA873;
 }
 
+/* inset 7px (pas 3px) : sous le nouveau bandeau de type (::after, 4px en
+   haut) plutôt que dessus — sinon l'indicateur de dépôt se confondait
+   avec la couleur du type, invisible pendant un vrai glisser-déposer. */
 .activity.drag-over-top{
-    box-shadow:inset 0 3px 0 0 #D2503B;
+    box-shadow:inset 0 7px 0 0 #D2503B;
 }
 
 .activity.drag-over-bottom{
