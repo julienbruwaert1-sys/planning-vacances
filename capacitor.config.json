@@ -1,5 +1,9 @@
 {
   "appId": "com.julien.planningvacances",
   "appName": "Tabi Go",
-  "webDir": "."
+  "webDir": "www",
+  "server": {
+    "url": "https://julienbruwaert1-sys.github.io/planning-vacances/",
+    "cleartext": false
+  }
 }
