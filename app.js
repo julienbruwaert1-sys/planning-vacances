@@ -3356,7 +3356,10 @@ async function startQrScan(){
         qrScanLoopId = requestAnimationFrame(qrScanFrame);
     }catch(err){
         console.error("Caméra inaccessible pour le scan QR :",err);
-        showToast("Impossible d'accéder à la caméra pour scanner un QR code.",{type:"error"});
+        showToast(
+            `Impossible d'accéder à la caméra pour scanner un QR code (${err.name || err.message || "erreur inconnue"}).`,
+            {type:"error",duration:6000}
+        );
     }
 }
 
@@ -8401,29 +8404,55 @@ async function openExpenseCameraView(){
 
 async function startCameraStream(){
     stopCameraStream();
+
+    /* width/height "ideal" (pas "exact") : le navigateur vise cette
+       résolution mais retombe sur ce que la caméra sait faire si elle
+       ne suit pas — sans ça, getUserMedia() choisit par défaut une
+       résolution pensée pour de la visio (souvent ~720p), bien en
+       dessous de ce que le capteur photo du téléphone peut vraiment
+       donner. */
+    const videoConstraints = {
+        facingMode: cameraFacingMode,
+        width: { ideal: 3840 },
+        height: { ideal: 2160 }
+    };
+
     try{
-        /* width/height "ideal" (pas "exact") : le navigateur vise cette
-           résolution mais retombe sur ce que la caméra sait faire si elle
-           ne suit pas — sans ça, getUserMedia() choisit par défaut une
-           résolution pensée pour de la visio (souvent ~720p), bien en
-           dessous de ce que le capteur photo du téléphone peut vraiment
-           donner. */
         cameraStream = await navigator.mediaDevices.getUserMedia({
-            video:{
-                facingMode: cameraFacingMode,
-                width: { ideal: 3840 },
-                height: { ideal: 2160 }
-            },
-            audio:true
+            video: videoConstraints,
+            audio: true
         });
-        cameraPreview.srcObject = cameraStream;
-        setupCameraTorch();
-        setupCameraZoom();
-    }catch(err){
-        console.error("Caméra inaccessible :",err);
-        showToast("Impossible d'accéder à la caméra sur cet appareil.",{type:"error"});
-        closeCameraView();
+    }catch(errWithAudio){
+        /* CAPACITOR (signalé 2026-09-04, premier vrai test sur appareil
+           Android) : audio+video demandés ensemble échouent EN BLOC si
+           SEULE la permission micro pose problème (refusée, ou la boîte de
+           dialogue Android ne s'affiche pas correctement pour cette
+           ressource précise) — la photo (l'usage principal) se retrouvait
+           bloquée par un problème qui ne concerne que l'enregistrement
+           vidéo avec son. Repli video-only : MediaRecorder() fonctionne
+           déjà très bien sans piste audio (vidéo muette), rien à changer
+           côté enregistrement. */
+        console.error("Caméra+micro inaccessibles, nouvelle tentative vidéo seule :",errWithAudio);
+        try{
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: videoConstraints,
+                audio: false
+            });
+            showToast("Micro indisponible — la vidéo sera enregistrée sans son.",{type:"error",duration:4000});
+        }catch(errVideoOnly){
+            console.error("Caméra inaccessible :",errVideoOnly);
+            showToast(
+                `Impossible d'accéder à la caméra sur cet appareil (${errVideoOnly.name || errVideoOnly.message || "erreur inconnue"}).`,
+                {type:"error",duration:6000}
+            );
+            closeCameraView();
+            return;
+        }
     }
+
+    cameraPreview.srcObject = cameraStream;
+    setupCameraTorch();
+    setupCameraZoom();
 }
 
 function setupCameraTorch(){
