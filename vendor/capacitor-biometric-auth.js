@@ -1,9 +1,15 @@
 /* Vendorisé depuis node_modules/@aparajita/capacitor-biometric-auth/dist/
    plugin.js — même convention que vendor/capacitor-camera.js (voir son
-   commentaire). Doit être chargé APRÈS vendor/capacitor-app.js (attend
-   aussi la variable globale "capacitorApp", pas seulement
-   "capacitorExports"). S'enregistre sous le nom "BiometricAuthNative" —
-   voir Capacitor.Plugins.BiometricAuthNative dans app.js. */
+   commentaire), MAIS avec une correction manuelle : le fichier d'origine
+   invoque son IIFE avec la variable globale bare "app" (dernière ligne),
+   qui n'existe nulle part — ni @capacitor/app (qui produit "capacitorApp",
+   pas "app") ni ce projet ne la définissent. Repéré via un test headless
+   ("ReferenceError: app is not defined") avant tout envoi sur l'appareil.
+   Corrigé ici : "app" → "capacitorApp" sur la ligne d'appel finale
+   uniquement (le paramètre interne app la fonction reste nommé "app",
+   c'est juste son usage local, sans rapport). Doit être chargé APRÈS
+   vendor/capacitor-app.js. S'enregistre sous le nom "BiometricAuthNative"
+   — voir Capacitor.Plugins.BiometricAuthNative dans app.js. */
 var capacitorBiometricAuth = (function (exports, core, app) {
     'use strict';
 
@@ -348,4 +354,4 @@ var capacitorBiometricAuth = (function (exports, core, app) {
 
     return exports;
 
-})({}, capacitorExports, app);
+})({}, capacitorExports, capacitorApp);

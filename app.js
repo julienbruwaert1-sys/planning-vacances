@@ -9992,6 +9992,20 @@ async function restoreTrip(trip){
 
     archiveCurrentTrip();
 
+    /* Bug réel signalé 2026-09-04 ("les autres voyages disparaissent") :
+       loadTripHistory() retire toujours du localStorage toute entrée dont
+       l'id === currentTripId (voir son commentaire "le voyage actif ne
+       doit jamais apparaître dans son propre historique") — mais
+       currentTripId (variable en mémoire) pointait encore vers l'ANCIEN
+       voyage qu'on vient tout juste d'archiver une ligne plus haut. Le
+       prochain loadTripHistory() ci-dessous confondait donc ce voyage
+       fraîchement archivé avec le voyage "actif", et le supprimait
+       silencieusement de l'historique qu'il venait à peine d'intégrer —
+       reproductible à chaque restauration, avec n'importe quel nombre
+       d'autres voyages archivés. currentTripId doit refléter le NOUVEAU
+       voyage actif AVANT le moindre autre appel à loadTripHistory(). */
+    currentTripId = trip.id;
+
     const history = loadTripHistory().filter(t=>t.id!==trip.id);
     saveTripHistory(history);
 
