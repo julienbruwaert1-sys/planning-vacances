@@ -6763,7 +6763,16 @@ function requestUserLocationForWeather(){
             console.error("Géolocalisation pour la météo impossible :",err);
             renderDayWeather();
         },
-        { timeout:8000 }
+        /* enableHighAccuracy (2026-09-04, signalé "météo pas précise") :
+           sans ça, le navigateur privilégie une position rapide via Wi-Fi/
+           antennes-relais (souvent correcte à quelques centaines de mètres
+           voire quelques km près) plutôt que le GPS — suffisant pour situer
+           une ville, pas pour garantir la météo exacte du bon quartier.
+           Coût : une position peut prendre un peu plus de temps à arriver
+           (d'où timeout relevé en même temps), pas de changement si
+           l'appareil n'a pas de puce GPS (il retombe sur sa meilleure
+           source disponible). */
+        { enableHighAccuracy:true, timeout:10000 }
     );
 }
 
