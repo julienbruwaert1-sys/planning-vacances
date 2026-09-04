@@ -4316,6 +4316,288 @@ if(!hapticSupported){
     });
 }
 
+/* --- Verrou par voyage (mockup approuvé 2026-09-04) ---
+   "Verrou simple" explicite, pas un vrai chiffrement : un seul code PIN
+   PARTAGÉ (pas un par voyage) hashé en SHA-256 via Web Crypto, jamais
+   stocké en clair — n'importe qui avec un accès direct au stockage de
+   l'appareil contourne cette protection (dit explicitement dans le hint
+   HTML). unlockedTripIds est SESSION UNIQUEMENT (jamais persisté) : se
+   réinitialise à chaque rechargement, donc chaque lancement frais de
+   l'app (ou réouverture d'un voyage archivé) redemande le code.
+   Le volet biométrique existe déjà dans le DOM (#tripLockBiometricPanel)
+   mais reste dormant tant qu'aucun plugin Capacitor de biométrie n'existe
+   (isNativeApp() est toujours faux hors Android) — c'est la limite de
+   scope explicite de "prepare ce que tu peux" : tout le reste (PIN,
+   verrouillage par voyage, l'historique, l'UI) est réellement fonctionnel
+   dès aujourd'hui, sur le web comme plus tard sur Android. */
+
+const TRIP_LOCK_PIN_HASH_KEY = "tripLockPinHash";
+const CURRENT_TRIP_LOCKED_KEY = "currentTripLocked";
+
+let currentTripLocked = localStorage.getItem(CURRENT_TRIP_LOCKED_KEY)==="1";
+
+const unlockedTripIds = new Set();
+
+async function sha256Hex(text){
+    const data = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest("SHA-256",data);
+    return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function isTripLockPinSet(){
+    return !!localStorage.getItem(TRIP_LOCK_PIN_HASH_KEY);
+}
+
+async function setTripLockPin(pin){
+    localStorage.setItem(TRIP_LOCK_PIN_HASH_KEY, await sha256Hex(pin));
+}
+
+async function verifyTripLockPin(pin){
+    const hash = localStorage.getItem(TRIP_LOCK_PIN_HASH_KEY);
+    return !!hash && await sha256Hex(pin)===hash;
+}
+
+const tripLockView = document.getElementById("tripLockView");
+const tripLockLabel = document.getElementById("tripLockLabel");
+const tripLockBiometricPanel = document.getElementById("tripLockBiometricPanel");
+const tripLockPinPanel = document.getElementById("tripLockPinPanel");
+const tripLockPinTitle = document.getElementById("tripLockPinTitle");
+const tripLockPinSub = document.getElementById("tripLockPinSub");
+const tripLockPinDots = document.getElementById("tripLockPinDots");
+const tripLockKeypad = document.getElementById("tripLockKeypad");
+const tripLockPinBackspace = document.getElementById("tripLockPinBackspace");
+const tripLockBiometricBtn = document.getElementById("tripLockBiometricBtn");
+const tripLockUsePinBtn = document.getElementById("tripLockUsePinBtn");
+const tripLockCancelBtn = document.getElementById("tripLockCancelBtn");
+
+const TRIP_LOCK_PIN_LENGTH = 4;
+const TRIP_LOCK_MAX_ATTEMPTS = 3;
+const TRIP_LOCK_LOCKOUT_MS = 30000;
+
+let tripLockEnteredDigits = "";
+let tripLockMode = null; // "unlock" | "setup-create" | "setup-confirm" | "disable"
+let tripLockFirstPin = "";
+let tripLockFailedAttempts = 0;
+let tripLockLockoutUntil = 0;
+let tripLockOnSuccess = null;
+
+function renderTripLockPinDots(){
+    tripLockPinDots.textContent = "";
+    for(let i=0;i<TRIP_LOCK_PIN_LENGTH;i++){
+        const dot = document.createElement("span");
+        dot.className = "pin-dot" + (i<tripLockEnteredDigits.length ? " filled" : "");
+        tripLockPinDots.appendChild(dot);
+    }
+}
+
+function shakeTripLockPinDots(){
+    Array.from(tripLockPinDots.children).forEach(dot=>dot.classList.add("error"));
+    setTimeout(()=>{
+        Array.from(tripLockPinDots.children).forEach(dot=>dot.classList.remove("error"));
+    },300);
+}
+
+function tripLockRemainingLockoutSeconds(){
+    return Math.max(0,Math.ceil((tripLockLockoutUntil-Date.now())/1000));
+}
+
+function updateTripLockKeypadDisabled(){
+    const locked = tripLockRemainingLockoutSeconds()>0;
+    Array.from(tripLockKeypad.querySelectorAll(".pin-key[data-digit]")).forEach(btn=>{
+        btn.disabled = locked;
+    });
+}
+
+/* label : nom du voyage affiché au-dessus de l'écran. mode : "unlock"
+   (ouvrir un voyage verrouillé), "setup-create"/"setup-confirm" (créer le
+   PIN partagé la toute première fois), "disable" (vérifier le PIN avant de
+   retirer un verrou — sinon le bouton de verrouillage lui-même
+   contournerait la protection). options.cancellable=false masque le
+   bouton Annuler (utilisé au démarrage pour le voyage actif : il n'y a
+   nulle part où "annuler" vers). */
+function openTripLockView(label,mode,onSuccess,options){
+    options = options || {};
+    tripLockLabel.textContent = label || "";
+    tripLockMode = mode;
+    tripLockOnSuccess = onSuccess;
+    tripLockEnteredDigits = "";
+    tripLockFirstPin = "";
+    tripLockCancelBtn.hidden = options.cancellable===false;
+
+    const canUseBiometric = isNativeApp() && mode==="unlock";
+    tripLockBiometricPanel.hidden = !canUseBiometric;
+    tripLockPinPanel.hidden = canUseBiometric;
+
+    if(mode==="setup-create"){
+        tripLockPinTitle.textContent = "Créer un code PIN";
+        tripLockPinSub.textContent = "Choisis un code à 4 chiffres pour verrouiller tes voyages.";
+    }else if(mode==="setup-confirm"){
+        tripLockPinTitle.textContent = "Confirme le code PIN";
+        tripLockPinSub.textContent = "Retape le même code pour le confirmer.";
+    }else if(mode==="disable"){
+        tripLockPinTitle.textContent = "Code PIN requis";
+        tripLockPinSub.textContent = "Entre le code PIN pour désactiver ce verrou.";
+    }else{
+        tripLockPinTitle.textContent = "Code PIN";
+        tripLockPinSub.textContent = "Entre le code PIN pour ouvrir ce voyage.";
+    }
+
+    renderTripLockPinDots();
+    updateTripLockKeypadDisabled();
+    tripLockView.hidden = false;
+}
+
+function closeTripLockView(){
+    tripLockView.hidden = true;
+    tripLockMode = null;
+    tripLockOnSuccess = null;
+    tripLockEnteredDigits = "";
+    tripLockFirstPin = "";
+}
+
+async function submitTripLockPin(){
+    const pin = tripLockEnteredDigits;
+
+    if(tripLockMode==="setup-create"){
+        tripLockFirstPin = pin;
+        tripLockEnteredDigits = "";
+        tripLockMode = "setup-confirm";
+        tripLockPinTitle.textContent = "Confirme le code PIN";
+        tripLockPinSub.textContent = "Retape le même code pour le confirmer.";
+        renderTripLockPinDots();
+        return;
+    }
+
+    if(tripLockMode==="setup-confirm"){
+        if(pin!==tripLockFirstPin){
+            shakeTripLockPinDots();
+            showToast("Les codes ne correspondent pas, recommence.",{type:"error"});
+            tripLockEnteredDigits = "";
+            tripLockFirstPin = "";
+            tripLockMode = "setup-create";
+            tripLockPinTitle.textContent = "Créer un code PIN";
+            tripLockPinSub.textContent = "Choisis un code à 4 chiffres pour verrouiller tes voyages.";
+            renderTripLockPinDots();
+            return;
+        }
+        await setTripLockPin(pin);
+        const onSuccess = tripLockOnSuccess;
+        closeTripLockView();
+        if(onSuccess) onSuccess();
+        return;
+    }
+
+    const ok = await verifyTripLockPin(pin);
+    if(ok){
+        tripLockFailedAttempts = 0;
+        const onSuccess = tripLockOnSuccess;
+        closeTripLockView();
+        if(onSuccess) onSuccess();
+    }else{
+        tripLockFailedAttempts++;
+        shakeTripLockPinDots();
+        tripLockEnteredDigits = "";
+        renderTripLockPinDots();
+        if(tripLockFailedAttempts>=TRIP_LOCK_MAX_ATTEMPTS){
+            tripLockLockoutUntil = Date.now()+TRIP_LOCK_LOCKOUT_MS;
+            tripLockFailedAttempts = 0;
+            updateTripLockKeypadDisabled();
+            showToast(`Trop d'essais — réessaie dans ${Math.round(TRIP_LOCK_LOCKOUT_MS/1000)} secondes.`,{type:"error",duration:4000});
+            setTimeout(updateTripLockKeypadDisabled, TRIP_LOCK_LOCKOUT_MS + 100);
+        }else{
+            showToast("Code incorrect.",{type:"error",duration:2000});
+        }
+    }
+}
+
+tripLockKeypad.addEventListener("click",e=>{
+    const btn = e.target.closest(".pin-key[data-digit]");
+    if(!btn || btn.disabled) return;
+    if(tripLockRemainingLockoutSeconds()>0) return;
+    if(tripLockEnteredDigits.length>=TRIP_LOCK_PIN_LENGTH) return;
+    tripLockEnteredDigits += btn.dataset.digit;
+    renderTripLockPinDots();
+    if(tripLockEnteredDigits.length===TRIP_LOCK_PIN_LENGTH){
+        submitTripLockPin();
+    }
+});
+
+tripLockPinBackspace.addEventListener("click",()=>{
+    tripLockEnteredDigits = tripLockEnteredDigits.slice(0,-1);
+    renderTripLockPinDots();
+});
+
+tripLockUsePinBtn.addEventListener("click",()=>{
+    tripLockBiometricPanel.hidden = true;
+    tripLockPinPanel.hidden = false;
+});
+
+tripLockCancelBtn.addEventListener("click",()=>{
+    closeTripLockView();
+});
+
+tripLockBiometricBtn.addEventListener("click",()=>{
+    // CAPACITOR : pas encore de plugin de biométrie installé — ce bouton
+    // reste dormant (isNativeApp() empêche déjà ce volet de s'afficher sur
+    // le web) tant qu'aucun plugin réel n'est ajouté côté Android.
+    showToast("Déverrouillage biométrique pas encore disponible.",{type:"error"});
+});
+
+/* Point d'entrée unique pour demander le déverrouillage d'un voyage
+   (historique OU voyage actif, via tripKey = son id ou "__current__").
+   Une fois déverrouillé pendant cette session, ne redemande plus tant que
+   l'app n'est pas rechargée (voir le commentaire sur unlockedTripIds). */
+function requestTripUnlock(tripKey,label,onSuccess,options){
+    if(unlockedTripIds.has(tripKey)){
+        onSuccess();
+        return;
+    }
+    if(!isTripLockPinSet()){
+        // État incohérent (verrouillé sans PIN défini nulle part) : on
+        // débloque plutôt que de piéger derrière un écran sans issue.
+        unlockedTripIds.add(tripKey);
+        onSuccess();
+        return;
+    }
+    openTripLockView(label,"unlock",()=>{
+        unlockedTripIds.add(tripKey);
+        onSuccess();
+    },options);
+}
+
+const currentTripLockToggle = document.getElementById("currentTripLockToggle");
+
+function updateCurrentTripLockToggle(){
+    currentTripLockToggle.setAttribute("aria-pressed",String(currentTripLocked));
+}
+updateCurrentTripLockToggle();
+
+currentTripLockToggle.addEventListener("click",()=>{
+    if(currentTripLocked){
+        openTripLockView(tripName || "Ce voyage","disable",()=>{
+            currentTripLocked = false;
+            localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,"0");
+            updateCurrentTripLockToggle();
+            showToast("Verrou désactivé pour ce voyage.");
+        });
+        return;
+    }
+
+    const activate = ()=>{
+        currentTripLocked = true;
+        localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,"1");
+        unlockedTripIds.add("__current__");
+        updateCurrentTripLockToggle();
+        showToast("Ce voyage est maintenant verrouillé.");
+    };
+
+    if(!isTripLockPinSet()){
+        openTripLockView(tripName || "Ce voyage","setup-create",activate);
+    }else{
+        activate();
+    }
+});
+
 /* --- Réglages "Vue Planning" (Affichage → Vue Planning, 2026-09-02) ---
    Par défaut à true (comportement historique inchangé) : ce sont des
    réglages "opt-out", pas "opt-in", pour ne rien changer silencieusement
@@ -9305,15 +9587,65 @@ function renderTripHistoryView(){
 
         card.appendChild(info);
 
+        const lockBtn = document.createElement("button");
+        lockBtn.type = "button";
+        lockBtn.className = "trip-history-card-lock" + (trip.locked ? " locked" : "");
+        lockBtn.setAttribute("aria-pressed",String(!!trip.locked));
+        lockBtn.setAttribute("aria-label",trip.locked ? "Déverrouiller ce voyage archivé" : "Verrouiller ce voyage archivé");
+        lockBtn.textContent = trip.locked ? "🔒" : "🔓";
+        lockBtn.addEventListener("click",e=>{
+            e.stopPropagation();
+            toggleTripHistoryLock(trip);
+        });
+        card.appendChild(lockBtn);
+
         const chevron = document.createElement("span");
         chevron.className = "profile-row-chevron";
         chevron.textContent = "›";
         card.appendChild(chevron);
 
-        card.addEventListener("click",()=>openTripHistoryDetail(trip));
+        card.addEventListener("click",()=>{
+            if(trip.locked){
+                requestTripUnlock(trip.id,trip.name || "Ce voyage",()=>openTripHistoryDetail(trip));
+            }else{
+                openTripHistoryDetail(trip);
+            }
+        });
 
         tripHistoryList.appendChild(card);
     });
+}
+
+/* Verrouiller/déverrouiller un voyage ARCHIVÉ (distinct de
+   #currentTripLockToggle, qui verrouille le voyage actif) — même code PIN
+   partagé, même règle "désactiver exige le PIN" pour éviter que le bouton
+   lui-même contourne la protection. Sauvegarde en relisant loadTripHistory()
+   plutôt qu'en réutilisant history directement, même précaution que
+   shareTripToHistory()/unshareTripFromHistory() plus bas dans le fichier. */
+function toggleTripHistoryLock(trip){
+
+    if(trip.locked){
+        openTripLockView(trip.name || "Ce voyage","disable",()=>{
+            trip.locked = false;
+            saveTripHistory(loadTripHistory().map(t=>t.id===trip.id ? {...t,locked:false} : t));
+            renderTripHistoryView();
+            showToast("Verrou retiré pour ce voyage archivé.");
+        });
+        return;
+    }
+
+    const activate = ()=>{
+        trip.locked = true;
+        saveTripHistory(loadTripHistory().map(t=>t.id===trip.id ? {...t,locked:true} : t));
+        renderTripHistoryView();
+        showToast("Voyage archivé verrouillé.");
+    };
+
+    if(!isTripLockPinSet()){
+        openTripLockView(trip.name || "Ce voyage","setup-create",activate);
+    }else{
+        activate();
+    }
 }
 
 async function openTripHistoryDetail(trip){
@@ -13391,4 +13723,14 @@ refreshActivityAttachmentCounts().then(()=>{
         switchTricountTab("new");
     }
 })();
+
+/* --- Verrouillage du voyage actif au démarrage ---
+   Recouvre l'app déjà rendue en dessous (#tripLockView, z-index:3900, voir
+   style.css) plutôt que de restructurer toute la séquence de démarrage —
+   même approche que les autres recouvrements plein écran de cette
+   session. cancellable:false : il n'y a nulle part où "annuler" vers, ce
+   voyage EST le seul actif sur l'appareil. */
+if(currentTripLocked && localStorage.getItem(TRIP_CREATED_KEY)==="1"){
+    requestTripUnlock("__current__",tripName || "Ce voyage",()=>{},{cancellable:false});
+}
 

@@ -179,6 +179,39 @@
 </div>
 </div>
 
+<div id="tripLockView" class="trip-lock-view" hidden>
+<div class="trip-lock-label" id="tripLockLabel"></div>
+
+<div id="tripLockBiometricPanel" class="trip-lock-panel" hidden>
+<div class="trip-lock-icon-ring">🔒</div>
+<h2 class="trip-lock-title">Voyage verrouillé</h2>
+<p class="trip-lock-sub">Utilise ton empreinte ou ton visage pour ouvrir ce voyage.</p>
+<button id="tripLockBiometricBtn" class="trip-lock-btn" type="button">👆 Déverrouiller</button>
+<button id="tripLockUsePinBtn" class="trip-lock-fallback" type="button">Utiliser le code PIN à la place</button>
+</div>
+
+<div id="tripLockPinPanel" class="trip-lock-panel">
+<h2 class="trip-lock-title" id="tripLockPinTitle">Code PIN</h2>
+<p class="trip-lock-sub" id="tripLockPinSub"></p>
+<div class="pin-dots" id="tripLockPinDots" aria-hidden="true"></div>
+<div class="pin-keypad" id="tripLockKeypad">
+<button class="pin-key" type="button" data-digit="1">1</button>
+<button class="pin-key" type="button" data-digit="2">2</button>
+<button class="pin-key" type="button" data-digit="3">3</button>
+<button class="pin-key" type="button" data-digit="4">4</button>
+<button class="pin-key" type="button" data-digit="5">5</button>
+<button class="pin-key" type="button" data-digit="6">6</button>
+<button class="pin-key" type="button" data-digit="7">7</button>
+<button class="pin-key" type="button" data-digit="8">8</button>
+<button class="pin-key" type="button" data-digit="9">9</button>
+<span class="pin-key ghost" aria-hidden="true"></span>
+<button class="pin-key" type="button" data-digit="0">0</button>
+<button id="tripLockPinBackspace" class="pin-key action" type="button" aria-label="Effacer">⌫</button>
+</div>
+<button id="tripLockCancelBtn" class="trip-lock-fallback" type="button">Annuler</button>
+</div>
+</div>
+
 <div id="pasteImportModal" class="modal-overlay" hidden>
 <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="pasteImportTitle">
 <h3 id="pasteImportTitle" class="paste-import-title">📋 Importer depuis un texte</h3>
@@ -339,6 +372,10 @@
 
 <div class="menu-divider"></div>
 <button id="newTripBtn" class="menu-item" type="button" role="menuitem" title="Créer un nouveau voyage" aria-label="Créer un nouveau voyage"><span class="menu-item-icon">🧳</span><span class="menu-item-label">Nouveau voyage</span></button>
+
+<div class="menu-divider"></div>
+<button id="currentTripLockToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="false" title="Verrouiller ce voyage" aria-label="Verrouiller ce voyage par code PIN"><span class="menu-item-icon">🔒</span><span class="menu-item-label">Verrouiller ce voyage</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+<p class="menu-hint">Demande un code PIN à l'ouverture. Verrou simple — n'importe qui avec un accès direct au stockage de l'appareil contourne cette protection.</p>
 
 <div class="menu-divider"></div>
 <button id="resetPlanning" class="menu-item menu-item-danger" type="button" role="menuitem" title="Réinitialiser le planning" aria-label="Réinitialiser tout le planning"><span class="menu-item-icon">🗑️</span><span class="menu-item-label">Réinitialiser le planning</span></button>
