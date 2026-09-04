@@ -8491,3 +8491,197 @@ body.theme-neon .neon-scan{
         opacity:0;
     }
 }
+
+/* ================= Mascottes des thèmes Sakura/Momiji/Néon =================
+   Même mécanisme que .noel-mascot-banner/.ghibli-mascot-banner/
+   .halloween-mascot-banner + .halloween-pumpkin-spirit ci-dessus : un
+   bandeau discret en haut du Planning (display:none par défaut, activé par
+   le thème) + une silhouette animée fixe dans le coin bas-droit, même
+   z-index (3100) que les particules. */
+
+.sakura-mascot-banner{
+    display:none;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(135deg,#FBE1EB,#FFF6FA);
+    border-radius:14px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#8A3F5A;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+body.theme-sakura .sakura-mascot-banner{
+    display:flex;
+}
+
+body.dark.theme-sakura .sakura-mascot-banner{
+    background:linear-gradient(135deg,#33202C,#241820);
+    color:#F5D9E6;
+}
+
+.sakura-mascot-emoji{
+    font-size:26px;
+    flex-shrink:0;
+    animation:sakuraMascotBob 2.6s ease-in-out infinite;
+}
+
+@keyframes sakuraMascotBob{
+    0%,100%{ transform:translateY(0) rotate(-3deg); }
+    50%{ transform:translateY(-3px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .sakura-mascot-emoji{ animation:none; }
+}
+
+.sakura-sparrow-spirit{
+    display:none;
+    position:fixed;
+    bottom:80px;
+    right:14px;
+    z-index:3100;
+    width:48px;
+    pointer-events:none;
+    opacity:.94;
+    animation:sakuraSparrowBob 2.6s ease-in-out infinite;
+}
+
+body.theme-sakura .sakura-sparrow-spirit{
+    display:block;
+}
+
+@keyframes sakuraSparrowBob{
+    0%,100%{ transform:translateY(0) rotate(-3deg); }
+    50%{ transform:translateY(-6px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .sakura-sparrow-spirit{ animation:none; }
+}
+
+.momiji-mascot-banner{
+    display:none;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(135deg,#F6DCC8,#FFF8EC);
+    border-radius:14px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#5A3018;
+    box-shadow:0 2px 8px rgba(51,64,74,.06);
+}
+
+body.theme-momiji .momiji-mascot-banner{
+    display:flex;
+}
+
+body.dark.theme-momiji .momiji-mascot-banner{
+    background:linear-gradient(135deg,#3D2A1C,#2A1C14);
+    color:#F2E0CC;
+}
+
+.momiji-mascot-emoji{
+    font-size:26px;
+    flex-shrink:0;
+    animation:momijiMascotBob 2.8s ease-in-out infinite;
+}
+
+@keyframes momijiMascotBob{
+    0%,100%{ transform:translateY(0) rotate(-3deg); }
+    50%{ transform:translateY(-3px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .momiji-mascot-emoji{ animation:none; }
+}
+
+.momiji-fox-spirit{
+    display:none;
+    position:fixed;
+    bottom:80px;
+    right:14px;
+    z-index:3100;
+    width:48px;
+    pointer-events:none;
+    opacity:.94;
+    animation:momijiFoxBob 2.8s ease-in-out infinite;
+}
+
+body.theme-momiji .momiji-fox-spirit{
+    display:block;
+}
+
+@keyframes momijiFoxBob{
+    0%,100%{ transform:translateY(0) rotate(-4deg); }
+    50%{ transform:translateY(-5px) rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .momiji-fox-spirit{ animation:none; }
+}
+
+.neon-mascot-banner{
+    display:none;
+    align-items:center;
+    gap:10px;
+    background:#15151F;
+    border:1px solid #00E5FF;
+    border-radius:14px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#00E5FF;
+    box-shadow:0 0 10px rgba(0,229,255,.3);
+}
+
+body.theme-neon .neon-mascot-banner{
+    display:flex;
+}
+
+.neon-mascot-emoji{
+    font-size:26px;
+    flex-shrink:0;
+    animation:neonMascotFloat 3.2s ease-in-out infinite;
+    filter:drop-shadow(0 0 6px rgba(0,229,255,.7));
+}
+
+@keyframes neonMascotFloat{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .neon-mascot-emoji{ animation:none; }
+}
+
+.neon-drone-spirit{
+    display:none;
+    position:fixed;
+    bottom:80px;
+    right:14px;
+    z-index:3100;
+    width:48px;
+    pointer-events:none;
+    opacity:.96;
+    filter:drop-shadow(0 0 8px rgba(0,229,255,.7));
+    animation:neonDroneFloat 3.2s ease-in-out infinite;
+}
+
+body.theme-neon .neon-drone-spirit{
+    display:block;
+}
+
+@keyframes neonDroneFloat{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-9px); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .neon-drone-spirit{ animation:none; }
+}
