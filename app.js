@@ -62,7 +62,11 @@
      déclenche déjà history.back() par défaut sur le bouton matériel tant
      qu'aucun App.addListener('backButton',...) n'est enregistré) —
      l'installer resterait une amélioration de robustesse, pas un
-     prérequis.
+     prérequis. Étendu (2026-09-04, audit "verif") pour couvrir #tripLockView
+     en toute première branche — sans ça, le retour tombait dans le cas
+     générique et pouvait fermer des panneaux/changer d'onglet SOUS l'écran
+     de verrouillage encore affiché, voire quitter l'appli, sans jamais agir
+     sur le verrou lui-même.
    - navigator.clipboard (copyTextToClipboard, ex. code de synchro) :
      fonctionne tel quel dans une WebView Capacitor (contexte sécurisé,
      capacitor://localhost) — pas de changement prévu, @capacitor/clipboard
@@ -126,19 +130,21 @@
      ou l'autre sans cette décision — juste le noter comme un nouveau point
      d'entrée à créer (pas une fonction existante à faire évoluer, contrairement
      à tout le reste de cette liste).
-   - Authentification biométrique (2026-09-04, aucun code existant) :
-     l'appli n'a AUCUN concept de verrouillage aujourd'hui — s'ouvre
-     directement, sans mot de passe ni code. "Ajouter la biométrie"
-     suppose donc de construire d'abord un vrai écran de verrouillage (un
-     réglage "Verrouiller l'appli" dans Réglages & données, un écran
-     plein-écran affiché à l'ouverture/la reprise de l'appli tant qu'elle
-     n'est pas déverrouillée, une solution de repli — code PIN ? — si la
-     biométrie échoue/n'est pas configurée sur l'appareil) AVANT de
-     brancher le moindre plugin (ex. capacitor-native-biometric ou
-     @aparajita/capacitor-biometric-auth, aucun n'est officiel Capacitor).
-     Pas de code écrit ici : dépend d'abord d'une vraie décision produit
-     (protéger QUOI, dans quel scénario un tiers aurait accès au téléphone
-     déverrouillé mais pas à l'appli).
+   - Authentification biométrique (mis à jour 2026-09-04 — voir le verrou
+     par voyage, requestTripUnlock()/openTripLockView() juste après la
+     section haptique) : l'écran de verrouillage QUE redoutait ce
+     commentaire est maintenant construit et fonctionnel — par voyage (pas
+     toute l'appli), code PIN partagé hashé en SHA-256 (jamais en clair),
+     synchronisé entre appareils appairés (voir SYNC_SECTION_GROUPS). Il ne
+     manque plus QUE le plugin natif lui-même : #tripLockBiometricPanel
+     existe déjà dans le DOM, gated par isNativeApp() (toujours faux hors
+     Android, donc jamais affiché aujourd'hui), et tripLockBiometricBtn ne
+     fait qu'un toast "pas encore disponible". Brancher un vrai plugin (ex.
+     capacitor-native-biometric ou @aparajita/capacitor-biometric-auth,
+     aucun n'est officiel Capacitor) consisterait à remplacer ce toast par
+     un appel au plugin dans le handler existant, sans toucher au reste du
+     flux (le code PIN reste le repli automatique en cas d'échec/absence de
+     biométrie, déjà géré par tripLockUsePinBtn).
    - Stockage sécurisé/chiffré (2026-09-04, aucun code existant) :
      @capacitor/preferences (le stockage clé-valeur officiel Capacitor,
      remplacerait localStorage) N'EST PAS chiffré par défaut — un vrai
@@ -6098,6 +6104,21 @@ function closeAllFullscreenViews(){
    défaut n'est pas officiellement garanti par la documentation Capacitor),
    pas un prérequis bloquant. */
 function handleBackNavigation(){
+
+    /* Le verrou par voyage (z-index:3900, au-dessus de tout le reste, voir
+       style.css) n'était vérifié par AUCUNE des branches ci-dessous —
+       repéré lors de l'audit de préparation Android : le retour matériel
+       tombait dans le cas générique (fermeture d'autres panneaux/onglets
+       invisibles SOUS l'écran de verrouillage, voire sortie de l'appli),
+       sans jamais fermer ni faire progresser l'écran PIN lui-même. Doit
+       rester la toute première branche : rien ne doit répondre au retour
+       tant que ce voile opaque est affiché. Annulable → équivaut à un clic
+       sur "Annuler" ; pas annulable (voyage actif au démarrage) → absorbe
+       le retour sans rien faire, plutôt que de laisser sortir de l'appli. */
+    if(!tripLockView.hidden){
+        if(!tripLockCancelBtn.hidden) tripLockCancelBtn.click();
+        return true;
+    }
 
     if(!modalOverlay.hidden){ modalCancel.click(); return true; }
     if(!attachmentLightbox.hidden){ closeAttachmentLightbox(); return true; }

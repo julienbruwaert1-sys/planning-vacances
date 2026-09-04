@@ -8986,6 +8986,18 @@ body.dark .pin-key{
     color:#EAF0FB;
 }
 
+/* Retour visuel au toucher (audit "verif" 2026-09-04) : sans ça, appuyer
+   sur un chiffre ne donnait aucun indice tant que le point correspondant
+   n'apparaissait pas au-dessus — attendu sur un clavier tactile, même
+   logique que .form-toggle-btn:active déjà existant ailleurs. */
+.pin-key:active{
+    background:#E0EAF2;
+}
+
+body.dark .pin-key:active{
+    background:#22304A;
+}
+
 .pin-key.ghost{
     background:none;
     pointer-events:none;
@@ -8995,6 +9007,18 @@ body.dark .pin-key{
     background:none;
     color:#9AAAB4;
     font-size:15px;
+}
+
+/* .pin-key.action (⌫) a la même spécificité que .pin-key:active et vient
+   après lui dans le fichier — sans cette redite, son propre
+   background:none gagnerait et ⌫ resterait le seul chiffre sans retour
+   visuel au toucher. */
+.pin-key.action:active{
+    background:#E0EAF2;
+}
+
+body.dark .pin-key.action:active{
+    background:#22304A;
 }
 
 .pin-key:disabled{
