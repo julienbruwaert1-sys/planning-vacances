@@ -1139,6 +1139,20 @@ Masquer les éléments cochés
 <script src="vendor/leaflet.markercluster.js"></script>
 <script src="vendor/jsQR.js"></script>
 <script src="vendor/qrcode.min.js"></script>
+<!-- @capacitor/camera (2026-09-04, qualité photo max sur Android) : ce
+     build "unpkg" attend une variable globale capacitorExports plutôt
+     qu'un import de module — sur Android, window.Capacitor (déjà injecté
+     nativement) fournit .registerPlugin/.WebPlugin nécessaires ; sur le
+     web normal, un repli inoffensif garde Capacitor.Plugins.Camera absent
+     (rien ne doit planter ni rien ne doit s'enregistrer). Voir isNativeApp()
+     tout en haut d'app.js pour le reste de la convention CAPACITOR. -->
+<script>
+window.capacitorExports = window.Capacitor || {
+    registerPlugin: function(){ return {}; },
+    WebPlugin: function(){}
+};
+</script>
+<script src="vendor/capacitor-camera.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

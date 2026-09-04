@@ -20,6 +20,7 @@
   "homepage": "https://github.com/julienbruwaert1-sys/planning-vacances#readme",
   "dependencies": {
     "@capacitor/android": "^8.5.1",
+    "@capacitor/camera": "^8.2.4",
     "@capacitor/core": "^8.5.0"
   },
   "devDependencies": {

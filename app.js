@@ -8388,22 +8388,92 @@ let cameraReviewObjectUrl = null;
    la photo gardée (voir handleCapturedCameraMedia). */
 let cameraCaptureMode = "day";
 
+/* CAPACITOR (plugin réel ajouté 2026-09-04, après un premier test sur
+   téléphone où la qualité/vitesse de la caméra maison — getUserMedia,
+   plafonnée bien en dessous du capteur réel — a été jugée insuffisante) :
+   @capacitor/camera prend le relais pour la PHOTO quand disponible —
+   pipeline natif (rapide, pleine résolution), enregistrement direct dans
+   la galerie (saveToGallery:true). Décision explicite acceptée par
+   l'utilisateur : ce chemin perd le geste "rester appuyé = vidéo" (l'appli
+   caméra native ne le permet pas) — la caméra maison (avec ce geste)
+   reste utilisée telle quelle sur le web/PWA, où ce plugin n'existe pas.
+   Repli automatique vers la caméra maison si le plugin natif échoue pour
+   une raison quelconque (pas seulement l'annulation) : jamais de cul-de-sac
+   silencieux. */
+function nativeCameraAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera);
+}
+
+async function fetchMediaResultBlob(result){
+    const src = result.webPath || (window.Capacitor && window.Capacitor.convertFileSrc ? window.Capacitor.convertFileSrc(result.uri) : result.uri);
+    const response = await fetch(src);
+    return await response.blob();
+}
+
+async function captureNativePhotoOrFallback(){
+    try{
+        const result = await window.Capacitor.Plugins.Camera.takePhoto({
+            quality: 100,
+            saveToGallery: true,
+            correctOrientation: true
+        });
+        const blob = await fetchMediaResultBlob(result);
+        await handleCapturedCameraMedia(blob,true);
+    }catch(err){
+        // L'utilisateur a annulé depuis l'appli caméra native (retour, croix...)
+        // — pas une vraie erreur, pas de repli, juste remettre l'état à zéro.
+        if(err && (err.message || err.code || "").toLowerCase().includes("cancel")){
+            pendingPhotoDay = null;
+            pendingPhotoActivityId = null;
+            cameraCaptureMode = "day";
+            return;
+        }
+        console.error("Caméra native indisponible, repli sur la caméra intégrée :",err);
+        showToast("Caméra native indisponible — utilise la caméra intégrée.",{type:"error"});
+        cameraView.hidden = false;
+        await startCameraStream();
+    }
+}
+
 async function openDayCameraView(day,activityId){
     cameraCaptureMode = "day";
     pendingPhotoDay = day;
     pendingPhotoActivityId = activityId || null;
+
+    if(nativeCameraAvailable()){
+        await captureNativePhotoOrFallback();
+        return;
+    }
+
     cameraView.hidden = false;
     await startCameraStream();
 }
 
 async function openExpenseCameraView(){
     cameraCaptureMode = "expense";
+
+    if(nativeCameraAvailable()){
+        await captureNativePhotoOrFallback();
+        return;
+    }
+
     cameraView.hidden = false;
     await startCameraStream();
 }
 
 async function startCameraStream(){
     stopCameraStream();
+
+    /* Signalé 2026-09-04 (premier vrai test sur appareil Android) : "le
+       bouton pour prendre une photo ne fonctionne pas toujours" — en
+       réalité capturePhotoFromCamera() refusait silencieusement (juste un
+       toast) tant que cameraPreview.videoWidth n'était pas encore rempli,
+       ce qui pouvait prendre un vrai instant après l'ouverture de la vue
+       (négociation de la résolution avec la caméra, encore plus long
+       depuis le repli audio→vidéo-seule ajouté juste au-dessus). Désactivé
+       ici, réactivé par le listener "loadedmetadata" plus bas : impossible
+       de taper dans le vide pendant que la caméra démarre encore. */
+    cameraShutterBtn.disabled = true;
 
     /* width/height "ideal" (pas "exact") : le navigateur vise cette
        résolution mais retombe sur ce que la caméra sait faire si elle
@@ -8521,6 +8591,11 @@ cameraPreview.addEventListener("pointermove",e=>{
         cameraActivePointers.delete(e.pointerId);
         cameraZoomStartDistance = 0;
     });
+});
+
+// Voir le commentaire sur cameraShutterBtn.disabled dans startCameraStream().
+cameraPreview.addEventListener("loadedmetadata",()=>{
+    cameraShutterBtn.disabled = false;
 });
 
 function stopCameraStream(){
@@ -8677,7 +8752,7 @@ cameraKeepBtn.addEventListener("click",()=>{
     if(blob) handleCapturedCameraMedia(blob);
 });
 
-async function handleCapturedCameraMedia(blob){
+async function handleCapturedCameraMedia(blob,alreadySavedToGallery){
 
     const mode = cameraCaptureMode;
     const day = pendingPhotoDay, activityId = pendingPhotoActivityId;
@@ -8692,12 +8767,17 @@ async function handleCapturedCameraMedia(blob){
 
     if(day===null) return;
 
-    /* Téléchargement direct (pas saveBlobToGallery) : on évite
-       navigator.share(), qui ouvrirait la fenêtre de partage du téléphone
-       après CHAQUE prise et casserait le flux rapide "appui, appui, appui"
-       attendu d'une caméra maison. */
-    const galleryFileName = `photo_jour${day}_${Date.now()}${extensionForBlob(blob)}`;
-    downloadBlobToGallery(blob,galleryFileName);
+    /* alreadySavedToGallery : la capture native (captureNativePhotoOrFallback,
+       saveToGallery:true côté plugin) a déjà écrit le fichier dans la
+       galerie — un second téléchargement ici créerait un doublon. Sinon
+       (caméra maison), téléchargement direct plutôt que saveBlobToGallery :
+       on évite navigator.share(), qui ouvrirait la fenêtre de partage du
+       téléphone après CHAQUE prise et casserait le flux rapide "appui,
+       appui, appui" attendu d'une caméra maison. */
+    if(!alreadySavedToGallery){
+        const galleryFileName = `photo_jour${day}_${Date.now()}${extensionForBlob(blob)}`;
+        downloadBlobToGallery(blob,galleryFileName);
+    }
 
     try{
         await addDayPhoto(day,activityId,blob);

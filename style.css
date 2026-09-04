@@ -4561,6 +4561,14 @@ body.dark .trip-history-delete-btn:hover{
     transform:scale(.82);
 }
 
+/* Le temps que la caméra démarre vraiment (voir le commentaire dans
+   startCameraStream(), app.js) — sans repère visuel, un appui pendant ce
+   court instant semblait juste ignoré ("le bouton ne marche pas"). */
+.camera-shutter-btn:disabled{
+    opacity:.4;
+    cursor:default;
+}
+
 .camera-review{
     position:absolute;
     inset:0;

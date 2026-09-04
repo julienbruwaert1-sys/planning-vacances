@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v310";
+const CACHE_NAME = "planning-v311";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -90,7 +90,8 @@ const APP_SHELL = [
     "./vendor/MarkerCluster.css",
     "./vendor/MarkerCluster.Default.css",
     "./vendor/jsQR.js",
-    "./vendor/qrcode.min.js"
+    "./vendor/qrcode.min.js",
+    "./vendor/capacitor-camera.js"
 ];
 
 const RUNTIME_CACHE_HOSTS = [
