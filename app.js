@@ -10048,6 +10048,14 @@ async function restoreTrip(trip){
     localStorage.setItem(CHECKLIST_TEMPLATE_STATE_KEY,JSON.stringify(trip.checklistTemplates || []));
     localStorage.setItem(CURRENT_TRIP_ID_KEY,trip.id);
     localStorage.setItem(TRIP_CREATED_KEY,"1");
+    /* Bug signalé 2026-09-04 ("un voyage verrouillé restauré ne reste pas
+       verrouillé") : trip.locked n'était jamais reporté sur
+       currentTripLocked/CURRENT_TRIP_LOCKED_KEY, qui restait donc sur
+       l'état du PRÉCÉDENT voyage actif. trip.locked est absent (undefined)
+       sur les voyages archivés avant l'existence du verrou — !! le
+       ramène proprement à false, pas une régression. */
+    currentTripLocked = !!trip.locked;
+    localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,currentTripLocked ? "1" : "0");
 
     location.reload();
 }
@@ -13128,6 +13136,11 @@ function buildCurrentTripSnapshot(){
         tricountParticipants,
         tricountExpenses,
         checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
+        // Bug signalé 2026-09-04 ("un voyage verrouillé restauré ne reste
+        // pas verrouillé") : le verrou du voyage EN COURS ne survivait déjà
+        // pas à son propre archivage (Nouveau voyage, restauration d'un
+        // autre voyage...) — voir aussi restoreTrip() pour le sens inverse.
+        locked: currentTripLocked,
         archivedAt: Date.now()
     };
 }
