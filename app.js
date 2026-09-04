@@ -130,21 +130,20 @@
      ou l'autre sans cette décision — juste le noter comme un nouveau point
      d'entrée à créer (pas une fonction existante à faire évoluer, contrairement
      à tout le reste de cette liste).
-   - Authentification biométrique (mis à jour 2026-09-04 — voir le verrou
-     par voyage, requestTripUnlock()/openTripLockView() juste après la
-     section haptique) : l'écran de verrouillage QUE redoutait ce
-     commentaire est maintenant construit et fonctionnel — par voyage (pas
-     toute l'appli), code PIN partagé hashé en SHA-256 (jamais en clair),
-     synchronisé entre appareils appairés (voir SYNC_SECTION_GROUPS). Il ne
-     manque plus QUE le plugin natif lui-même : #tripLockBiometricPanel
-     existe déjà dans le DOM, gated par isNativeApp() (toujours faux hors
-     Android, donc jamais affiché aujourd'hui), et tripLockBiometricBtn ne
-     fait qu'un toast "pas encore disponible". Brancher un vrai plugin (ex.
-     capacitor-native-biometric ou @aparajita/capacitor-biometric-auth,
-     aucun n'est officiel Capacitor) consisterait à remplacer ce toast par
-     un appel au plugin dans le handler existant, sans toucher au reste du
-     flux (le code PIN reste le repli automatique en cas d'échec/absence de
-     biométrie, déjà géré par tripLockUsePinBtn).
+   - Authentification biométrique (fonctionnelle 2026-09-04 — voir le
+     verrou par voyage, requestTripUnlock()/openTripLockView() juste après
+     la section haptique) : @aparajita/capacitor-biometric-auth (pas
+     capacitor-native-biometric, qui dépend d'un trop vieux @capacitor/core
+     ^3.4.3 — incompatible avec ce projet en Capacitor 8). Vendorisé comme
+     @capacitor/camera (vendor/capacitor-biometric-auth.js + sa dépendance
+     vendor/capacitor-app.js, même shim capacitorExports). checkBiometry()
+     décide si #tripLockBiometricPanel s'affiche (biométrie vraiment
+     enrôlée sur l'appareil, pas juste le matériel présent) ; le PIN
+     partagé (synchronisé entre appareils, voir SYNC_SECTION_GROUPS) reste
+     le seul repli — authenticate() est appelé avec
+     allowDeviceCredential:false pour ne jamais laisser le déverrouillage
+     du TÉLÉPHONE lui-même se substituer au code de l'appli, deux secrets
+     sans rapport l'un avec l'autre.
    - Stockage sécurisé/chiffré (2026-09-04, aucun code existant) :
      @capacitor/preferences (le stockage clé-valeur officiel Capacitor,
      remplacerait localStorage) N'EST PAS chiffré par défaut — un vrai
@@ -4417,14 +4416,41 @@ function updateTripLockKeypadDisabled(){
     });
 }
 
+/* CAPACITOR (plugin réel ajouté 2026-09-04) : @aparajita/capacitor-
+   biometric-auth — checkBiometry() fait un aller-retour natif, mis en
+   cache dans cette promesse partagée (jamais relancé une fois résolu)
+   pour qu'openTripLockView() puisse décider quel volet montrer sans
+   redemander à chaque ouverture de l'écran. isAvailable tient compte à la
+   fois du matériel ET de l'enrôlement (empreinte/visage vraiment
+   configuré sur cet appareil) — un appareil natif sans biométrie
+   configurée retombe donc correctement sur le PIN seul. */
+let biometryCheckPromise = null;
+
+function ensureBiometryChecked(){
+    if(!isNativeApp() || !(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BiometricAuthNative)){
+        return Promise.resolve(false);
+    }
+    if(!biometryCheckPromise){
+        biometryCheckPromise = window.Capacitor.Plugins.BiometricAuthNative.checkBiometry()
+            .then(result=>!!result.isAvailable)
+            .catch(err=>{
+                console.error("Vérification de la biométrie impossible :",err);
+                return false;
+            });
+    }
+    return biometryCheckPromise;
+}
+
 /* label : nom du voyage affiché au-dessus de l'écran. mode : "unlock"
    (ouvrir un voyage verrouillé), "setup-create"/"setup-confirm" (créer le
    PIN partagé la toute première fois), "disable" (vérifier le PIN avant de
    retirer un verrou — sinon le bouton de verrouillage lui-même
    contournerait la protection). options.cancellable=false masque le
    bouton Annuler (utilisé au démarrage pour le voyage actif : il n'y a
-   nulle part où "annuler" vers). */
-function openTripLockView(label,mode,onSuccess,options){
+   nulle part où "annuler" vers). Devenue async (2026-09-04) pour attendre
+   ensureBiometryChecked() — ses appelants existants n'attendaient déjà pas
+   sa valeur de retour, donc rien à changer côté appel. */
+async function openTripLockView(label,mode,onSuccess,options){
     options = options || {};
     tripLockLabel.textContent = label || "";
     tripLockMode = mode;
@@ -4433,7 +4459,7 @@ function openTripLockView(label,mode,onSuccess,options){
     tripLockFirstPin = "";
     tripLockCancelBtn.hidden = options.cancellable===false;
 
-    const canUseBiometric = isNativeApp() && mode==="unlock";
+    const canUseBiometric = mode==="unlock" && await ensureBiometryChecked();
     tripLockBiometricPanel.hidden = !canUseBiometric;
     tripLockPinPanel.hidden = canUseBiometric;
 
@@ -4546,11 +4572,48 @@ tripLockCancelBtn.addEventListener("click",()=>{
     closeTripLockView();
 });
 
-tripLockBiometricBtn.addEventListener("click",()=>{
-    // CAPACITOR : pas encore de plugin de biométrie installé — ce bouton
-    // reste dormant (isNativeApp() empêche déjà ce volet de s'afficher sur
-    // le web) tant qu'aucun plugin réel n'est ajouté côté Android.
-    showToast("Déverrouillage biométrique pas encore disponible.",{type:"error"});
+/* CAPACITOR (plugin réel ajouté 2026-09-04, capacitor-native-biometric
+   dépendait d'une trop vieille version de @capacitor/core — voir
+   @aparajita/capacitor-biometric-auth, compatible Capacitor 8). Le repli
+   affichant "pas encore disponible" reste en garde tout en bas : le
+   volet lui-même n'est déjà montré que si ensureBiometryChecked() a
+   confirmé une biométrie enrôlée (voir openTripLockView()), donc ce cas
+   ne devrait normalement jamais se produire en pratique. */
+tripLockBiometricBtn.addEventListener("click",async ()=>{
+
+    if(!isNativeApp() || !(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BiometricAuthNative)){
+        showToast("Déverrouillage biométrique pas encore disponible.",{type:"error"});
+        return;
+    }
+
+    try{
+        await window.Capacitor.Plugins.BiometricAuthNative.authenticate({
+            reason: tripLockLabel.textContent ? `Déverrouiller « ${tripLockLabel.textContent} »` : "Déverrouiller ce voyage",
+            cancelTitle: "Annuler",
+            androidTitle: "Déverrouiller",
+            androidSubtitle: "Utilise ton empreinte ou ton visage",
+            // false, pas le repli PIN/schéma de l'APPAREIL : le code
+            // partagé de l'appli (synchronisé entre appareils appairés)
+            // doit rester le seul repli, via "Utiliser le code PIN à la
+            // place" juste en dessous — pas le déverrouillage du téléphone
+            // lui-même, qui n'a aucun rapport avec ce code-là.
+            allowDeviceCredential: false
+        });
+        const onSuccess = tripLockOnSuccess;
+        closeTripLockView();
+        if(onSuccess) onSuccess();
+    }catch(err){
+        const code = (err && err.code) || "";
+        // Annulation utilisateur (bouton "Annuler" du prompt système) :
+        // pas une erreur, reste simplement sur l'écran.
+        if(code==="userCancel" || code==="appCancel" || code==="systemCancel") return;
+        console.error("Authentification biométrique échouée :",err);
+        showToast("Empreinte/visage non reconnu — utilise le code PIN.",{type:"error",duration:4000});
+        tripLockBiometricPanel.hidden = true;
+        tripLockPinPanel.hidden = false;
+        renderTripLockPinDots();
+        updateTripLockKeypadDisabled();
+    }
 });
 
 /* Point d'entrée unique pour demander le déverrouillage d'un voyage

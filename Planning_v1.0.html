@@ -1153,6 +1153,13 @@ window.capacitorExports = window.Capacitor || {
 };
 </script>
 <script src="vendor/capacitor-camera.js"></script>
+<!-- @aparajita/capacitor-biometric-auth (2026-09-04, déverrouillage
+     empreinte/visage pour le verrou par voyage) : dépend de @capacitor/app
+     (variable globale "capacitorApp"), donc chargé avant. S'enregistre
+     sous "BiometricAuthNative" — voir requestNativeBiometricUnlock() dans
+     app.js, juste après le bloc verrou par voyage. -->
+<script src="vendor/capacitor-app.js"></script>
+<script src="vendor/capacitor-biometric-auth.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

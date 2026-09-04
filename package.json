@@ -19,7 +19,9 @@
   },
   "homepage": "https://github.com/julienbruwaert1-sys/planning-vacances#readme",
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/core": "^8.5.0"
   },
