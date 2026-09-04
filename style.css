@@ -7791,6 +7791,21 @@ body.theme-sakura .welcome-theme-switch input:focus-visible + .welcome-theme-swi
     outline-color:#E0699A;
 }
 
+/* Mode sombre "Clair de lune" (2026-09-04, mockup B choisi explicitement
+   par l'utilisateur — le clair reste inchangé) : bascule le rose chaud
+   vers un violet-lilas plus froid, cohérent avec un fond indigo-nuit au
+   lieu du lie-de-vin d'origine. Même structure de règles que le clair,
+   juste après pour gagner sur l'égalité de spécificité (cascade). */
+body.dark.theme-sakura a:focus-visible,
+body.dark.theme-sakura button:focus-visible,
+body.dark.theme-sakura input:focus-visible,
+body.dark.theme-sakura select:focus-visible,
+body.dark.theme-sakura .activity:focus-visible,
+body.dark.theme-sakura .day-slot-head:focus-visible,
+body.dark.theme-sakura .welcome-theme-switch input:focus-visible + .welcome-theme-switch-track{
+    outline-color:#B896E0;
+}
+
 body.theme-sakura .date-tab.active,
 body.theme-sakura .jump-today-btn,
 body.theme-sakura .countdown-banner,
@@ -7804,6 +7819,23 @@ body.theme-sakura .tricount-receipt-btn,
 body.theme-sakura .tricount-add-participant-btn,
 body.theme-sakura .welcome-eyebrow{
     color:#D45C88;
+}
+
+/* .bottom-nav-tab.active et .activity-photo-btn ont chacun DÉJÀ leur
+   propre override sombre plus bas (contraste, hérité de l'implémentation
+   d'origine) — pas repris ici pour éviter un doublon qui se battrait sur
+   l'ordre des règles ; ils sont mis à jour sur place à leur emplacement
+   d'origine. */
+body.dark.theme-sakura .jump-today-btn,
+body.dark.theme-sakura .countdown-banner,
+body.dark.theme-sakura .help-report-icon-copy:hover,
+body.dark.theme-sakura .profile-stat-value,
+body.dark.theme-sakura .checklist-chip,
+body.dark.theme-sakura .tricount-link-badge,
+body.dark.theme-sakura .tricount-receipt-btn,
+body.dark.theme-sakura .tricount-add-participant-btn,
+body.dark.theme-sakura .welcome-eyebrow{
+    color:#E0A8D8;
 }
 
 body.theme-sakura .help-notes-send-btn,
@@ -7834,12 +7866,40 @@ body.theme-sakura .checklist-progress-fill{
     background:linear-gradient(90deg,#E893B5,#F7B8CE);
 }
 
+body.dark.theme-sakura .help-notes-send-btn,
+body.dark.theme-sakura .map-country-toggle.active,
+body.dark.theme-sakura .map-poi-search-btn,
+body.dark.theme-sakura .checklist-template-chip.active,
+body.dark.theme-sakura .form-toggle-btn,
+body.dark.theme-sakura button.add,
+body.dark.theme-sakura .search-filter-btn.active,
+body.dark.theme-sakura .tricount-currency-option.active,
+body.dark.theme-sakura .menu-item-switch[aria-pressed="true"] .menu-item-switch-track{
+    background:#9E7BC9;
+}
+
+body.dark.theme-sakura .map-country-toggle.active,
+body.dark.theme-sakura .checklist-template-chip.active,
+body.dark.theme-sakura .tricount-currency-option.active{
+    border-color:#9E7BC9;
+}
+
+body.dark.theme-sakura .checklist-hide-toggle input,
+body.dark.theme-sakura .checklist-item input[type="checkbox"],
+body.dark.theme-sakura .tricount-split-check input[type="checkbox"]{
+    accent-color:#9E7BC9;
+}
+
+body.dark.theme-sakura .checklist-progress-fill{
+    background:linear-gradient(90deg,#9E7BC9,#E0A8D8);
+}
+
 body.theme-sakura{
     background:#FDF2F6;
 }
 
 body.dark.theme-sakura{
-    background:#241820;
+    background:#1E1B36;
 }
 
 body.theme-sakura #welcomeView{
@@ -7847,7 +7907,7 @@ body.theme-sakura #welcomeView{
 }
 
 body.dark.theme-sakura #welcomeView{
-    background:#241820;
+    background:#1E1B36;
 }
 
 body.theme-sakura .fullscreen-view,
@@ -7859,7 +7919,7 @@ body.theme-sakura .mobile-tab-header{
 body.dark.theme-sakura .fullscreen-view,
 body.dark.theme-sakura .fullscreen-header,
 body.dark.theme-sakura .mobile-tab-header{
-    background:#241820;
+    background:#1E1B36;
 }
 
 body.theme-sakura .profile-section{
@@ -7867,7 +7927,7 @@ body.theme-sakura .profile-section{
 }
 
 body.dark.theme-sakura .profile-section{
-    background:#33202C;
+    background:#2B2750;
 }
 
 body.theme-sakura .day-content,
@@ -7881,7 +7941,7 @@ body.dark.theme-sakura .day-content,
 body.dark.theme-sakura .converter-card,
 body.dark.theme-sakura .profile-list,
 body.dark.theme-sakura .map-day-sheet{
-    background:#33202C;
+    background:#2B2750;
 }
 
 body.theme-sakura .weather-card,
@@ -7893,7 +7953,7 @@ body.theme-sakura .weather-hour-list{
 body.dark.theme-sakura .weather-card,
 body.dark.theme-sakura .weather-summary-card,
 body.dark.theme-sakura .weather-hour-list{
-    background:linear-gradient(135deg,#33202C,#241820);
+    background:linear-gradient(135deg,#2B2750,#1E1B36);
 }
 
 body.theme-sakura .activity,
@@ -7913,7 +7973,7 @@ body.theme-sakura .activity:hover{
 body.dark.theme-sakura .activity,
 body.dark.theme-sakura .map-day-sheet-row-item,
 body.dark.theme-sakura .weather-hour-row{
-    background:#33202C;
+    background:#2B2750;
 }
 
 body.dark.theme-sakura .activity small,
@@ -7926,7 +7986,7 @@ body.dark.theme-sakura .activity.done{
 }
 
 body.dark.theme-sakura .activity:hover{
-    background:#3E2A38;
+    background:#363159;
 }
 
 body.theme-sakura #activities::before{
@@ -7934,7 +7994,7 @@ body.theme-sakura #activities::before{
 }
 
 body.dark.theme-sakura #activities::before{
-    background:#4A3540;
+    background:#4A4570;
 }
 
 body.theme-sakura #activities .day-slot-head{
@@ -7942,7 +8002,7 @@ body.theme-sakura #activities .day-slot-head{
 }
 
 body.dark.theme-sakura #activities .day-slot-head{
-    color:#F5D9E6;
+    color:#E6DFF7;
 }
 
 /* Remplace le point plein par une petite fleur, même logique que le
@@ -7967,7 +8027,7 @@ body.dark.theme-sakura #activities .day-slot-head::before{
     height:auto;
     font-size:15px;
     line-height:1;
-    color:#F7B8CE;
+    color:#E0A8D8;
 }
 
 body.theme-sakura .date-tab.active,
@@ -7976,15 +8036,16 @@ body.dark.theme-sakura .date-tab.active{
 }
 
 body.dark.theme-sakura .date-tab.active{
-    background:#33202C;
+    background:#2B2750;
+    color:#E0A8D8;
 }
 
 body.dark.theme-sakura .bottom-nav-tab.active{
-    color:#F7B8CE;
+    color:#E0A8D8;
 }
 
 body.dark.theme-sakura .activity-photo-btn{
-    color:#F7B8CE;
+    color:#E0A8D8;
 }
 
 body.theme-sakura .fullscreen-header h2::before,
@@ -8555,8 +8616,8 @@ body.theme-sakura .sakura-mascot-banner{
 }
 
 body.dark.theme-sakura .sakura-mascot-banner{
-    background:linear-gradient(135deg,#33202C,#241820);
-    color:#F5D9E6;
+    background:linear-gradient(135deg,#2B2750,#1E1B36);
+    color:#E6DFF7;
 }
 
 .sakura-mascot-emoji{
