@@ -4481,6 +4481,7 @@ async function submitTripLockPin(){
             return;
         }
         await setTripLockPin(pin);
+        pushToSync();
         const onSuccess = tripLockOnSuccess;
         closeTripLockView();
         if(onSuccess) onSuccess();
@@ -4578,6 +4579,7 @@ currentTripLockToggle.addEventListener("click",()=>{
             currentTripLocked = false;
             localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,"0");
             updateCurrentTripLockToggle();
+            pushToSync();
             showToast("Verrou désactivé pour ce voyage.");
         });
         return;
@@ -4588,6 +4590,7 @@ currentTripLockToggle.addEventListener("click",()=>{
         localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,"1");
         unlockedTripIds.add("__current__");
         updateCurrentTripLockToggle();
+        pushToSync();
         showToast("Ce voyage est maintenant verrouillé.");
     };
 
@@ -12256,7 +12259,13 @@ const SYNC_SECTION_GROUPS = [
     { label:"Checklist", keys:["checklist","checklistTemplates"] },
     { label:"Budget & devises", keys:["tricountParticipants","tricountExpenses","baseCurrency","targetCurrency"] },
     { label:"Dates & voyage", keys:["dayCount","startDate","tripName","tripCountry","tripTimezone"] },
-    { label:"Aide", keys:["helpNotes","helpReports"] }
+    { label:"Aide", keys:["helpNotes","helpReports"] },
+    /* Verrou par voyage (2026-09-04, demandé explicitement après un premier
+       envoi 100% local) : tripLockPinHash reste un HASH SHA-256, jamais le
+       code en clair — voir le commentaire près de TRIP_LOCK_PIN_HASH_KEY.
+       Verrouiller sur un appareil verrouille donc aussi le voyage sur tous
+       les autres appareils appairés, avec le même code PIN partagé. */
+    { label:"Verrou du voyage", keys:["currentTripLocked","tripLockPinHash"] }
 ];
 const SYNC_ALL_KEYS = SYNC_SECTION_GROUPS.flatMap(g=>g.keys);
 
@@ -12472,6 +12481,8 @@ function collectSyncData(){
         checklistTemplates: JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
         helpNotes: helpNotesInput.value,
         helpReports: helpReportsHistory,
+        currentTripLocked,
+        tripLockPinHash: localStorage.getItem(TRIP_LOCK_PIN_HASH_KEY) || "",
         updatedAt: Date.now(),
         deviceId: syncDeviceId
     };
@@ -13175,6 +13186,23 @@ function applySyncData(data,isInitialLoad){
         anyRemoteChangeApplied = true;
     }
 
+    if(data.currentTripLocked!==undefined && data.currentTripLocked!==currentTripLocked && !sectionIsSelf("currentTripLocked")){
+        currentTripLocked = data.currentTripLocked;
+        localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,currentTripLocked ? "1" : "0");
+        updateCurrentTripLockToggle();
+        anyRemoteChangeApplied = true;
+    }
+
+    /* Hash SHA-256 seulement (jamais le code en clair) — voir
+       TRIP_LOCK_PIN_HASH_KEY. Garde "data.tripLockPinHash &&" (pas juste
+       !==undefined) : un appareil qui n'a jamais défini de code envoie ""
+       dans son propre payload, qui ne doit jamais effacer un code déjà
+       défini ailleurs. */
+    if(data.tripLockPinHash && data.tripLockPinHash!==localStorage.getItem(TRIP_LOCK_PIN_HASH_KEY) && !sectionIsSelf("tripLockPinHash")){
+        localStorage.setItem(TRIP_LOCK_PIN_HASH_KEY,data.tripLockPinHash);
+        anyRemoteChangeApplied = true;
+    }
+
     ensureDaysExist();
     if(currentDay > dayCount) currentDay = dayCount;
 
@@ -13188,6 +13216,17 @@ function applySyncData(data,isInitialLoad){
     renderSyncSectionMeta();
 
     applyingRemoteUpdate = false;
+
+    /* Un AUTRE appareil vient de verrouiller ce voyage (ou l'a reçu comme
+       tel dès l'appairage) : force le même écran PIN ici aussi, sauf si
+       CET appareil est celui qui vient de verrouiller (déjà dans
+       unlockedTripIds) — sinon le verrou distant n'aurait aucun effet réel
+       sur un appareil resté ouvert au moment du verrouillage. Le garde
+       tripLockView.hidden évite de relancer l'écran (et de perdre une
+       saisie en cours) s'il est déjà affiché. */
+    if(currentTripLocked && !unlockedTripIds.has("__current__") && tripLockView.hidden){
+        requestTripUnlock("__current__",tripName || "Ce voyage",()=>{},{cancellable:false});
+    }
 
     if(conflictBackup){
         conflictBackup.timestamp = Date.now();
