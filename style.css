@@ -8745,6 +8745,17 @@ body.dark .trip-lock-view{
     background:linear-gradient(180deg,#0A1020,#121A2E);
 }
 
+/* Piège classique de cette appli (voir [[css_hidden_vs_display_gotcha]]
+   dans la mémoire) : .trip-lock-view{display:flex} a la même spécificité
+   que le [hidden] du navigateur et le bat car il vient après dans la
+   feuille de style — sans cette règle, l'écran de verrouillage reste
+   affiché en permanence, avec les deux volets (biométrie + PIN)
+   visibles en même temps puisque leur état hidden n'a jamais été
+   initialisé par openTripLockView(). */
+.trip-lock-view[hidden]{
+    display:none;
+}
+
 .trip-lock-label{
     position:absolute;
     top:max(24px, env(safe-area-inset-top));
@@ -8761,6 +8772,10 @@ body.dark .trip-lock-view{
     display:flex;
     flex-direction:column;
     align-items:center;
+}
+
+.trip-lock-panel[hidden]{
+    display:none;
 }
 
 .trip-lock-icon-ring{
