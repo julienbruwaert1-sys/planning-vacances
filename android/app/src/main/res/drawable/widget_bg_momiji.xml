@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget écran d'accueil) : couleurs reprises de
+     body.dark.theme-momiji .day-content (#3D2A1C) dans style.css. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="#2E1E13"
+        android:endColor="#3D2A1C" />
+    <corners android:radius="16dp" />
+</shape>

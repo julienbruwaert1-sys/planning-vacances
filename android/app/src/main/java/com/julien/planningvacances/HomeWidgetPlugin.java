@@ -26,6 +26,7 @@ public class HomeWidgetPlugin extends Plugin {
     public static final String KEY_START_DATE = "startDate";
     public static final String KEY_NEXT_ACTIVITY_TITLE = "nextActivityTitle";
     public static final String KEY_NEXT_ACTIVITY_AT = "nextActivityAt";
+    public static final String KEY_THEME = "theme";
 
     @PluginMethod
     public void updateWidgetData(PluginCall call) {
@@ -35,6 +36,7 @@ public class HomeWidgetPlugin extends Plugin {
         editor.putString(KEY_TRIP_NAME, call.getString(KEY_TRIP_NAME, ""));
         editor.putString(KEY_START_DATE, call.getString(KEY_START_DATE, ""));
         editor.putString(KEY_NEXT_ACTIVITY_TITLE, call.getString(KEY_NEXT_ACTIVITY_TITLE, ""));
+        editor.putString(KEY_THEME, call.getString(KEY_THEME, "default"));
 
         Long nextActivityAt = call.getLong(KEY_NEXT_ACTIVITY_AT);
         editor.putLong(KEY_NEXT_ACTIVITY_AT, nextActivityAt != null ? nextActivityAt : 0L);

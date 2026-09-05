@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.text.TextUtils;
 import android.widget.RemoteViews;
 
@@ -16,15 +17,20 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-/* CAPACITOR (2026-09-06) : widget d'écran d'accueil réel — la partie
-   "PRÉPARATION seulement" documentée le 2026-09-05 (updateHomeWidgetData()
-   dans app.js) devient fonctionnelle ici. Les jours restants sont recalculés
-   au RENDU (à partir de la date de départ stockée), pas poussés une fois
-   comme une valeur déjà relative — sinon le compte à rebours resterait figé
-   si l'appli reste fermée plusieurs jours. Approximation assumée : le calcul
-   utilise le fuseau horaire du TÉLÉPHONE, pas celui du voyage (getTripNow()
-   dans app.js) — acceptable pour un coup d'œil sur l'écran d'accueil, la
-   valeur précise reste dans l'appli elle-même. */
+/* CAPACITOR (2026-09-06) : widget d'écran d'accueil réel, style "B2 nuit
+   étoilée" (voir la comparaison de mockups d'où ce style a été choisi) —
+   le nombre de jours restants est l'élément principal, sur un fond dégradé
+   qui reprend les couleurs du thème actif de l'appli (Noël/Ghibli/
+   Halloween/Sakura/Momiji/Néon, voir themeBackgroundRes()/themeAccentColor()
+   ci-dessous, valeurs reprises telles quelles des cartes sombres de
+   style.css pour rester cohérent avec le reste de l'appli). Les jours
+   restants sont recalculés au RENDU (à partir de la date de départ
+   stockée), pas poussés une fois comme une valeur déjà relative — sinon le
+   compte à rebours resterait figé si l'appli reste fermée plusieurs jours.
+   Approximation assumée : le calcul utilise le fuseau horaire du TÉLÉPHONE,
+   pas celui du voyage (getTripNow() dans app.js) — acceptable pour un coup
+   d'œil sur l'écran d'accueil, la valeur précise reste dans l'appli
+   elle-même. */
 public class TripWidgetProvider extends AppWidgetProvider {
 
     @Override
@@ -48,16 +54,24 @@ public class TripWidgetProvider extends AppWidgetProvider {
         String startDate = prefs.getString(HomeWidgetPlugin.KEY_START_DATE, "");
         String nextActivityTitle = prefs.getString(HomeWidgetPlugin.KEY_NEXT_ACTIVITY_TITLE, "");
         long nextActivityAt = prefs.getLong(HomeWidgetPlugin.KEY_NEXT_ACTIVITY_AT, 0L);
+        String theme = prefs.getString(HomeWidgetPlugin.KEY_THEME, "default");
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_trip);
 
+        views.setInt(R.id.widgetRoot, "setBackgroundResource", themeBackgroundRes(theme));
+        views.setTextColor(R.id.widgetBigNumber, themeAccentColor(theme));
+
         if (TextUtils.isEmpty(tripName)) {
             views.setTextViewText(R.id.widgetTripName, context.getString(R.string.widget_default_title));
-            views.setTextViewText(R.id.widgetCountdown, context.getString(R.string.widget_default_subtitle));
+            views.setTextViewText(R.id.widgetBigNumber, "✈");
+            views.setTextViewText(R.id.widgetCaption, context.getString(R.string.widget_default_subtitle));
             views.setViewVisibility(R.id.widgetNextActivity, android.view.View.GONE);
         } else {
             views.setTextViewText(R.id.widgetTripName, tripName);
-            views.setTextViewText(R.id.widgetCountdown, countdownLabel(context, startDate));
+
+            Countdown countdown = countdownFor(context, startDate);
+            views.setTextViewText(R.id.widgetBigNumber, countdown.number);
+            views.setTextViewText(R.id.widgetCaption, countdown.caption);
 
             if (TextUtils.isEmpty(nextActivityTitle)) {
                 views.setViewVisibility(R.id.widgetNextActivity, android.view.View.GONE);
@@ -92,14 +106,52 @@ public class TripWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
-    private static String countdownLabel(Context context, String startDate) {
+    /* Couleurs reprises telles quelles des cartes sombres de chaque thème
+       dans style.css (body.dark.theme-X .day-content) — voir les fichiers
+       res/drawable/widget_bg_*.xml pour le détail des dégradés. */
+    private static int themeBackgroundRes(String theme) {
+        if (theme == null) return R.drawable.widget_bg_default;
+        switch (theme) {
+            case "noel": return R.drawable.widget_bg_noel;
+            case "ghibli": return R.drawable.widget_bg_ghibli;
+            case "halloween": return R.drawable.widget_bg_halloween;
+            case "sakura": return R.drawable.widget_bg_sakura;
+            case "momiji": return R.drawable.widget_bg_momiji;
+            case "neon": return R.drawable.widget_bg_neon;
+            default: return R.drawable.widget_bg_default;
+        }
+    }
+
+    private static int themeAccentColor(String theme) {
+        if (theme == null) return Color.parseColor("#F0935A");
+        switch (theme) {
+            case "noel": return Color.parseColor("#E8C468");
+            case "ghibli": return Color.parseColor("#D8B25C");
+            case "halloween": return Color.parseColor("#F2954B");
+            case "sakura": return Color.parseColor("#F5A9C6");
+            case "momiji": return Color.parseColor("#E8834A");
+            case "neon": return Color.parseColor("#4DE8FF");
+            default: return Color.parseColor("#F0935A");
+        }
+    }
+
+    private static class Countdown {
+        final String number;
+        final String caption;
+        Countdown(String number, String caption) {
+            this.number = number;
+            this.caption = caption;
+        }
+    }
+
+    private static Countdown countdownFor(Context context, String startDate) {
         if (TextUtils.isEmpty(startDate)) {
-            return context.getString(R.string.widget_default_subtitle);
+            return new Countdown("–", context.getString(R.string.widget_default_subtitle));
         }
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.FRANCE);
             Date target = sdf.parse(startDate);
-            if (target == null) return context.getString(R.string.widget_default_subtitle);
+            if (target == null) return new Countdown("–", context.getString(R.string.widget_default_subtitle));
 
             Calendar today = Calendar.getInstance();
             today.set(Calendar.HOUR_OF_DAY, 0);
@@ -117,14 +169,14 @@ public class TripWidgetProvider extends AppWidgetProvider {
             long diffDays = Math.round((targetCal.getTimeInMillis() - today.getTimeInMillis()) / 86400000.0);
 
             if (diffDays > 0) {
-                return context.getString(R.string.widget_days_remaining, diffDays);
+                return new Countdown(String.valueOf(diffDays), context.getString(R.string.widget_days_remaining_caption));
             } else if (diffDays == 0) {
-                return context.getString(R.string.widget_today);
+                return new Countdown("0", context.getString(R.string.widget_today));
             } else {
-                return context.getString(R.string.widget_ongoing);
+                return new Countdown("✓", context.getString(R.string.widget_ongoing));
             }
         } catch (ParseException e) {
-            return context.getString(R.string.widget_default_subtitle);
+            return new Countdown("–", context.getString(R.string.widget_default_subtitle));
         }
     }
 }

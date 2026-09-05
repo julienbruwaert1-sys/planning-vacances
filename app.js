@@ -3719,7 +3719,14 @@ function updateHomeWidgetData(){
                 tripName: tripName || "",
                 startDate: startDate || "",
                 nextActivityTitle: nextEvent ? nextEvent.title : "",
-                nextActivityAt: nextEvent ? nextEvent.start.getTime() : 0
+                nextActivityAt: nextEvent ? nextEvent.start.getTime() : 0,
+                // Même thème que l'appli (localStorage[APP_THEME_KEY]) — le
+                // widget choisit ses couleurs en conséquence côté natif, voir
+                // TripWidgetProvider.themeColors(). Lu directement plutôt que
+                // via une variable JS le référençant : APP_THEME_KEY est
+                // déclaré plus bas dans ce fichier (même famille de TDZ que
+                // startDate/tripName ci-dessus, déjà gérée par ce try/catch).
+                theme: localStorage.getItem(APP_THEME_KEY) || "default"
             }).catch(err=>{
                 console.error("Widget natif : mise à jour impossible :",err);
             });
@@ -5165,6 +5172,11 @@ appThemeSelect.addEventListener("change",()=>{
     localStorage.setItem(APP_THEME_KEY,choice);
     applySelectedTheme(choice);
     refreshThemeIcons();
+    // Sans ça, le widget garderait les couleurs de l'ancien thème jusqu'au
+    // prochain boot/sauvegarde — updateHomeWidgetData() est déjà TDZ-safe
+    // (voir son propre commentaire) donc appelable directement ici même si
+    // ce point du fichier est atteint avant que startDate/tripName existent.
+    updateHomeWidgetData();
 });
 
 themeToggle.addEventListener("click",()=>{

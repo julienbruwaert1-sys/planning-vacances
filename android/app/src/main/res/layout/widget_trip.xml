@@ -1,61 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- CAPACITOR (2026-09-06, widget d'écran d'accueil, voir
-     TripWidgetProvider.java) : RemoteViews (mécanisme de rendu des widgets)
-     ne supporte qu'un sous-ensemble limité de vues (LinearLayout,
-     RelativeLayout, FrameLayout, GridLayout — pas ConstraintLayout).
-     FrameLayout en racine + LinearLayout interne en wrap_content : un
-     android:gravity posé directement sur une racine match_parent n'est pas
-     toujours respecté par tous les lanceurs (constaté sur appareil réel,
-     OneUI Samsung) — le contenu restait collé en haut malgré
-     gravity="center_vertical". Ce schéma (racine FrameLayout qui porte le
-     fond + bloc interne wrap_content centré via layout_gravity) est le
-     contournement standard pour ce problème connu de RemoteViews. -->
+<!-- CAPACITOR (2026-09-06, widget écran d'accueil, style "B2 nuit étoilée")
+     RemoteViews ne supporte qu'un sous-ensemble limité de vues
+     (LinearLayout, RelativeLayout, FrameLayout, GridLayout — pas
+     ConstraintLayout). FrameLayout en racine + LinearLayout interne en
+     wrap_content : centre le bloc de texte quelle que soit la taille de
+     cellule accordée par le lanceur (vérifié correct via aapt2 dump
+     xmltree — le vrai souci de "widget mal centré" rencontré sur appareil
+     réel était une taille par défaut trop généreuse dans widget_info.xml,
+     pas ce centrage). Le fond (@drawable/widget_bg_default ici) est
+     remplacé au rendu selon le thème actif de l'appli — voir
+     TripWidgetProvider.themeColors(). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widgetRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background">
+    android:background="@drawable/widget_bg_default">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:gravity="center_horizontal"
+        android:padding="12dp">
 
         <TextView
             android:id="@+id/widgetTripName"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#33404A"
-            android:textSize="16sp"
+            android:textColor="#CFE0F0"
+            android:textSize="11sp"
             android:textStyle="bold"
+            android:textAllCaps="true"
+            android:letterSpacing="0.04"
             android:maxLines="1"
             android:ellipsize="end"
-            tools:text="Voyage au Japon" />
+            tools:text="Japon" />
 
         <TextView
-            android:id="@+id/widgetCountdown"
-            android:layout_width="match_parent"
+            android:id="@+id/widgetBigNumber"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="#5B7A8C"
-            android:textSize="14sp"
+            android:textColor="#F0935A"
+            android:textSize="34sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            tools:text="9" />
+
+        <TextView
+            android:id="@+id/widgetCaption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#B9C8D6"
+            android:textSize="10sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.06"
             android:maxLines="1"
             android:ellipsize="end"
-            tools:text="Départ dans 12 jours" />
+            tools:text="jours avant le départ" />
 
         <TextView
             android:id="@+id/widgetNextActivity"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textColor="#33404A"
-            android:textSize="13sp"
+            android:textColor="#E4ECF3"
+            android:textSize="10.5sp"
+            android:gravity="center_horizontal"
             android:maxLines="1"
             android:ellipsize="end"
-            tools:text="09:30 · Visite du musée" />
+            tools:text="09:00 · Visite du musée" />
 
     </LinearLayout>
 

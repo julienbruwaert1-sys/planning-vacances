@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget écran d'accueil) : couleurs reprises de
+     body.dark.theme-sakura .day-content (#2B2750) dans style.css. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="#201C3D"
+        android:endColor="#2B2750" />
+    <corners android:radius="16dp" />
+</shape>
