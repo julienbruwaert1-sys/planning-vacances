@@ -5950,113 +5950,131 @@ body.desktop-mode .move-select{display:none!important;}
         color:#000;
         background:white;
     }
+}
 
-    #printView h1{
-        font-size:22px;
-        margin:0 0 10px;
-        text-align:left;
-    }
+/* Typographie/mise en page de #printView : volontairement HORS de
+   @media print (2026-09-05, export PDF natif) — exportPrintViewAsPdf()
+   dans app.js rend ce même conteneur via html2canvas en le rendant
+   visible temporairement par un style inline, PAS par une vraie
+   impression navigateur, donc ces règles doivent s'appliquer aussi en
+   dehors d'un contexte d'impression. #printView reste caché en usage
+   normal grâce à la règle display:none ci-dessus, inchangée. */
 
+#printView h1{
+    font-size:22px;
+    margin:0 0 10px;
+    text-align:left;
+}
+
+#printView h2{
+    font-size:16px;
+    background:#eee;
+    padding:6px 10px;
+    margin:18px 0 8px;
+}
+
+@media print{
     #printView h2{
-        font-size:16px;
-        background:#eee;
-        padding:6px 10px;
-        margin:18px 0 8px;
         page-break-before:always;
     }
 
     #printView h2:first-of-type{
         page-break-before:auto;
     }
+}
 
-    #printView h3{
-        font-size:13px;
-        background:none;
-        color:#000;
-        padding:4px 0;
-        margin:8px 0 4px;
-        border-bottom:1px solid #ccc;
-    }
+#printView h3{
+    font-size:13px;
+    background:none;
+    color:#000;
+    padding:4px 0;
+    margin:8px 0 4px;
+    border-bottom:1px solid #ccc;
+}
 
-    #printView .print-activity{
-        font-size:12.5px;
-        padding:4px 0;
-        border-bottom:1px dotted #ddd;
-    }
+#printView .print-activity{
+    font-size:12.5px;
+    padding:4px 0;
+    border-bottom:1px dotted #ddd;
+}
 
-    #printView .print-activity-meta{
-        color:#555;
-        font-size:11px;
-    }
+#printView .print-activity-meta{
+    color:#555;
+    font-size:11px;
+}
 
-    /* Carnet de voyage (2026-09-02, mockup A) */
+/* Carnet de voyage (2026-09-02, mockup A) */
 
+#printView.trip-book .trip-book-cover{
+    min-height:90vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+}
+
+@media print{
     #printView.trip-book .trip-book-cover{
-        min-height:90vh;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        text-align:center;
         page-break-after:always;
     }
+}
 
-    #printView.trip-book .trip-book-cover-icon{
-        font-size:48px;
-        margin-bottom:14px;
-    }
+#printView.trip-book .trip-book-cover-icon{
+    font-size:48px;
+    margin-bottom:14px;
+}
 
-    #printView.trip-book .trip-book-cover h1{
-        font-size:30px;
-        margin:0 0 10px;
-    }
+#printView.trip-book .trip-book-cover h1{
+    font-size:30px;
+    margin:0 0 10px;
+}
 
-    #printView.trip-book .trip-book-cover p{
-        font-size:14px;
-        color:#555;
-        margin:0;
-    }
+#printView.trip-book .trip-book-cover p{
+    font-size:14px;
+    color:#555;
+    margin:0;
+}
 
-    #printView.trip-book .trip-book-photo-grid{
-        display:grid;
-        grid-template-columns:repeat(3,1fr);
-        gap:6px;
-        margin:10px 0 4px;
-    }
+#printView.trip-book .trip-book-photo-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    margin:10px 0 4px;
+}
 
-    #printView.trip-book .trip-book-photo-grid img{
-        width:100%;
-        aspect-ratio:1;
-        object-fit:cover;
-        border-radius:4px;
-    }
+#printView.trip-book .trip-book-photo-grid img{
+    width:100%;
+    aspect-ratio:1;
+    object-fit:cover;
+    border-radius:4px;
+}
 
-    #printView.trip-book .trip-book-stats-grid{
-        display:grid;
-        grid-template-columns:repeat(3,1fr);
-        gap:10px;
-        margin-top:8px;
-    }
+#printView.trip-book .trip-book-stats-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-top:8px;
+}
 
-    #printView.trip-book .trip-book-stat{
-        text-align:center;
-        border:1px solid #ddd;
-        border-radius:6px;
-        padding:14px 8px;
-    }
+#printView.trip-book .trip-book-stat{
+    text-align:center;
+    border:1px solid #ddd;
+    border-radius:6px;
+    padding:14px 8px;
+}
 
-    #printView.trip-book .trip-book-stat .v{
-        font-size:20px;
-        font-weight:700;
-    }
+#printView.trip-book .trip-book-stat .v{
+    font-size:20px;
+    font-weight:700;
+}
 
-    #printView.trip-book .trip-book-stat .l{
-        font-size:10px;
-        color:#777;
-        text-transform:uppercase;
-        letter-spacing:.04em;
-        margin-top:4px;
-    }
+#printView.trip-book .trip-book-stat .l{
+    font-size:10px;
+    color:#777;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-top:4px;
 }
 
 /* ==========================================================

@@ -35,6 +35,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -48,6 +54,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -61,6 +73,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -74,6 +92,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -87,6 +111,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -100,6 +130,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -113,6 +149,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -126,6 +168,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -139,6 +187,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -152,6 +206,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -165,6 +225,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -178,6 +244,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -191,6 +263,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -204,6 +282,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -217,6 +301,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -230,6 +320,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -243,6 +339,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -256,6 +358,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -269,6 +377,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -282,6 +396,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -295,6 +415,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -308,6 +434,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -321,6 +453,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -334,6 +472,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -347,6 +491,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -360,6 +510,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -373,6 +529,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -386,6 +548,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -399,6 +567,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -412,6 +586,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -425,6 +605,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -438,6 +624,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -451,6 +643,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -464,6 +662,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CAPACITOR (2026-09-05) : les raccourcis statiques (appui long
+                 sur l'icône) doivent être déclarés sur l'alias qui porte
+                 réellement l'intent-filter LAUNCHER — dupliqué sur les 34
+                 alias comme icon/roundIcon, un seul étant actif à la fois
+                 (voir handleAppShortcut() dans app.js). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity-alias>
 
         <provider
@@ -499,7 +703,11 @@
          et y écrire (createEvent) — voir addPlanningToNativeCalendar()
          dans app.js. La demande d'autorisation à l'exécution reste gérée
          par le plugin (requestFullCalendarAccess()), ces déclarations ne
-         font que rendre la permission disponible à demander. -->
+         font que rendre la permission disponible à demander.
+         POST_NOTIFICATIONS (Android 13+, 2026-09-05) : @capacitor/local-
+         notifications — voir syncScheduledNotifications() dans app.js ;
+         demandée automatiquement par le plugin au premier schedule(),
+         cette déclaration ne fait que rendre la permission disponible. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -508,6 +716,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>

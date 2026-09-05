@@ -28,10 +28,14 @@
     "@capacitor/browser": "^8.0.4",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/core": "^8.5.0",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/local-notifications": "^8.3.1",
     "@capawesome/capacitor-app-icon": "^0.1.2",
     "@capgo/capacitor-pedometer": "^8.0.39",
     "@capgo/capacitor-social-login": "^8.5.5",
-    "@ebarooni/capacitor-calendar": "^8.5.0"
+    "@ebarooni/capacitor-calendar": "^8.5.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

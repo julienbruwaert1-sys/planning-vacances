@@ -4,4 +4,8 @@
     <string name="title_activity_main">Tabi Go</string>
     <string name="package_name">com.julien.planningvacances</string>
     <string name="custom_url_scheme">com.julien.planningvacances</string>
+    <string name="shortcut_scanqr_short">Scanner un QR</string>
+    <string name="shortcut_scanqr_long">Scanner un QR code</string>
+    <string name="shortcut_addactivity_short">Nouvelle activité</string>
+    <string name="shortcut_addactivity_long">Ajouter une activité</string>
 </resources>

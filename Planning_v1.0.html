@@ -1184,6 +1184,26 @@ Masquer les éléments cochés
      du téléphone) s'enregistre sous "CapacitorCalendar" — voir
      addPlanningToNativeCalendar() dans app.js, près de exportIcsBtn. -->
 <script src="vendor/capacitor-calendar.js"></script>
+<!-- @capacitor/synapse (dépendance de @capacitor/geolocation, pas un plugin
+     en soi) : son build "unpkg" attend une variable globale "outsystemsSynapse",
+     mais le build de capacitor-geolocation.js référence une variable "synapse"
+     tout court — alias fait à la main, même famille de correctif que
+     capacitor-biometric-auth.js/capacitorApp. -->
+<script src="vendor/capacitor-synapse.js"></script>
+<script>window.synapse = window.outsystemsSynapse;</script>
+<!-- @capacitor/geolocation (2026-09-05, permission Android fiable pour
+     météo/carte/toilettes à proximité) s'enregistre sous "Geolocation" —
+     voir getCurrentPositionAsync() dans app.js, juste après isNativeApp(). -->
+<script src="vendor/capacitor-geolocation.js"></script>
+<!-- @capacitor/local-notifications (2026-09-05, rappels d'activité + jour
+     de départ) s'enregistre sous "LocalNotifications" — voir
+     syncScheduledNotifications() dans app.js, près de buildPlanningICS(). -->
+<script src="vendor/capacitor-local-notifications.js"></script>
+<!-- jsPDF + html2canvas (2026-09-05, export PDF natif réel) : pas des
+     plugins Capacitor, de simples librairies JS (identiques web/natif) —
+     voir exportPrintViewAsPdf() dans app.js, près de printOrExportPdfIfNative(). -->
+<script src="vendor/jspdf.js"></script>
+<script src="vendor/html2canvas.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -51,6 +51,24 @@
       "icons": [
         { "src": "icons/icon-192-default.png", "sizes": "192x192", "type": "image/png" }
       ]
+    },
+    {
+      "name": "Scanner un QR",
+      "short_name": "Scanner",
+      "description": "Ouvre directement le scanner de QR code",
+      "url": "./Planning_v1.0.html?shortcut=scanqr",
+      "icons": [
+        { "src": "icons/icon-192-default.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Ajouter une activité",
+      "short_name": "Activité",
+      "description": "Ouvre directement le formulaire d'ajout d'activité",
+      "url": "./Planning_v1.0.html?shortcut=addactivity",
+      "icons": [
+        { "src": "icons/icon-192-default.png", "sizes": "192x192", "type": "image/png" }
+      ]
     }
   ]
 }

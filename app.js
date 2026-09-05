@@ -39,24 +39,23 @@
      parfois la WebView elle-même au lieu d'ouvrir un onglet/navigateur
      externe, ce qui ferait perdre l'état de l'appli). window.open() reste
      le repli web/PWA, inchangé.
-   - Impression / export PDF (printBtn/tripBookBtn, via printOrWarnIfNative()
-     juste en dessous) : les WebView Android n'implémentent pas
-     window.print() par défaut — les deux boutons affichent maintenant un
-     message clair au lieu de ne rien faire du tout en natif (2026-09-04).
-     Un vrai export PDF natif nécessiterait encore un plugin (ex.
-     @capacitor-community/print) ou de générer le PDF soi-même (ex. jsPDF,
-     fonctionnerait alors identique web/natif) — pas fait, décision
-     explicite pour rester sur window.print() côté web tant que la
-     conversion Android n'est pas un projet concret.
-   - Géolocalisation (navigator.geolocation — toilettes à proximité, météo,
-     "ma position" sur la carte) : l'API web standard fonctionne dans une
-     WebView Capacitor, mais la boîte de dialogue de permission Android est
-     connue pour être peu fiable si on ne passe pas par un vrai plugin natif.
-     @capacitor/geolocation gère la demande de permission runtime Android
-     correctement — à évaluer une fois testable sur un vrai appareil/
-     émulateur (pas de branche isNativeApp() en attendant, changer
-     directement navigator.geolocation.getCurrentPosition en Geolocation
-     .getCurrentPosition() le jour venu).
+   - Impression / export PDF (résolu 2026-09-05, printBtn/tripBookBtn, via
+     printOrExportPdfIfNative()/exportPrintViewAsPdf() juste en dessous) :
+     les WebView Android n'implémentent pas window.print() par défaut —
+     window.print() reste utilisé tel quel sur le web (fonctionne très
+     bien), mais en natif un vrai PDF est maintenant généré (jsPDF +
+     html2canvas, vendorisés comme les autres dépendances, aucun des deux
+     n'est un plugin Capacitor — de simples librairies JS, identiques
+     web/natif) à partir du même #printView que l'impression web,
+     paginé en A4 et partagé/téléchargé via shareOrDownloadFile().
+   - Géolocalisation (résolu 2026-09-05, getCurrentPositionAsync()/
+     nativeGeolocationAvailable() juste après isNativeApp()) : toilettes à
+     proximité, météo, "ma position" sur la carte passent par
+     @capacitor/geolocation quand disponible — gère la demande de
+     permission runtime Android correctement, contrairement à
+     navigator.geolocation dont la boîte de dialogue est connue pour être
+     peu fiable dans une WebView. navigator.geolocation reste le repli
+     web/PWA, inchangé.
    - Bouton retour matériel Android : corrigé (2026-09-04, voir
      handleBackNavigation() près de closeAllFullscreenViews()) — piège le
      retour via history.pushState()/popstate (se réarme tant qu'il y a
@@ -158,6 +157,41 @@
      car sans bouton ni confirmation visible) et de document_sync_feature
      (2026-09-03, Firebase Storage, appareils appairés entre eux — pas une
      sauvegarde personnelle hors appairage).
+   - Notifications locales (fonctionnelles 2026-09-05, voir
+     syncScheduledNotifications() juste après buildPlanningICS()) :
+     @capacitor/local-notifications, rappel 30 min avant une activité
+     planifiée avec horaire + notification le matin du jour de départ.
+     Rien d'équivalent sur le web (Notification API existe mais programmer
+     un envoi futur sans backend n'a pas de sens hors app native). Pas de
+     permission d'alarme exacte demandée (SCHEDULE_EXACT_ALARM) — repli
+     automatique du plugin sur une alarme approximative, suffisant pour un
+     simple rappel.
+   - Raccourcis d'appli (2 de plus 2026-09-05 : "scanqr"/"addactivity",
+     voir handleAppShortcut() tout en bas du fichier) : ce mécanisme existe
+     déjà pour la PWA (manifest.json "shortcuts", ?shortcut=photo/expense)
+     — étendu ici avec deux nouvelles valeurs ET un vrai res/xml/
+     shortcuts.xml natif pour que l'appui long sur l'icône Android
+     fonctionne aussi une fois empaquetée (le "shortcuts" du manifest.json
+     PWA ne s'applique qu'à une installation navigateur/TWA, pas à une
+     appli native standard). Chaque raccourci natif ouvre une ACTION_VIEW
+     vers l'URL de l'appli avec ?shortcut=xxx — comme le mode server.url
+     charge cette URL telle quelle, ?shortcut=xxx apparaît directement
+     dans location.search au démarrage, même mécanisme déjà en place pour
+     ?sync=CODE, aucun code natif Java au-delà du fichier XML.
+   - Widget écran d'accueil (2026-09-05, PRÉPARATION seulement — aucun
+     widget visuel construit) : un widget Android est un composant natif à
+     part entière (AppWidgetProvider + RemoteViews + layout XML), sans
+     équivalent Capacitor — la WebView de l'appli n'y a joue aucun rôle,
+     rien de possible depuis ce fichier JS seul. Ce qui EST fait ici :
+     updateHomeWidgetData() (voir juste après syncScheduledNotifications())
+     maintient à jour un petit objet JSON stable dans localStorage
+     (HOME_WIDGET_DATA_KEY : nom du voyage, jours restants, prochaine
+     activité) à chaque sauvegarde du planning et à chaque changement de
+     dates — le jour où un vrai widget natif est construit, son
+     AppWidgetProvider Java lira cette même clé (via WebView.
+     evaluateJavascript ou, plus simplement, en dupliquant l'écriture vers
+     une SharedPreferences côté natif) plutôt que de recalculer la logique
+     "prochaine activité" une seconde fois en Java.
    - Traduction par appareil photo (2026-09-04, aucun code existant, point
      d'entrée à créer entièrement) : viserait un bouton quelque part
      (Réglages ? Une activité ? Un nouveau raccourci caméra ?) qui capture
@@ -208,19 +242,108 @@ function isNativeApp(){
     return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
-/* Impression / export PDF (2026-09-04) : window.print() n'existe pas dans
-   une WebView Android — sans ce garde, les deux boutons ("Exporter en
-   PDF", "Carnet de voyage") ne feraient RIEN du tout une fois empaquetés,
-   sans le moindre message (voir la note "Impression / export PDF" plus
-   haut). Un vrai export PDF natif nécessiterait un plugin (ex.
-   @capacitor-community/print) ou de générer le PDF soi-même (ex. jsPDF) —
-   pas fait ici, décision explicite : garder window.print() pour le web
-   (fonctionne très bien) et rendre l'indisponibilité EXPLICITE en
-   attendant, plutôt que de refaire toute la génération du carnet. */
-function printOrWarnIfNative(){
+/* CAPACITOR (2026-09-05, résolu) : @capacitor/geolocation gère la demande
+   de permission runtime Android correctement (ACCESS_COARSE/FINE_LOCATION),
+   contrairement à navigator.geolocation dont la boîte de dialogue est
+   connue pour être peu fiable dans une WebView. getCurrentPositionAsync()
+   retourne une Promise dans les deux cas avec EXACTEMENT la même forme
+   (result.coords.latitude/longitude) — les 3 appelants (openNearbyToilets,
+   requestUserLocationForWeather, showUserLocationOnMap) n'ont donc besoin
+   que de passer du style callback (success, error) au style .then()/
+   .catch(), rien d'autre à adapter. */
+function nativeGeolocationAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation);
+}
+
+async function getCurrentPositionAsync(options){
+    if(nativeGeolocationAvailable()){
+        try{
+            await window.Capacitor.Plugins.Geolocation.requestPermissions();
+        }catch(err){} // ignoré : getCurrentPosition() en dessous échouera proprement si refusé
+        return window.Capacitor.Plugins.Geolocation.getCurrentPosition(options);
+    }
+    return new Promise((resolve,reject)=>{
+        navigator.geolocation.getCurrentPosition(resolve,reject,options);
+    });
+}
+
+/* Impression / export PDF (résolu 2026-09-05) : window.print() n'existe
+   pas dans une WebView Android — window.print() reste utilisé tel quel
+   sur le web (fonctionne très bien), mais en natif exportPrintViewAsPdf()
+   prend le relais : rend #printView (déjà rempli par buildPrintView()/
+   buildTripBookView()) via html2canvas (jsPDF ne sait pas lire du HTML/CSS
+   directement), puis découpe l'image obtenue en pages A4 pour un vrai
+   fichier PDF partageable/téléchargeable (shareOrDownloadFile(), voir
+   près de saveBlobToGallery()). Limite assumée : la découpe en pages est
+   à hauteur fixe, pas consciente des sauts de section — un titre de jour
+   peut tomber à cheval sur deux pages (contrairement à l'impression web,
+   qui a ses propres règles page-break-before dans style.css). #printView
+   est normalement display:none (voir style.css) — rendu visible par un
+   style inline le temps du rendu, jamais via une vraie impression
+   navigateur, d'où le déplacement de sa typographie hors de
+   @media print dans style.css (2026-09-05). */
+async function exportPrintViewAsPdf(fileName){
+
+    const printView = document.getElementById("printView");
+    const originalCssText = printView.style.cssText;
+
+    // Largeur fixe (plutôt que 100%) : un rendu reproductible quelle que
+    // soit la taille de l'écran, proche des proportions d'une page A4.
+    printView.style.cssText = "display:block;position:fixed;left:-99999px;top:0;width:800px;padding:24px;color:#000;background:#fff;";
+
+    try{
+        const canvas = await window.html2canvas(printView,{backgroundColor:"#ffffff",scale:2});
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({unit:"mm",format:"a4"});
+
+        const pageWidthMm = pdf.internal.pageSize.getWidth() - 20; // marges 10mm de chaque côté
+        const pageHeightMm = pdf.internal.pageSize.getHeight() - 20;
+        const pxPerMm = canvas.width / pageWidthMm;
+        const pageHeightPx = Math.floor(pageHeightMm * pxPerMm);
+
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        const sliceCtx = sliceCanvas.getContext("2d");
+
+        let renderedPx = 0;
+        let pageIndex = 0;
+
+        while(renderedPx < canvas.height){
+            const sliceHeightPx = Math.min(pageHeightPx,canvas.height-renderedPx);
+            sliceCanvas.height = sliceHeightPx;
+            sliceCtx.clearRect(0,0,sliceCanvas.width,sliceHeightPx);
+            sliceCtx.drawImage(canvas,0,renderedPx,canvas.width,sliceHeightPx,0,0,canvas.width,sliceHeightPx);
+
+            if(pageIndex>0) pdf.addPage();
+            pdf.addImage(sliceCanvas.toDataURL("image/jpeg",0.92),"JPEG",10,10,pageWidthMm,sliceHeightPx/pxPerMm);
+
+            renderedPx += sliceHeightPx;
+            pageIndex++;
+        }
+
+        await shareOrDownloadFile(pdf.output("blob"),fileName);
+        showToast("PDF généré.",{type:"success"});
+    }catch(err){
+        console.error("Génération du PDF impossible :",err);
+        showToast("Génération du PDF impossible.",{type:"error"});
+    }finally{
+        printView.style.cssText = originalCssText;
+    }
+}
+
+function nativePdfExportAvailable(){
+    return isNativeApp() && !!(window.jspdf && window.html2canvas);
+}
+
+function printOrExportPdfIfNative(fileName){
+    if(nativePdfExportAvailable()){
+        exportPrintViewAsPdf(fileName);
+        return;
+    }
     if(isNativeApp()){
         showToast(
-            "L'impression n'est pas encore disponible dans l'appli — utilise Exporter > Mes données, ou ouvre la version web pour imprimer.",
+            "Génération du PDF indisponible sur cet appareil — utilise Exporter > Mes données, ou ouvre la version web pour imprimer.",
             {type:"error",duration:6000}
         );
         return;
@@ -510,6 +633,22 @@ updateSettingsTabs("donnees");
 
 const optionsMenuBtn = document.getElementById("optionsMenuBtn");
 const optionsMenuPanel = document.getElementById("optionsMenuPanel");
+
+/* Déclarés ici (pas plus bas, près de leur logique respective) : closeAllMenus()
+   les référence, et closeAllMenus() peut être appelée dès le chargement
+   initial via restoreLastMainView() (tout en bas du fichier, restaure la
+   dernière vue plein écran ouverte en ré-émettant un vrai .click() sur son
+   déclencheur) — bien avant que la déclaration originale, plus bas dans le
+   fichier, n'ait eu la moindre chance de s'exécuter. Trouvé 2026-09-05 en
+   testant une fonctionnalité sans rapport (ReferenceError TDZ sur
+   desktopProfilePanel qui empêchait TOUT le reste du script de s'exécuter
+   dès qu'une vue plein écran était ouverte à la fermeture précédente de
+   l'appli — même famille de bug que [[feedback_tdz_const_declaration_order]],
+   mais ici un throw synchrone en plein chargement, pas juste un premier
+   appel silencieusement raté). */
+const choicePopover = document.getElementById("choicePopover");
+const mapMorePanel = document.getElementById("mapMorePanel");
+const desktopProfilePanel = document.getElementById("desktopProfilePanel");
 
 function closeOptionsMenu(){
     optionsMenuPanel.hidden = true;
@@ -813,6 +952,8 @@ function savePlanning(){
         JSON.stringify(planning)
     );
     pushToSync();
+    scheduleNotificationsSyncDebounced();
+    updateHomeWidgetData();
 }
 
 function createTabs(){
@@ -2194,7 +2335,7 @@ function buildPrintView(){
 
 printBtn.addEventListener("click",()=>{
     buildPrintView();
-    printOrWarnIfNative();
+    printOrExportPdfIfNative(`planning_${tripName || "vacances"}.pdf`.replace(/\s+/g,"_"));
 });
 
 /* Carnet de voyage (mockup A validé, 2026-09-02) : réutilise le même
@@ -2374,7 +2515,7 @@ async function buildTripBookView(){
 document.getElementById("tripBookBtn").addEventListener("click",async ()=>{
     showToast("Génération du carnet de voyage…",{duration:2000});
     await buildTripBookView();
-    printOrWarnIfNative();
+    printOrExportPdfIfNative(`carnet_${tripName || "voyage"}.pdf`.replace(/\s+/g,"_"));
 });
 
 /* --- Devise du prix d'une activité : "départ" ou "arrivée" du
@@ -3308,6 +3449,150 @@ function buildPlanningICS(){
 
     lines.push("END:VCALENDAR");
     return { ics: lines.join("\r\n"), eventCount: events.length };
+}
+
+/* --- Notifications locales (2026-09-05) ---
+   @capacitor/local-notifications : rappel ACTIVITY_REMINDER_MINUTES_BEFORE
+   avant une activité planifiée + une notification le matin du jour de
+   départ. syncScheduledNotifications() annule TOUT ce qui est en attente
+   puis reprogramme entièrement depuis l'état courant de buildPlanningEventList()
+   plutôt que de suivre chaque ajout/suppression individuellement — plus
+   simple et sans risque d'oubli (voyage restauré, jour supprimé, activité
+   déplacée...), même esprit que backupToGoogleDrive()/syncTripStepsOnce()
+   qui repartent toujours de zéro depuis l'état courant. Pas de demande
+   d'alarme exacte (SCHEDULE_EXACT_ALARM, permission spéciale à accorder
+   manuellement sur Android 12+) : le plugin retombe proprement sur une
+   alarme approximative si l'exact n'est pas dispo, tolérable pour un
+   simple rappel. */
+
+const ACTIVITY_REMINDER_MINUTES_BEFORE = 30;
+const DEPARTURE_NOTIFICATION_ID = 999999001;
+
+function nativeNotificationsAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications);
+}
+
+// Identifiant 32 bits stable requis par le plugin (int Android) — dérivé
+// de n'importe quelle chaîne (id d'activité, ou repli titre+horodatage
+// pour les rares activités sans id stable).
+function stableNotificationId(str){
+    let hash = 0;
+    for(let i=0;i<str.length;i++){
+        hash = ((hash<<5)-hash+str.charCodeAt(i))|0;
+    }
+    return Math.abs(hash) || 1;
+}
+
+async function syncScheduledNotifications(){
+
+    if(!nativeNotificationsAvailable()) return;
+
+    const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+
+    try{
+        const { notifications: pending } = await LocalNotifications.getPending();
+        if(pending.length>0){
+            await LocalNotifications.cancel({notifications:pending.map(n=>({id:n.id}))});
+        }
+
+        const now = Date.now();
+        const toSchedule = [];
+
+        buildPlanningEventList().forEach(event=>{
+            const notifyAt = new Date(event.start.getTime()-ACTIVITY_REMINDER_MINUTES_BEFORE*60000);
+            if(notifyAt.getTime()<=now) return;
+            toSchedule.push({
+                id: stableNotificationId(event.id || (event.title+event.start.getTime())),
+                title: `Dans ${ACTIVITY_REMINDER_MINUTES_BEFORE} min : ${event.title}`,
+                body: event.location || "Ouvre Tabi Go pour voir les détails.",
+                schedule: { at:notifyAt, allowWhileIdle:true }
+            });
+        });
+
+        if(startDate){
+            const departureAt = new Date(startDate+"T08:00:00");
+            if(departureAt.getTime()>now){
+                toSchedule.push({
+                    id: DEPARTURE_NOTIFICATION_ID,
+                    title: "🌴 C'est le grand départ !",
+                    body: `${tripName || "Ton voyage"} commence aujourd'hui.`,
+                    schedule: { at:departureAt, allowWhileIdle:true }
+                });
+            }
+        }
+
+        if(toSchedule.length>0){
+            await LocalNotifications.schedule({notifications:toSchedule});
+        }
+    }catch(err){
+        console.error("Programmation des notifications impossible :",err);
+    }
+}
+
+/* Débouncée (comme pushToSync()) : savePlanning() peut être appelée en
+   rafale (glisser-déposer, import en masse...) — pas besoin de recalculer
+   tout le planning à chaque appel individuel. */
+let notificationsSyncTimer = null;
+function scheduleNotificationsSyncDebounced(){
+    if(!nativeNotificationsAvailable()) return;
+    clearTimeout(notificationsSyncTimer);
+    notificationsSyncTimer = setTimeout(syncScheduledNotifications,2000);
+}
+
+/* --- Préparation widget écran d'accueil (2026-09-05) ---
+   Voir le commentaire CAPACITOR "Widget écran d'accueil" tout en haut du
+   fichier : aucun widget visuel construit ici (nécessiterait un vrai
+   composant Android natif), seulement les données tenues à jour pour
+   qu'un futur AppWidgetProvider n'ait qu'à les lire plutôt qu'à recalculer
+   "prochaine activité"/"jours restants" une seconde fois côté Java. */
+const HOME_WIDGET_DATA_KEY = "homeWidgetData";
+
+function updateHomeWidgetData(){
+
+    if(!isNativeApp()) return;
+
+    /* Tout le corps dans un try : appelée dès le boot (voir plus bas), donc
+       AVANT que startDate/tripName/TRIP_TIMEZONE_KEY (via getTripNow(),
+       tous déclarés bien plus loin dans le fichier) n'existent au tout
+       premier chargement — même famille de TDZ que syncTripStepsOnce()
+       juste au-dessus. Échoue silencieusement une fois, se répare tout
+       seul au prochain vrai appel (savePlanning(), visibilitychange). */
+    try{
+        const now = Date.now();
+        const nextEvent = buildPlanningEventList()
+            .filter(event=>event.start.getTime()>now)
+            .sort((a,b)=>a.start-b.start)[0] || null;
+
+        let daysRemaining = null;
+        if(startDate){
+            const today = getTripNow();
+            today.setHours(0,0,0,0);
+            const base = new Date(startDate+"T00:00:00");
+            if(!isNaN(base.getTime())) daysRemaining = Math.round((base-today)/(1000*60*60*24));
+        }
+
+        localStorage.setItem(HOME_WIDGET_DATA_KEY,JSON.stringify({
+            tripName: tripName || "",
+            daysRemaining,
+            nextActivityTitle: nextEvent ? nextEvent.title : null,
+            nextActivityAt: nextEvent ? nextEvent.start.getTime() : null,
+            updatedAt: now
+        }));
+    }catch(err){
+        console.error("Mise à jour des données du widget impossible :",err);
+    }
+}
+
+// Même accroche que le podomètre/Drive : boot + retour au premier plan.
+if(isNativeApp()){
+    syncScheduledNotifications();
+    updateHomeWidgetData();
+    document.addEventListener("visibilitychange",()=>{
+        if(document.visibilityState==="visible"){
+            syncScheduledNotifications();
+            updateHomeWidgetData();
+        }
+    });
 }
 
 const exportIcsBtn = document.getElementById("exportIcsBtn");
@@ -6094,14 +6379,12 @@ function openNearbyToilets(){
        synchrone, puis .location.href une fois la position connue), toujours
        nécessaire là où les popups peuvent être bloqués. */
     if(nativeBrowserAvailable()){
-        navigator.geolocation.getCurrentPosition(
-            pos=>{
-                const { latitude, longitude } = pos.coords;
-                openExternalUrl(`https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`);
-            },
-            ()=>openExternalUrl(fallbackUrl),
-            { timeout:8000 }
-        );
+        getCurrentPositionAsync({timeout:8000})
+        .then(pos=>{
+            const { latitude, longitude } = pos.coords;
+            openExternalUrl(`https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`);
+        })
+        .catch(()=>openExternalUrl(fallbackUrl));
         return;
     }
 
@@ -7128,7 +7411,8 @@ function buildReservationCategories(day,activity,hasAttachments){
     return categories;
 }
 
-const choicePopover = document.getElementById("choicePopover");
+// choicePopover déclaré tôt près d'optionsMenuPanel (voir le commentaire
+// TDZ à cet endroit) — pas ici.
 let choicePopoverAnchor = null;
 
 function closeChoicePopover(){
@@ -7620,7 +7904,8 @@ function buildMapDaySheetRow(day,activity,showDayBadge,key){
    instance séparée puisque c'est un bouton différent dans un autre
    en-tête plein écran. --- */
 const mapMoreBtn = document.getElementById("mapMoreBtn");
-const mapMorePanel = document.getElementById("mapMorePanel");
+// mapMorePanel déclaré tôt près d'optionsMenuPanel (voir le commentaire TDZ
+// à cet endroit) — pas ici.
 
 function closeMapMoreMenu(){
     mapMorePanel.hidden = true;
@@ -7812,38 +8097,12 @@ async function reverseGeocodeCity(lat,lon){
 
 let geolocationForWeatherFailed = false;
 
-// CAPACITOR : navigator.geolocation — voir "Géolocalisation" en haut du
-// fichier (@capacitor/geolocation pour une permission Android fiable).
-function requestUserLocationForWeather(){
+async function requestUserLocationForWeather(){
 
-    if(!navigator.geolocation || geolocationRequestPending || geolocationForWeatherFailed) return;
+    if((!navigator.geolocation && !nativeGeolocationAvailable()) || geolocationRequestPending || geolocationForWeatherFailed) return;
     geolocationRequestPending = true;
 
-    navigator.geolocation.getCurrentPosition(
-        async pos=>{
-
-            geolocationRequestPending = false;
-
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            let city = "Ma position actuelle";
-
-            try{
-                const resolved = await reverseGeocodeCity(lat,lon);
-                if(resolved) city = resolved;
-            }catch(err){
-                console.error("Géocodage inverse impossible :",err);
-            }
-
-            lastKnownPosition = { lat, lon, city, timestamp: Date.now() };
-            renderDayWeather();
-        },
-        err=>{
-            geolocationRequestPending = false;
-            geolocationForWeatherFailed = true;
-            console.error("Géolocalisation pour la météo impossible :",err);
-            renderDayWeather();
-        },
+    try{
         /* enableHighAccuracy (2026-09-04, signalé "météo pas précise") :
            sans ça, le navigateur privilégie une position rapide via Wi-Fi/
            antennes-relais (souvent correcte à quelques centaines de mètres
@@ -7853,8 +8112,29 @@ function requestUserLocationForWeather(){
            (d'où timeout relevé en même temps), pas de changement si
            l'appareil n'a pas de puce GPS (il retombe sur sa meilleure
            source disponible). */
-        { enableHighAccuracy:true, timeout:10000 }
-    );
+        const pos = await getCurrentPositionAsync({ enableHighAccuracy:true, timeout:10000 });
+
+        geolocationRequestPending = false;
+
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        let city = "Ma position actuelle";
+
+        try{
+            const resolved = await reverseGeocodeCity(lat,lon);
+            if(resolved) city = resolved;
+        }catch(err){
+            console.error("Géocodage inverse impossible :",err);
+        }
+
+        lastKnownPosition = { lat, lon, city, timestamp: Date.now() };
+        renderDayWeather();
+    }catch(err){
+        geolocationRequestPending = false;
+        geolocationForWeatherFailed = true;
+        console.error("Géolocalisation pour la météo impossible :",err);
+        renderDayWeather();
+    }
 }
 
 const dayWeatherCard = document.getElementById("dayWeatherCard");
@@ -8991,11 +9271,13 @@ function downloadBlobToGallery(blob,fileName){
     return "downloaded";
 }
 
-async function saveBlobToGallery(blob,fileName){
+/* Repli générique (fenêtre de partage puis téléchargement) — partagé entre
+   les photos (saveBlobToGallery(), quand l'album natif dédié est
+   indisponible/échoue) et les PDF natifs (exportPrintViewAsPdf() plus bas,
+   qui n'a jamais de sens dans un album photo). */
+async function shareOrDownloadFile(blob,fileName){
 
-    if(await saveBlobToNativeGalleryAlbum(blob,fileName)) return "saved-native-album";
-
-    const file = new File([blob],fileName,{type:blob.type || "image/jpeg"});
+    const file = new File([blob],fileName,{type:blob.type || "application/octet-stream"});
 
     if(navigator.canShare && navigator.canShare({files:[file]})){
         try{
@@ -9008,6 +9290,11 @@ async function saveBlobToGallery(blob,fileName){
     }
 
     return downloadBlobToGallery(file,fileName);
+}
+
+async function saveBlobToGallery(blob,fileName){
+    if(await saveBlobToNativeGalleryAlbum(blob,fileName)) return "saved-native-album";
+    return shareOrDownloadFile(blob,fileName);
 }
 
 dayPhotoInput.addEventListener("change",async ()=>{
@@ -11031,26 +11318,24 @@ let mapRouteLayer = null;
 // fichier (@capacitor/geolocation pour une permission Android fiable).
 function showUserLocationOnMap(){
 
-    if(!navigator.geolocation || !mapUserLocationLayer) return;
+    if((!navigator.geolocation && !nativeGeolocationAvailable()) || !mapUserLocationLayer) return;
 
-    navigator.geolocation.getCurrentPosition(
-        pos=>{
-            const { latitude, longitude } = pos.coords;
+    getCurrentPositionAsync({timeout:8000})
+    .then(pos=>{
+        const { latitude, longitude } = pos.coords;
 
-            const youIcon = L.divIcon({
-                className:"map-you-icon",
-                html:"",
-                iconSize:[22,22],
-                iconAnchor:[11,11]
-            });
+        const youIcon = L.divIcon({
+            className:"map-you-icon",
+            html:"",
+            iconSize:[22,22],
+            iconAnchor:[11,11]
+        });
 
-            L.marker([latitude,longitude],{icon:youIcon,zIndexOffset:1000})
-            .addTo(mapUserLocationLayer)
-            .bindPopup("Tu es ici");
-        },
-        ()=>{},
-        { timeout:8000 }
-    );
+        L.marker([latitude,longitude],{icon:youIcon,zIndexOffset:1000})
+        .addTo(mapUserLocationLayer)
+        .bindPopup("Tu es ici");
+    })
+    .catch(()=>{});
 }
 
 async function renderMapView(){
@@ -11643,25 +11928,45 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
    LAST_FULLSCREEN_VIEW_KEY plus haut) — doit s'exécuter après que tous
    les gestionnaires de clic ci-dessus soient attachés, puisqu'elle
    réutilise le déclencheur [data-profile-view] existant (.click()) au
-   lieu de dupliquer sa logique d'ouverture (render() associé compris). */
+   lieu de dupliquer sa logique d'ouverture (render() associé compris).
+
+   setTimeout(...,0) (2026-09-05, root cause d'un vrai bug trouvé en testant
+   une fonctionnalité sans rapport) : trigger.click() déclenche en cascade
+   closeAllFullscreenViews()/closeAllMenus(), qui référencent une bonne
+   dizaine de const/let déclarées PLUS LOIN dans ce fichier (cameraView,
+   wakeLockWanted, devicesPresenceRef, desktopProfilePanel...) — appelées ici
+   de façon SYNCHRONE avant que le reste du script n'ait fini de s'exécuter,
+   n'importe laquelle d'entre elles pouvait lever une vraie TDZ et stopper
+   NET toute exécution du script au-delà de ce point (pas juste cet appel-ci
+   qui échoue : plus RIEN après ne s'exécute, y compris des déclarations
+   normalement sans rapport). Se reproduisait dès qu'une vue plein écran
+   était ouverte à la dernière fermeture de l'appli — donc probablement à
+   chaque ouverture pour un usage réel. Plutôt que de traquer une à une
+   toutes les variables tardives transitivement atteignables (fragile, il
+   pourrait en rester), reporter tout ce bloc à la prochaine tâche macro
+   (après la fin de l'exécution synchrone complète du script, donc après
+   TOUTES les déclarations) élimine la classe de bug entière d'un coup —
+   invisible pour l'utilisateur (avant le premier rendu à l'écran). */
 (function restoreLastMainView(){
+    setTimeout(()=>{
 
-    const savedTab = localStorage.getItem(LAST_MAIN_TAB_KEY);
-    if(savedTab && savedTab!=="planning"){
-        setActiveMainTab(savedTab);
-    }
+        const savedTab = localStorage.getItem(LAST_MAIN_TAB_KEY);
+        if(savedTab && savedTab!=="planning"){
+            setActiveMainTab(savedTab);
+        }
 
-    /* reservationsView/albumView exclues ici sur mobile : gérées par
-       LAST_MAIN_TAB_KEY ci-dessus maintenant, comme budget/profile — ce
-       bloc ne doit plus les rouvrir en vue plein écran par-dessus. Sur
-       desktop, où LAST_MAIN_TAB_KEY ne pilote pas ces deux vues, ce
-       chemin reste le seul mécanisme de restauration et doit continuer à
-       fonctionner tel quel. */
-    const savedView = localStorage.getItem(LAST_FULLSCREEN_VIEW_KEY);
-    if(savedView && (isDesktopContext() || (savedView!=="reservationsView" && savedView!=="albumView"))){
-        const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
-        if(trigger) trigger.click();
-    }
+        /* reservationsView/albumView exclues ici sur mobile : gérées par
+           LAST_MAIN_TAB_KEY ci-dessus maintenant, comme budget/profile — ce
+           bloc ne doit plus les rouvrir en vue plein écran par-dessus. Sur
+           desktop, où LAST_MAIN_TAB_KEY ne pilote pas ces deux vues, ce
+           chemin reste le seul mécanisme de restauration et doit continuer à
+           fonctionner tel quel. */
+        const savedView = localStorage.getItem(LAST_FULLSCREEN_VIEW_KEY);
+        if(savedView && (isDesktopContext() || (savedView!=="reservationsView" && savedView!=="albumView"))){
+            const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
+            if(trigger) trigger.click();
+        }
+    },0);
 })();
 
 document.addEventListener("keydown",(e)=>{
@@ -14332,7 +14637,8 @@ document.addEventListener("keydown",(e)=>{
 /* --- Profil (desktop) : mêmes sous-écrans que le bandeau mobile --- */
 
 const desktopProfileBtn = document.getElementById("desktopProfileBtn");
-const desktopProfilePanel = document.getElementById("desktopProfilePanel");
+// desktopProfilePanel déclaré tôt près d'optionsMenuPanel (voir le
+// commentaire TDZ à cet endroit) — pas ici.
 
 desktopProfileBtn.addEventListener("click",(e)=>{
     e.stopPropagation();
@@ -14719,6 +15025,14 @@ refreshActivityAttachmentCounts().then(()=>{
     }else if(shortcut==="expense"){
         setActiveMainTab("budget");
         switchTricountTab("new");
+    }else if(shortcut==="scanqr"){
+        // CAPACITOR (2026-09-05) : startQrScan() bascule déjà lui-même sur
+        // le scanner natif quand disponible (nativeBarcodeScanAvailable()).
+        startQrScan();
+    }else if(shortcut==="addactivity"){
+        setActiveMainTab("planning");
+        openFormDrawer();
+        document.getElementById("activityName").focus();
     }
 })();
 

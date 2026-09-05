@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-05) : raccourcis statiques Android (appui long sur
+     l'icône de l'appli) — voir handleAppShortcut() dans app.js, qui lit
+     le paramètre ?shortcut=xxx de l'URL au démarrage (mode server.url :
+     l'ACTION_VIEW ci-dessous ouvre directement l'URL en ligne de l'appli,
+     comme le lien de synchronisation ?sync=CODE). Icônes système Android
+     réutilisées (ic_menu_camera/ic_input_add) plutôt que d'en générer de
+     nouvelles, comportement plus important que le rendu visuel exact du
+     menu de raccourcis. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="scanqr"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:shortcutShortLabel="@string/shortcut_scanqr_short"
+        android:shortcutLongLabel="@string/shortcut_scanqr_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.julien.planningvacances"
+            android:targetClass="com.julien.planningvacances.MainActivity"
+            android:data="https://julienbruwaert1-sys.github.io/planning-vacances/?shortcut=scanqr" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="addactivity"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_input_add"
+        android:shortcutShortLabel="@string/shortcut_addactivity_short"
+        android:shortcutLongLabel="@string/shortcut_addactivity_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.julien.planningvacances"
+            android:targetClass="com.julien.planningvacances.MainActivity"
+            android:data="https://julienbruwaert1-sys.github.io/planning-vacances/?shortcut=addactivity" />
+    </shortcut>
+</shortcuts>
