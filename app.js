@@ -9560,12 +9560,17 @@ function setTranslateStatus(message){
    processImage() a besoin du vrai chemin natif (pas de l'URL webview), donc
    on le reconstruit en retirant ce préfixe (même logique que native-bridge.js
    côté Capacitor). Sans ça, photo.path est undefined et ML Kit échoue avec
-   "path must be provided." — confirmé via adb logcat sur appareil réel. */
+   "path must be provided." — confirmé via adb logcat sur appareil réel.
+   Le plugin fait ensuite Uri.parse(path) : un chemin absolu nu ("/data/...")
+   n'a pas de scheme et Android échoue avec "No content provider" — il faut
+   le préfixer en "file://" (photo.path, lui, contient déjà ce scheme car il
+   vient directement d'un Uri.toString() côté plugin caméra). Confirmé lui
+   aussi via adb logcat sur appareil réel après le premier correctif. */
 function nativeFilePathFromCameraResult(photo){
     if(photo.path) return photo.path;
     const marker = "/_capacitor_file_";
     const idx = photo.webPath ? photo.webPath.indexOf(marker) : -1;
-    return idx!==-1 ? photo.webPath.slice(idx+marker.length) : null;
+    return idx!==-1 ? "file://"+photo.webPath.slice(idx+marker.length) : null;
 }
 
 async function startPhotoTranslation(){
