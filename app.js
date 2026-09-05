@@ -9,11 +9,14 @@
      startCameraStream/capturePhotoFromCamera) : getUserMedia() plafonne la
      qualité en dessous de l'appli caméra native. Le plugin @capacitor/camera
      (Camera.getPhoto()) donnerait la pleine résolution du capteur.
-   - Enregistrement galerie (downloadBlobToGallery/saveBlobToGallery) :
-     limité au partage/téléchargement web, impossible de choisir un album
-     ("appli voyage" plutôt que "Téléchargements"). @capacitor/filesystem +
-     un plugin galerie natif permettraient un vrai écriture dans un album
-     nommé.
+   - Enregistrement galerie (résolu 2026-09-05, saveBlobToNativeGalleryAlbum()
+     près de nativeCameraAvailable()) : @capacitor-community/media écrit
+     vraiment dans un album dédié ("Tabi Go", NATIVE_PHOTO_ALBUM_NAME) au
+     lieu du dossier Téléchargements générique — utilisé à la fois par la
+     capture caméra native (captureNativePhotoOrFallback) et par les photos
+     choisies/importées (saveBlobToGallery). downloadBlobToGallery/
+     saveBlobToGallery restent le repli web/PWA (impossible d'écrire dans
+     un album choisi depuis un navigateur normal).
    - Le bouton "Live Server ↔ en ligne" (switchServerBtn, juste en dessous)
      n'a plus de sens dans une appli empaquetée (pas deux origines à changer)
      — masqué via isNativeApp() dès maintenant.
@@ -122,25 +125,34 @@
      fichier .ics que l'utilisateur doit ouvrir manuellement — un plugin
      natif d'écriture calendrier (ex. @capacitor-community/calendar)
      ajouterait directement les activités au calendrier du téléphone.
-   - Scanner de QR code (qrScanBtn, jsQR vendorisé) : décodage en JS pur
-     sur des frames de canvas, plus lent/moins fiable en conditions réelles
-     qu'un plugin natif basé ML Kit (ex. @capacitor-mlkit/barcode-scanning).
-   - Sauvegarde automatique sur le cloud du téléphone (voir le commentaire
-     détaillé près de exportDataBtn) : deux approches bien distinctes, à ne
-     pas confondre. (1) Android Auto Backup : rien à écrire ici, ça se
-     configure ENTIÈREMENT côté natif (allowBackup + une règle XML dans
-     AndroidManifest.xml qui liste quoi inclure) — zéro JS possible ou
-     nécessaire, un futur backup automatique "gratuit" du stockage de
-     l'appli vers le compte Google de l'utilisateur, invisible pour le
-     code web. (2) Une vraie intégration Google Drive (choisir/uploader un
-     fichier de sauvegarde soi-même, OAuth, Drive API) : un projet séparé
-     à part entière, pas préparable sans décider d'abord du périmètre exact
-     (juste le JSON déjà exporté par exportDataBtn ? Aussi les photos/
-     documents IndexedDB ?) et du budget API. Sans objet tant que
-     document_sync_feature (2026-09-03, Firebase Storage) couvre déjà le
-     partage entre appareils appairés — Drive répondrait à un besoin
-     différent (sauvegarde perso hors appairage), à confirmer avant de
-     lancer quoi que ce soit dessus.
+   - Scanner de QR code (fonctionnel 2026-09-05, qrScanBtn, voir
+     handleScannedQrValue()/scanQrNative() juste après le bloc synchro) :
+     @capacitor-mlkit/barcode-scanning (méthode scan(), interface native
+     complète comme Camera.takePhoto) prend le relais quand disponible —
+     jsQR (décodage JS pur sur des frames de canvas) reste utilisé tel quel
+     sur web/PWA, et en repli si le plugin natif échoue.
+   - Sauvegarde automatique sur Google Drive (fonctionnelle 2026-09-05, voir
+     GOOGLE_WEB_CLIENT_ID/connectGoogleDrive()/backupToGoogleDrive() près
+     de exportDataBtn) : @capgo/capacitor-social-login pour l'OAuth (pas
+     @codetrix-studio/capacitor-google-auth, confirmé abandonné/incompatible
+     Capacitor 8) + appels REST directs à l'API Drive v3 (pas de plugin
+     "backup" tout fait fiable). Seul le JSON déjà exporté par
+     exportDataBtn est sauvegardé (buildBackupPayload(), partagée entre les
+     deux) — PAS les photos/documents IndexedDB, décision explicite pour
+     rester simple/fiable. Stocké dans le dossier caché de l'appli sur
+     Drive (appDataFolder, scope drive.appdata), un seul fichier écrasé à
+     chaque sauvegarde. Repose sur deux identifiants OAuth Google Cloud
+     distincts (Web pour le code, Android pour le SHA-1 du keystore —
+     jamais utilisé dans le code mais doit exister côté Google) ; tant que
+     le projet Google Cloud reste en statut "Test" (cas normal pour un
+     usage perso), le jeton expire après ~7 jours — une reconnexion
+     occasionnelle (bouton "Connecter Google Drive") reste alors
+     nécessaire, décision explicite acceptée plutôt que la vérification
+     Google qu'exigerait le statut "Production". Différent de Android Auto
+     Backup (configuration XML pure, invisible, zéro JS — non retenu ici
+     car sans bouton ni confirmation visible) et de document_sync_feature
+     (2026-09-03, Firebase Storage, appareils appairés entre eux — pas une
+     sauvegarde personnelle hors appairage).
    - Traduction par appareil photo (2026-09-04, aucun code existant, point
      d'entrée à créer entièrement) : viserait un bouton quelque part
      (Réglages ? Une activité ? Un nouveau raccourci caméra ?) qui capture
@@ -2396,17 +2408,31 @@ activityPriceCurrencyTargetBtn.addEventListener("click",()=>{
 updateActivityPriceCurrencyToggle();
 
 /* --- Export / Import JSON (sauvegarde complète) ---
-   CAPACITOR : cette sauvegarde reste 100% manuelle (l'utilisateur clique,
-   télécharge, doit penser à la refaire) — ce n'est pas la même chose
-   qu'une sauvegarde cloud automatique (Google Drive/iCloud), qui n'a pas
-   d'équivalent web : aucune API web standard n'écrit dans l'espace de
-   sauvegarde du système d'exploitation. Nécessiterait soit un plugin natif
-   (ex. Android Auto Backup, activable simplement dans AndroidManifest.xml
-   une fois l'app packagée, sans code JS supplémentaire), soit une vraie
-   intégration OAuth Google Drive (bien plus lourde, hors de portée d'une
-   appli 100% locale sans backend). À ne pas confondre avec la
-   synchronisation Firebase existante (voir [[firebase_sync]]) : elle
-   relie deux appareils entre eux, ce n'est pas une sauvegarde cloud. */
+   CAPACITOR (2026-09-05) : le bouton manuel reste tel quel — mais son
+   contenu (buildBackupPayload()) est maintenant réutilisé par une vraie
+   sauvegarde automatique sur Google Drive, voir le bloc juste après
+   updateBackupReminderHint(). À ne pas confondre avec la synchronisation
+   Firebase existante (voir [[firebase_sync]]) : elle relie deux appareils
+   entre eux, ce n'est pas une sauvegarde personnelle hors appairage. */
+
+function buildBackupPayload(){
+    return {
+        version:2,
+        exportedAt:new Date().toISOString(),
+        tripName,
+        tripCountry,
+        planning,
+        dayCount,
+        startDate:localStorage.getItem("startDate") || "",
+        baseCurrency:localStorage.getItem("baseCurrency") || "GBP",
+        targetCurrency:localStorage.getItem("targetCurrency") || "",
+        tripTimezone:localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
+        checklist,
+        checklistTemplates:JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
+        tricountParticipants,
+        tricountExpenses
+    };
+}
 
 const exportDataBtn = document.getElementById("exportDataBtn");
 const backupReminderHint = document.getElementById("backupReminderHint");
@@ -2440,25 +2466,8 @@ updateBackupReminderHint();
 
 exportDataBtn.addEventListener("click",()=>{
 
-    const backup = {
-        version:2,
-        exportedAt:new Date().toISOString(),
-        tripName,
-        tripCountry,
-        planning,
-        dayCount,
-        startDate:localStorage.getItem("startDate") || "",
-        baseCurrency:localStorage.getItem("baseCurrency") || "GBP",
-        targetCurrency:localStorage.getItem("targetCurrency") || "",
-        tripTimezone:localStorage.getItem(TRIP_TIMEZONE_KEY) || "",
-        checklist,
-        checklistTemplates:JSON.parse(localStorage.getItem(CHECKLIST_TEMPLATE_STATE_KEY) || "[]"),
-        tricountParticipants,
-        tricountExpenses
-    };
-
     const blob = new Blob(
-        [JSON.stringify(backup,null,2)],
+        [JSON.stringify(buildBackupPayload(),null,2)],
         {type:"application/json"}
     );
 
@@ -2472,6 +2481,212 @@ exportDataBtn.addEventListener("click",()=>{
 
     showToast("Sauvegarde exportée.",{type:"success"});
 });
+
+/* --- Sauvegarde automatique sur Google Drive (2026-09-05) ---
+   Voir le commentaire CAPACITOR "Sauvegarde automatique sur Google Drive"
+   tout en haut du fichier pour l'architecture complète (deux identifiants
+   OAuth Google Cloud, jeton qui expire ~7 jours en statut "Test", scope
+   drive.appdata). Résumé : @capgo/capacitor-social-login pour l'OAuth,
+   appels REST directs à l'API Drive v3 pour l'upload — buildBackupPayload()
+   ci-dessus est la SEULE source de vérité du contenu sauvegardé, partagée
+   avec l'export JSON manuel. */
+
+// REMPLIR APRÈS CRÉATION DU PROJET GOOGLE CLOUD (voir le plan/la doc du
+// commit) : Client ID de type "Web application", PAS le Client ID Android.
+const GOOGLE_WEB_CLIENT_ID = "";
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const GOOGLE_DRIVE_BACKUP_FILENAME = "planning_vacances_backup.json";
+
+const DRIVE_CONNECTED_KEY = "driveBackupConnected";
+const DRIVE_LAST_BACKUP_KEY = "lastDriveBackupAt";
+const DRIVE_AUTO_BACKUP_INTERVAL_MS = 24*60*60*1000;
+
+const driveBackupHint = document.getElementById("driveBackupHint");
+
+function isDriveConnected(){
+    return localStorage.getItem(DRIVE_CONNECTED_KEY)==="1";
+}
+
+function nativeSocialLoginAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin);
+}
+
+let socialLoginInitPromise = null;
+
+function ensureSocialLoginInitialized(){
+    if(!socialLoginInitPromise){
+        socialLoginInitPromise = window.Capacitor.Plugins.SocialLogin.initialize({
+            google:{ webClientId:GOOGLE_WEB_CLIENT_ID }
+        });
+    }
+    return socialLoginInitPromise;
+}
+
+function updateDriveBackupHint(){
+    if(!driveBackupHint) return;
+
+    driveBackupHint.hidden = !isNativeApp();
+    if(!isNativeApp()) return;
+
+    if(!isDriveConnected()){
+        driveBackupHint.textContent = "Google Drive : non connecté.";
+        driveBackupHint.classList.remove("menu-hint-warning");
+        return;
+    }
+
+    const last = parseInt(localStorage.getItem(DRIVE_LAST_BACKUP_KEY),10);
+    if(!last){
+        driveBackupHint.textContent = "Google Drive connecté — première sauvegarde en attente.";
+        driveBackupHint.classList.remove("menu-hint-warning");
+        return;
+    }
+    const days = Math.floor((Date.now()-last)/(24*60*60*1000));
+    const when = days<=0 ? "aujourd'hui" : days===1 ? "il y a 1 jour" : `il y a ${days} jours`;
+    driveBackupHint.textContent = `Dernière sauvegarde Drive : ${when}.`;
+    driveBackupHint.classList.remove("menu-hint-warning");
+}
+
+/* Jamais appelée automatiquement en tâche de fond avec une UI potentielle :
+   seul le bouton "Connecter/Reconnecter" (geste utilisateur explicite)
+   déclenche login() quand une vraie interaction Google peut être
+   nécessaire. ensureDriveAccessToken() (plus bas) l'appelle aussi, mais
+   uniquement au moment où l'appli redevient visible — jamais pendant
+   qu'elle est en arrière-plan. */
+async function connectGoogleDrive(){
+
+    if(!nativeSocialLoginAvailable()){
+        showToast("La sauvegarde Google Drive n'est disponible que dans l'appli Android.",{type:"error"});
+        return;
+    }
+
+    if(!GOOGLE_WEB_CLIENT_ID){
+        showToast("Google Drive n'est pas encore configuré (Client ID manquant).",{type:"error"});
+        return;
+    }
+
+    try{
+        await ensureSocialLoginInitialized();
+        const { result } = await window.Capacitor.Plugins.SocialLogin.login({
+            provider:"google",
+            options:{ scopes:[GOOGLE_DRIVE_SCOPE] }
+        });
+
+        if(!result.accessToken || !result.accessToken.token){
+            throw new Error("Aucun jeton d'accès reçu");
+        }
+
+        localStorage.setItem(DRIVE_CONNECTED_KEY,"1");
+        updateDriveBackupHint();
+        showToast("Connecté à Google Drive.",{type:"success"});
+
+        await backupToGoogleDrive();
+    }catch(err){
+        if(err && err.code==="USER_CANCELLED") return;
+        console.error("Connexion à Google Drive impossible :",err);
+        showToast("Connexion à Google Drive impossible.",{type:"error"});
+    }
+}
+
+/* Renouvelle silencieusement le jeton via login() : sur Android, le
+   Credential Manager renvoie une session déjà valide sans redemander de
+   consentement — une vraie boîte de dialogue ne réapparaît que si la
+   session a expiré (~7 jours en statut "Test", voir le commentaire
+   CAPACITOR tout en haut du fichier). C'est acceptable ici car cette
+   fonction n'est appelée qu'au moment où l'appli redevient visible
+   (voir scheduleGoogleDriveAutoBackupCheck), jamais pendant qu'elle est
+   fermée ou masquée. */
+async function ensureDriveAccessToken(){
+
+    if(!isDriveConnected() || !nativeSocialLoginAvailable()) return null;
+
+    try{
+        await ensureSocialLoginInitialized();
+        const { result } = await window.Capacitor.Plugins.SocialLogin.login({
+            provider:"google",
+            options:{ scopes:[GOOGLE_DRIVE_SCOPE] }
+        });
+        if(result.accessToken && result.accessToken.token) return result.accessToken.token;
+        throw new Error("Aucun jeton d'accès reçu");
+    }catch(err){
+        console.error("Reconnexion à Google Drive nécessaire :",err);
+        localStorage.setItem(DRIVE_CONNECTED_KEY,"0");
+        updateDriveBackupHint();
+        return null;
+    }
+}
+
+async function findExistingDriveBackupFileId(accessToken){
+    const url = "https://www.googleapis.com/drive/v3/files"
+        + "?spaces=appDataFolder&q=" + encodeURIComponent(`name='${GOOGLE_DRIVE_BACKUP_FILENAME}'`)
+        + "&fields=files(id)";
+    const response = await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`}});
+    if(!response.ok) throw new Error("Recherche du fichier Drive impossible");
+    const data = await response.json();
+    return (data.files && data.files[0]) ? data.files[0].id : null;
+}
+
+async function backupToGoogleDrive(){
+
+    const accessToken = await ensureDriveAccessToken();
+    if(!accessToken) return false;
+
+    try{
+        const existingFileId = await findExistingDriveBackupFileId(accessToken);
+
+        const metadata = existingFileId
+            ? { name:GOOGLE_DRIVE_BACKUP_FILENAME }
+            : { name:GOOGLE_DRIVE_BACKUP_FILENAME, parents:["appDataFolder"] };
+
+        const boundary = "tabigo-drive-backup-boundary";
+        const body =
+            `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`
+            + `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(buildBackupPayload(),null,2)}\r\n`
+            + `--${boundary}--`;
+
+        const uploadUrl = existingFileId
+            ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
+            : "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+
+        const response = await fetch(uploadUrl,{
+            method: existingFileId ? "PATCH" : "POST",
+            headers:{
+                Authorization:`Bearer ${accessToken}`,
+                "Content-Type":`multipart/related; boundary=${boundary}`
+            },
+            body
+        });
+
+        if(!response.ok) throw new Error(`Upload Drive refusé (${response.status})`);
+
+        localStorage.setItem(DRIVE_LAST_BACKUP_KEY,Date.now());
+        updateDriveBackupHint();
+        return true;
+    }catch(err){
+        console.error("Sauvegarde sur Google Drive impossible :",err);
+        return false;
+    }
+}
+
+/* Même accroche que le podomètre (syncTripStepsOnce(), voir le bloc juste
+   après le verrou par voyage) : appelée au boot ET à chaque retour au
+   premier plan (visibilitychange). Basée sur le temps écoulé plutôt que
+   sur chaque modification de donnée — une sauvegarde est un filet de
+   sécurité périodique, pas une synchro temps réel (même esprit que
+   BACKUP_REMINDER_WARNING_DAYS un peu plus haut). */
+async function scheduleGoogleDriveAutoBackupCheck(){
+    if(!isDriveConnected() || !nativeSocialLoginAvailable()) return;
+    const last = parseInt(localStorage.getItem(DRIVE_LAST_BACKUP_KEY),10) || 0;
+    if(Date.now()-last < DRIVE_AUTO_BACKUP_INTERVAL_MS) return;
+    await backupToGoogleDrive();
+}
+
+updateDriveBackupHint();
+if(isNativeApp()){
+    scheduleGoogleDriveAutoBackupCheck();
+    document.addEventListener("visibilitychange",()=>{
+        if(document.visibilityState==="visible") scheduleGoogleDriveAutoBackupCheck();
+    });
+}
 
 function handleImportBackupFile(file){
 
@@ -3099,12 +3314,22 @@ const tripBookBtn = document.getElementById("tripBookBtn");
 
 exportBtn.addEventListener("click",(e)=>{
     e.stopPropagation();
-    toggleChoicePopover(exportBtn,[
+    const items = [
         {icon:"🖨️",label:"PDF (planning)",action:()=>printBtn.click()},
         {icon:"📖",label:"Carnet de voyage (PDF)",action:()=>tripBookBtn.click()},
         {icon:"🗓️",label:"Calendrier (.ics)",action:()=>exportIcsBtn.click()},
         {icon:"💾",label:"Mes données (JSON)",action:()=>exportDataBtn.click()}
-    ]);
+    ];
+    // CAPACITOR (2026-09-05) : natif seulement, voir connectGoogleDrive()
+    // près de exportDataBtn — pas de sens sur web/PWA (pas de plugin).
+    if(isNativeApp()){
+        items.push({
+            icon:"☁️",
+            label: isDriveConnected() ? "Sauvegarder sur Drive" : "Connecter Google Drive",
+            action: ()=> isDriveConnected() ? backupToGoogleDrive() : connectGoogleDrive()
+        });
+    }
+    toggleChoicePopover(exportBtn,items);
 });
 
 const importIcsBtn = document.getElementById("importIcsBtn");
@@ -3289,11 +3514,65 @@ pasteImportAnalyzeBtn.addEventListener("click",()=>{
    un QR scanné suit exactement le même chemin qu'un texte collé, la
    plupart des QR de réservation encodant une URL ou un texte de
    confirmation.
-   CAPACITOR : getUserMedia() ici est le même point d'attention que la vue
-   caméra maison plus bas (résolution plafonnée) — un plugin natif de scan
-   (ex. @capacitor-mlkit/barcode-scanning, basé sur ML Kit) serait plus
-   rapide et plus fiable en conditions réelles (angle, distance, reflets)
-   qu'une boucle de décodage JS sur des frames de canvas. */
+   CAPACITOR (plugin réel ajouté 2026-09-05) : @capacitor-mlkit/barcode-
+   scanning prend le relais quand disponible — sa méthode scan() ouvre une
+   interface native complète prête à l'emploi (même famille que
+   Camera.takePhoto()), plus rapide/fiable en conditions réelles (angle,
+   distance, reflets) que la boucle jsQR ci-dessous. Sur Android, scan() ne
+   demande pas la permission caméra mais nécessite le module Google
+   Barcode Scanner (téléchargé à la demande, voir scanQrNative()). jsQR
+   reste utilisé tel quel sur web/PWA, et en repli si le plugin natif
+   échoue pour une raison quelconque. */
+function handleScannedQrValue(value){
+
+    /* Le QR de synchronisation encode maintenant une vraie URL
+       (?sync=CODE, voir renderInlineSyncQr() plus bas) — pour que la
+       caméra native du téléphone sache aussi quoi en faire (avant, un
+       préfixe "planvac-sync:" arbitraire faisait échouer le scan natif
+       avec "aucune application ne peut utiliser ce code"). new URL() lève
+       sur du texte de réservation normal (pas une URL) : capturé, on
+       retombe simplement sur le parsing habituel. */
+    let scannedSyncCode = null;
+    try{
+        scannedSyncCode = new URL(value).searchParams.get("sync");
+    }catch(err){}
+
+    if(scannedSyncCode){
+        syncCodeInput.value = scannedSyncCode.trim().toUpperCase();
+        syncJoinBtn.click();
+        return;
+    }
+
+    applyParsedReservationToForm(parseReservationText(value));
+}
+
+function nativeBarcodeScanAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BarcodeScanner);
+}
+
+async function scanQrNative(){
+
+    const BarcodeScanner = window.Capacitor.Plugins.BarcodeScanner;
+
+    try{
+        const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
+        if(!available){
+            showToast("Installation du module de scan…",{type:"success",duration:4000});
+            await BarcodeScanner.installGoogleBarcodeScannerModule();
+        }
+
+        const { barcodes } = await BarcodeScanner.scan();
+
+        if(!barcodes || barcodes.length===0) return; // annulation silencieuse, pas une erreur
+
+        triggerHaptic(20);
+        handleScannedQrValue(barcodes[0].rawValue || barcodes[0].displayValue || "");
+    }catch(err){
+        console.error("Scan natif indisponible, repli sur le scanner intégré :",err);
+        await startQrScanFallback();
+    }
+}
+
 const qrScanBtn = document.getElementById("qrScanBtn");
 const qrScanView = document.getElementById("qrScanView");
 const qrScanPreview = document.getElementById("qrScanPreview");
@@ -3333,29 +3612,7 @@ function qrScanFrame(){
         if(code && code.data){
             triggerHaptic(20);
             stopQrScan();
-
-            /* Le QR de synchronisation encode maintenant une vraie URL
-               (?sync=CODE, voir renderInlineSyncQr() plus bas) — pour que la
-               caméra native du téléphone sache aussi quoi en faire (avant,
-               un préfixe "planvac-sync:" arbitraire faisait échouer le scan
-               natif avec "aucune application ne peut utiliser ce code").
-               new URL() lève sur du texte de réservation normal (pas une
-               URL) : capturé, on retombe simplement sur le parsing habituel.
-               syncCodeInput/syncJoinBtn référencés ici sans risque de TDZ :
-               ce code ne s'exécute que sur un vrai scan, forcément après le
-               chargement complet du script. */
-            let scannedSyncCode = null;
-            try{
-                scannedSyncCode = new URL(code.data).searchParams.get("sync");
-            }catch(err){}
-
-            if(scannedSyncCode){
-                syncCodeInput.value = scannedSyncCode.trim().toUpperCase();
-                syncJoinBtn.click();
-                return;
-            }
-
-            applyParsedReservationToForm(parseReservationText(code.data));
+            handleScannedQrValue(code.data);
             return;
         }
     }
@@ -3363,7 +3620,7 @@ function qrScanFrame(){
     qrScanLoopId = requestAnimationFrame(qrScanFrame);
 }
 
-async function startQrScan(){
+async function startQrScanFallback(){
 
     if(typeof jsQR!=="function"){
         showToast("Le module de scan n'a pas pu être chargé.",{type:"error"});
@@ -3384,6 +3641,14 @@ async function startQrScan(){
             {type:"error",duration:6000}
         );
     }
+}
+
+async function startQrScan(){
+    if(nativeBarcodeScanAvailable()){
+        await scanQrNative();
+        return;
+    }
+    await startQrScanFallback();
 }
 
 qrScanBtn.addEventListener("click",()=>{
@@ -7970,6 +8235,12 @@ async function renderWeatherForecast(){
 /* --- Photos du jour (stockage 100% local, IndexedDB — pas de synchro
    entre appareils, voir la mémoire du projet pour le pourquoi) --- */
 
+/* CAPACITOR (2026-09-05) : nom de l'album dédié créé sur le téléphone via
+   @capacitor-community/media (voir ensureNativePhotoAlbum() plus bas,
+   près de nativeCameraAvailable()) — remplace le dossier Téléchargements
+   générique utilisé jusque-là (downloadBlobToGallery/saveBlobToGallery). */
+const NATIVE_PHOTO_ALBUM_NAME = "Tabi Go";
+
 const PHOTO_DB_NAME = "planningPhotosDB";
 const PHOTO_STORE_NAME = "photos";
 let photoDBPromise = null;
@@ -8553,11 +8824,11 @@ function refreshOpenPhotoViews(){
    aussi bien que l'appareil photo/DCIM. Utilisée pour la caméra maison, où
    ouvrir la fenêtre de partage après CHAQUE prise casse le flux tap/hold.
 
-   CAPACITOR : downloadBlobToGallery() et saveBlobToGallery() sont les deux
-   à remplacer par @capacitor/filesystem (+ un plugin galerie natif) pour
-   écrire vraiment dans un album choisi (ex. "Voyage") au lieu du dossier
-   Téléchargements générique — impossible à faire depuis le web (voir
-   [[photo_storage_feature]] pour la limite déjà documentée). */
+   CAPACITOR (2026-09-05, résolu) : voir saveBlobToNativeGalleryAlbum() plus
+   bas (près de nativeCameraAvailable()) — @capacitor-community/media écrit
+   maintenant vraiment dans un album "Tabi Go" dédié en natif. Cette
+   fonction reste le repli web/PWA (impossible d'y écrire dans un album
+   choisi depuis un navigateur normal, voir [[photo_storage_feature]]). */
 function downloadBlobToGallery(blob,fileName){
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -8569,6 +8840,8 @@ function downloadBlobToGallery(blob,fileName){
 }
 
 async function saveBlobToGallery(blob,fileName){
+
+    if(await saveBlobToNativeGalleryAlbum(blob,fileName)) return "saved-native-album";
 
     const file = new File([blob],fileName,{type:blob.type || "image/jpeg"});
 
@@ -8698,6 +8971,71 @@ function nativeCameraAvailable(){
     return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera);
 }
 
+/* CAPACITOR (2026-09-05) : album galerie dédié ("Tabi Go") plutôt que le
+   dossier Téléchargements générique. @capacitor-community/media identifie
+   les albums Android par un identifiant (pas juste un nom, changement de
+   comportement de la lib) — on le récupère une seule fois via getAlbums()/
+   createAlbum() puis on le garde en mémoire pour le reste de la session
+   (pas besoin de le refaire à chaque photo). */
+let nativePhotoAlbumIdPromise = null;
+
+function nativePhotoAlbumAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Media);
+}
+
+async function ensureNativePhotoAlbum(){
+
+    if(!nativePhotoAlbumAvailable()) return null;
+
+    if(!nativePhotoAlbumIdPromise){
+        nativePhotoAlbumIdPromise = (async()=>{
+            const Media = window.Capacitor.Plugins.Media;
+            try{
+                const { albums } = await Media.getAlbums();
+                const existing = (albums || []).find(a=>a.name===NATIVE_PHOTO_ALBUM_NAME);
+                if(existing) return existing.identifier;
+                const created = await Media.createAlbum({name:NATIVE_PHOTO_ALBUM_NAME});
+                return created.identifier;
+            }catch(err){
+                console.error("Album photo natif indisponible :",err);
+                return null;
+            }
+        })();
+    }
+
+    return nativePhotoAlbumIdPromise;
+}
+
+async function blobToDataUrl(blob){
+    return new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = ()=>reject(reader.error);
+        reader.readAsDataURL(blob);
+    });
+}
+
+/* Retourne true seulement si la photo a vraiment été écrite dans l'album
+   natif — false (jamais une exception) pour laisser l'appelant retomber
+   sur le repli web habituel (partage/téléchargement), jamais de
+   cul-de-sac silencieux. */
+async function saveBlobToNativeGalleryAlbum(blob,fileName){
+
+    if(!nativePhotoAlbumAvailable()) return false;
+
+    try{
+        const albumIdentifier = await ensureNativePhotoAlbum();
+        if(!albumIdentifier) return false;
+
+        const path = await blobToDataUrl(blob);
+        await window.Capacitor.Plugins.Media.savePhoto({path,albumIdentifier,fileName});
+        return true;
+    }catch(err){
+        console.error("Écriture dans l'album photo natif impossible :",err);
+        return false;
+    }
+}
+
 async function fetchMediaResultBlob(result){
     const src = result.webPath || (window.Capacitor && window.Capacitor.convertFileSrc ? window.Capacitor.convertFileSrc(result.uri) : result.uri);
     const response = await fetch(src);
@@ -8708,11 +9046,12 @@ async function captureNativePhotoOrFallback(){
     try{
         const result = await window.Capacitor.Plugins.Camera.takePhoto({
             quality: 100,
-            saveToGallery: true,
+            saveToGallery: false, // écriture dans l'album "Tabi Go" gérée juste en dessous, pas l'album générique
             correctOrientation: true
         });
         const blob = await fetchMediaResultBlob(result);
-        await handleCapturedCameraMedia(blob,true);
+        const savedToAlbum = await saveBlobToNativeGalleryAlbum(blob,`photo_jour${pendingPhotoDay}_${Date.now()}.jpg`);
+        await handleCapturedCameraMedia(blob,savedToAlbum);
     }catch(err){
         // L'utilisateur a annulé depuis l'appli caméra native (retour, croix...)
         // — pas une vraie erreur, pas de repli, juste remettre l'état à zéro.

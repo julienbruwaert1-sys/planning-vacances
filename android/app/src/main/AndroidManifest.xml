@@ -473,6 +473,12 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- CAPACITOR (2026-09-05, @capacitor-mlkit/barcode-scanning) :
+             déclare le module ML Kit "barcode_ui" nécessaire à scan() —
+             voir scanQrNative() dans app.js. Sans ça, isGoogleBarcodeScanner
+             ModuleAvailable() ne trouve jamais rien à installer. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui"/>
     </application>
 
     <!-- Permissions -->
@@ -484,12 +490,16 @@
          navigator.geolocation (météo, "ma position" sur la carte, toilettes
          à proximité) — voir la note "Géolocalisation" en tête d'app.js;
          fonctionne mais reste marqué comme "à vérifier sur appareil réel"
-         tant qu'aucun plugin natif n'est ajouté. -->
+         tant qu'aucun plugin natif n'est ajouté. READ_MEDIA_IMAGES
+         (Android 13+, 2026-09-05) : @capacitor-community/media doit
+         pouvoir lister les albums existants (getAlbums()) avant de créer
+         "Tabi Go" — voir ensureNativePhotoAlbum() dans app.js. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>

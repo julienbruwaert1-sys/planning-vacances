@@ -21,12 +21,15 @@
   "homepage": "https://github.com/julienbruwaert1-sys/planning-vacances#readme",
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor-community/media": "^9.1.0",
+    "@capacitor-mlkit/barcode-scanning": "^8.1.1",
     "@capacitor/android": "^8.5.1",
     "@capacitor/app": "^8.1.1",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/core": "^8.5.0",
     "@capawesome/capacitor-app-icon": "^0.1.2",
-    "@capgo/capacitor-pedometer": "^8.0.39"
+    "@capgo/capacitor-pedometer": "^8.0.39",
+    "@capgo/capacitor-social-login": "^8.5.5"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

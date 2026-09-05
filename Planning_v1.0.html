@@ -363,6 +363,7 @@
 <button id="exportIcsBtn" type="button" hidden></button>
 <button id="exportDataBtn" type="button" hidden></button>
 <p id="backupReminderHint" class="menu-hint"></p>
+<p id="driveBackupHint" class="menu-hint"></p>
 </div>
 
 <div class="settings-tab-group" data-tab="voyage">
@@ -1164,6 +1165,17 @@ Masquer les éléments cochés
      vraiment avec le choix dans Réglages) s'enregistre sous "AppIcon" —
      voir applyAppIcon() dans app.js. -->
 <script src="vendor/capacitor-app-icon.js"></script>
+<!-- @capacitor-mlkit/barcode-scanning (2026-09-05, scan QR natif) s'enregistre
+     sous "BarcodeScanner" — voir scanQrNative() dans app.js. -->
+<script src="vendor/capacitor-mlkit-barcode-scanning.js"></script>
+<!-- @capacitor-community/media (2026-09-05, album photo dédié "Tabi Go")
+     s'enregistre sous "Media" — voir ensureNativePhotoAlbum()/
+     saveBlobToNativeGalleryAlbum() dans app.js. -->
+<script src="vendor/capacitor-community-media.js"></script>
+<!-- @capgo/capacitor-social-login (2026-09-05, sauvegarde Google Drive)
+     s'enregistre sous "SocialLogin" — voir connectGoogleDrive()/
+     backupToGoogleDrive() dans app.js, près de exportDataBtn. -->
+<script src="vendor/capacitor-social-login.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

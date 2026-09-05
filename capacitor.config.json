@@ -5,5 +5,15 @@
   "server": {
     "url": "https://julienbruwaert1-sys.github.io/planning-vacances/",
     "cleartext": false
+  },
+  "plugins": {
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "facebook": false,
+        "apple": false,
+        "twitter": false
+      }
+    }
   }
 }
