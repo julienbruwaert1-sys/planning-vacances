@@ -143,12 +143,21 @@ public class TripWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /* Bordure décorative "M4" (voir la comparaison de mockups) — seul le
-       thème Momiji en a une pour l'instant ; les autres restent GONE tant
-       qu'ils n'ont pas été choisis parmi les mockups équivalents. */
+    /* Bordure décorative "M4" (voir la comparaison de mockups) — choisie
+       pour chaque thème parmi les mockups équivalents proposés. Néon reste
+       volontairement sans bordure (seul thème sans aucune particule
+       animée ailleurs dans l'appli, voir applySelectedTheme() dans
+       app.js — rester sobre ici reste cohérent). */
     private static String themeLeafBand(String theme) {
-        if ("momiji".equals(theme)) return "🍁  🍂  🍁";
-        return null;
+        if (theme == null) return null;
+        switch (theme) {
+            case "noel": return "❄️  🎄  ❄️";
+            case "ghibli": return "🌿  🍃  🌿";
+            case "halloween": return "🎃  👻  🎃";
+            case "sakura": return "🌸  🦋  🌸";
+            case "momiji": return "🍁  🍂  🍁";
+            default: return null;
+        }
     }
 
     private static class Countdown {
