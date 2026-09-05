@@ -9573,34 +9573,58 @@ function nativeFilePathFromCameraResult(photo){
     return idx!==-1 ? "file://"+photo.webPath.slice(idx+marker.length) : null;
 }
 
-/* Le français traduit est presque toujours plus long que le texte source —
-   tronquer avec "…" (essayé d'abord) rendait des mots entiers illisibles.
-   On réduit plutôt la taille de police jusqu'à ce que le texte tienne en
-   entier sur sa largeur disponible (mesurée via canvas, pas une estimation),
-   avec un minimum de 6px en dernier recours — l'ellipsis CSS ne sert alors
-   plus que de filet de sécurité pour les cas vraiment extrêmes. */
-function fitTranslateBoxFont(text,maxWidth,initialFontSize){
-    const canvas = fitTranslateBoxFont._canvas || (fitTranslateBoxFont._canvas = document.createElement("canvas"));
+/* Le français traduit est presque toujours plus long que le texte source.
+   Sur une étiquette étroite au texte dense, certaines phrases traduites
+   restent trop longues pour tenir sur une seule ligne même à une taille de
+   police minimale lisible — les forcer sur une ligne (essayé d'abord)
+   déclenchait le filet de sécurité "…" et coupait des mots entiers.
+   fitTranslateBoxText répartit donc le texte sur plusieurs lignes si besoin,
+   en réduisant la police jusqu'à ce que TOUT le texte tienne dans la
+   hauteur réellement disponible (l'espace jusqu'à la ligne détectée
+   suivante) — l'ellipsis CSS ne sert alors plus que de filet de sécurité
+   pour les cas vraiment extrêmes (texte énorme dans un espace minuscule). */
+function fitTranslateBoxText(text,maxWidth,maxHeight,initialFontSize){
+    const canvas = fitTranslateBoxText._canvas || (fitTranslateBoxText._canvas = document.createElement("canvas"));
     const ctx = canvas.getContext("2d");
     // Doit mesurer avec la police RÉELLEMENT affichée (Inter, pas un
     // "sans-serif" générique) — l'écart entre les deux faisait déborder le
-    // texte réel de la boîte calculée de quelques px, juste assez pour que
-    // le filet de sécurité CSS (text-overflow:ellipsis) coupe des
+    // texte réel de la largeur calculée de quelques px, juste assez pour
+    // que le filet de sécurité CSS (text-overflow:ellipsis) coupe des
     // caractères. Confirmé en direct sur appareil réel (débogage WebView).
-    const fontFamily = fitTranslateBoxFont._fontFamily || (fitTranslateBoxFont._fontFamily = getComputedStyle(document.body).fontFamily || "sans-serif");
-    // Marge de sécurité supplémentaire : measureText (canvas) et le rendu
-    // DOM réel peuvent encore différer de quelques px (arrondis, kerning)
-    // même à police strictement identique.
+    const fontFamily = fitTranslateBoxText._fontFamily || (fitTranslateBoxText._fontFamily = getComputedStyle(document.body).fontFamily || "sans-serif");
+    // Marge de sécurité : measureText (canvas) et le rendu DOM réel peuvent
+    // encore différer de quelques px (arrondis, kerning) à police identique.
     const safeMaxWidth = maxWidth*0.94;
-    let fontSize = initialFontSize;
-    ctx.font = fontSize+"px "+fontFamily;
-    let width = ctx.measureText(text).width;
-    if(width > safeMaxWidth && width > 0){
-        fontSize = Math.max(6, fontSize * (safeMaxWidth/width));
+    const lineHeightRatio = 1.15;
+
+    function wrap(fontSize){
         ctx.font = fontSize+"px "+fontFamily;
-        width = ctx.measureText(text).width;
+        const words = text.split(" ");
+        const wrapped = [];
+        let current = "";
+        for(const word of words){
+            const test = current ? current+" "+word : word;
+            if(current==="" || ctx.measureText(test).width<=safeMaxWidth){
+                current = test;
+            }else{
+                wrapped.push(current);
+                current = word;
+            }
+        }
+        if(current) wrapped.push(current);
+        return wrapped;
     }
-    return { fontSize, width };
+
+    let fontSize = initialFontSize;
+    let wrappedLines = wrap(fontSize);
+    while(wrappedLines.length*fontSize*lineHeightRatio > maxHeight && fontSize > 5){
+        fontSize -= 0.5;
+        wrappedLines = wrap(fontSize);
+    }
+
+    ctx.font = fontSize+"px "+fontFamily;
+    const width = Math.min(safeMaxWidth, Math.max(0,...wrappedLines.map(l=>ctx.measureText(l).width)));
+    return { fontSize, lines: wrappedLines, lineHeight: fontSize*lineHeightRatio, width };
 }
 
 async function startPhotoTranslation(){
@@ -9686,23 +9710,35 @@ async function startPhotoTranslation(){
                 });
 
                 const thisTop = line.boundingBox.top*scaleY;
-                let boxHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
+                const rawLineHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
+
+                // Budget de hauteur disponible : jusqu'à la ligne détectée
+                // suivante (avec une petite marge), ou jusqu'au bas de
+                // l'image pour la toute dernière ligne. Sert à autoriser le
+                // texte à passer sur 2 lignes quand une seule ne suffit pas,
+                // sans jamais empiéter sur le bloc voisin.
+                let availableHeight;
                 if(i+1 < lines.length){
-                    const availableToNext = lines[i+1].boundingBox.top*scaleY - thisTop - 1;
-                    if(availableToNext > 0 && availableToNext < boxHeight) boxHeight = availableToNext;
+                    availableHeight = Math.max(4, lines[i+1].boundingBox.top*scaleY - thisTop - 1);
+                }else{
+                    availableHeight = Math.max(rawLineHeight, translateImage.clientHeight - thisTop - 4);
                 }
-                boxHeight = Math.max(4,boxHeight);
+
                 const centerX = (line.boundingBox.left+line.boundingBox.right)/2*scaleX;
-                const baseFontSize = Math.max(7,Math.min(13,boxHeight*0.72));
+                const baseFontSize = Math.max(7,Math.min(13,rawLineHeight*0.72));
 
                 // Largeur d'origine de la ligne détectée : point de départ,
                 // pas une limite — le bloc peut s'élargir jusqu'aux bords de
                 // l'image (centré sur la ligne d'origine) pour laisser la
-                // traduction, plus longue, tenir en entier sans réduire la
-                // police plus que nécessaire.
+                // traduction, plus longue, tenir sans réduire la police plus
+                // que nécessaire. Si même ça ne suffit pas (phrase très
+                // longue sur une étiquette étroite), le texte passe sur
+                // plusieurs lignes plutôt que d'être tronqué.
                 const maxAvailableWidth = translateImage.clientWidth - 8;
-                const { fontSize, width: textWidth } = fitTranslateBoxFont(translated,maxAvailableWidth,baseFontSize);
+                const { fontSize, lines: wrappedLines, lineHeight, width: textWidth } =
+                    fitTranslateBoxText(translated,maxAvailableWidth,availableHeight,baseFontSize);
                 const boxWidth = Math.min(maxAvailableWidth, textWidth + 8);
+                const boxHeight = wrappedLines.length*lineHeight;
                 const boxLeft = Math.max(0, Math.min(centerX - boxWidth/2, translateImage.clientWidth - boxWidth));
 
                 const overlayEl = document.createElement("div");
@@ -9711,11 +9747,18 @@ async function startPhotoTranslation(){
                 overlayEl.style.top = thisTop+"px";
                 overlayEl.style.width = boxWidth+"px";
                 overlayEl.style.height = boxHeight+"px";
-                // Centrage vertical calé sur line-height = hauteur de la
-                // boîte (astuce classique pour du texte sur une seule ligne).
                 overlayEl.style.fontSize = fontSize+"px";
-                overlayEl.style.lineHeight = boxHeight+"px";
-                overlayEl.textContent = translated;
+                overlayEl.style.lineHeight = lineHeight+"px";
+                if(wrappedLines.length>1){
+                    // Plusieurs lignes calculées par fitTranslateBoxText :
+                    // pre-line respecte les retours à la ligne qu'on a nous-
+                    // mêmes choisis (contrairement à nowrap, la valeur par
+                    // défaut de .translate-block pour le cas à une ligne).
+                    overlayEl.style.whiteSpace = "pre-line";
+                    overlayEl.textContent = wrappedLines.join("\n");
+                }else{
+                    overlayEl.textContent = wrappedLines[0] || translated;
+                }
                 translateOverlay.appendChild(overlayEl);
                 translatedAny = true;
             }catch(err){
