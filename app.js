@@ -280,7 +280,23 @@ async function getCurrentPositionAsync(options){
    style inline le temps du rendu, jamais via une vraie impression
    navigateur, d'où le déplacement de sa typographie hors de
    @media print dans style.css (2026-09-05). */
-async function exportPrintViewAsPdf(fileName){
+// #printView est un unique nœud DOM partagé, temporairement rendu visible
+// hors-écran le temps du rendu html2canvas — un double-tap sur "Exporter en
+// PDF" (aucun retour visuel immédiat pendant le rendu, plausible) lancerait
+// deux appels concurrents sur le MÊME nœud : le finally() du premier à
+// terminer restaurerait son style pendant que le second html2canvas est
+// encore en train de le lire, corrompant potentiellement les deux PDF.
+let exportPrintViewAsPdfInFlight = null;
+
+function exportPrintViewAsPdf(fileName){
+    if(exportPrintViewAsPdfInFlight) return exportPrintViewAsPdfInFlight;
+    exportPrintViewAsPdfInFlight = exportPrintViewAsPdfImpl(fileName).finally(()=>{
+        exportPrintViewAsPdfInFlight = null;
+    });
+    return exportPrintViewAsPdfInFlight;
+}
+
+async function exportPrintViewAsPdfImpl(fileName){
 
     const printView = document.getElementById("printView");
     const originalCssText = printView.style.cssText;
@@ -2661,6 +2677,13 @@ function ensureSocialLoginInitialized(){
     if(!socialLoginInitPromise){
         socialLoginInitPromise = window.Capacitor.Plugins.SocialLogin.initialize({
             google:{ webClientId:GOOGLE_WEB_CLIENT_ID }
+        }).catch(err=>{
+            // Ne met PAS en cache un échec (ex. Google Play Services
+            // temporairement indisponible) — sinon toute tentative de
+            // connexion Drive suivante échoue à l'identique pour le reste
+            // de la session, même une fois la cause disparue.
+            socialLoginInitPromise = null;
+            throw err;
         });
     }
     return socialLoginInitPromise;
@@ -2769,7 +2792,21 @@ async function findExistingDriveBackupFileId(accessToken){
     return (data.files && data.files[0]) ? data.files[0].id : null;
 }
 
-async function backupToGoogleDrive(){
+// Évite deux sauvegardes concurrentes (ex. l'appli bascule arrière-plan/
+// premier-plan plusieurs fois avant que la 1ère requête réseau ne finisse) :
+// sans garde, chacune ignore indépendamment le fichier existant et crée un
+// doublon dans appDataFolder au lieu de l'écraser.
+let backupToGoogleDriveInFlight = null;
+
+function backupToGoogleDrive(){
+    if(backupToGoogleDriveInFlight) return backupToGoogleDriveInFlight;
+    backupToGoogleDriveInFlight = backupToGoogleDriveImpl().finally(()=>{
+        backupToGoogleDriveInFlight = null;
+    });
+    return backupToGoogleDriveInFlight;
+}
+
+async function backupToGoogleDriveImpl(){
 
     const accessToken = await ensureDriveAccessToken();
     if(!accessToken) return false;
@@ -3478,7 +3515,10 @@ function stableNotificationId(str){
     for(let i=0;i<str.length;i++){
         hash = ((hash<<5)-hash+str.charCodeAt(i))|0;
     }
-    return Math.abs(hash) || 1;
+    // Masque sur 31 bits plutôt que Math.abs() : si hash vaut exactement
+    // -2147483648 (INT32_MIN), Math.abs() renvoie 2147483648, qui dépasse
+    // l'entier 32 bits signé attendu côté Android pour un id de notification.
+    return (hash & 0x7FFFFFFF) || 1;
 }
 
 async function syncScheduledNotifications(){
@@ -3636,7 +3676,13 @@ function getDefaultCalendarId(){
         defaultCalendarIdPromise = (async()=>{
             const { result } = await window.Capacitor.Plugins.CapacitorCalendar.getDefaultCalendar({useFallbackCalendar:true});
             return result ? result.id : null;
-        })();
+        })().catch(err=>{
+            // Ne met PAS en cache un échec (ex. aucun compte calendrier
+            // configuré au premier essai) — sinon tout ajout au calendrier
+            // suivant échoue à l'identique pour le reste de la session.
+            defaultCalendarIdPromise = null;
+            throw err;
+        });
     }
     return defaultCalendarIdPromise;
 }
@@ -3675,7 +3721,15 @@ async function addPlanningToNativeCalendar(){
                 return;
             }
 
-            const calendarId = await getDefaultCalendarId();
+            let calendarId = null;
+            try{
+                calendarId = await getDefaultCalendarId();
+            }catch(err){
+                console.error("Calendrier par défaut introuvable :",err);
+                // Pas bloquant : createEvent() accepte calendarId undefined
+                // et retombe sur le calendrier par défaut du système.
+            }
+
             let added = 0;
 
             for(const event of events){
@@ -6348,7 +6402,10 @@ function nativeBrowserAvailable(){
 
 function openExternalUrl(url){
     if(nativeBrowserAvailable()){
-        window.Capacitor.Plugins.Browser.open({url});
+        window.Capacitor.Plugins.Browser.open({url}).catch(err=>{
+            console.error("Ouverture du navigateur natif impossible :",err);
+            showToast("Impossible d'ouvrir le lien.",{type:"error"});
+        });
         return;
     }
     window.open(url,"_blank","noopener,noreferrer");
@@ -7056,6 +7113,7 @@ function closeAllFullscreenViews(){
     });
     if(!cameraView.hidden) closeCameraView();
     if(!qrScanView.hidden) stopQrScan();
+    if(!translateView.hidden) closeTranslateView();
     if(wakeLockWanted) releaseMapWakeLock();
     detachDevicesPresenceListener();
     localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
@@ -7105,7 +7163,12 @@ function handleBackNavigation(){
     if(
         isAnyFullscreenViewOpen() ||
         !optionsMenuPanel.hidden || !searchPanel.hidden || !syncPanel.hidden ||
-        !desktopProfilePanel.hidden || !mapMorePanel.hidden || !choicePopover.hidden
+        !desktopProfilePanel.hidden || !mapMorePanel.hidden || !choicePopover.hidden ||
+        // cameraView/qrScanView/translateView n'ont que la classe
+        // "camera-view" (pas "fullscreen-view"), donc isAnyFullscreenViewOpen()
+        // ne les voit pas — repéré lors du verif du 2026-09-05 : le retour
+        // matériel Android sortait de l'appli au lieu de fermer ces vues.
+        !cameraView.hidden || !qrScanView.hidden || !translateView.hidden
     ){
         closeAllFullscreenViews();
         return true;
@@ -8761,6 +8824,15 @@ function extensionForBlob(blob){
     return ".jpg";
 }
 
+// Les vignettes de galerie sont des <button> ne contenant qu'une <img
+// alt=""> (alt vide volontaire, l'image est décorative) ou une <video> sans
+// piste de sous-titres — sans ceci, aucun nom accessible pour un lecteur
+// d'écran (repéré lors du verif du 2026-09-05).
+function mediaThumbAriaLabel(type,caption,dateLabel){
+    const kind = type==="video" ? "Vidéo" : "Photo";
+    return [kind,caption,dateLabel].filter(Boolean).join(" — ");
+}
+
 function createMediaThumbElement(url,type){
     if(type==="video"){
         const video = document.createElement("video");
@@ -9435,6 +9507,11 @@ async function ensureNativePhotoAlbum(){
                 return created.identifier;
             }catch(err){
                 console.error("Album photo natif indisponible :",err);
+                // Ne met PAS en cache un échec (souvent transitoire, ex.
+                // plugin pas encore prêt juste après le boot) — sinon toute
+                // photo suivante de la session tombe en repli web même une
+                // fois la cause disparue.
+                nativePhotoAlbumIdPromise = null;
                 return null;
             }
         })();
@@ -9535,7 +9612,16 @@ const translateCloseBtn = document.getElementById("translateCloseBtn");
 
 translateBtn.hidden = !nativeTranslationAvailable();
 
+// Incrémenté à chaque fermeture ET à chaque nouvel appel de
+// startPhotoTranslation() : permet à un appel en cours (fermé par
+// l'utilisateur, ou remplacé par une relance immédiate sur une autre photo)
+// de détecter qu'il est périmé et d'arrêter d'écrire dans translateOverlay/
+// translateStatus — sans ça, deux traductions concurrentes mélangeaient
+// leurs blocs sur la même vue (repéré lors du verif du 2026-09-05).
+let translateSessionId = 0;
+
 function closeTranslateView(){
+    translateSessionId++;
     translateView.hidden = true;
     translateOverlay.innerHTML = "";
     if(translateImage.src) URL.revokeObjectURL(translateImage.src);
@@ -9644,6 +9730,13 @@ async function startPhotoTranslation(){
     if(!nativeTranslationAvailable()) return;
     optionsMenuPanel.hidden = true;
 
+    // Invalide toute traduction encore en vol (l'utilisateur a fermé la vue
+    // puis relancé aussitôt, ou relancé directement sans fermer) : chaque
+    // point de contrôle ci-dessous vérifie que mySession est toujours le
+    // jeton courant avant de toucher translateOverlay/translateStatus.
+    translateSessionId++;
+    const mySession = translateSessionId;
+
     // Juste après une réouverture de l'appli, la police Inter (Google Fonts)
     // peut ne pas encore être chargée. Un canvas.measureText() lancé avant
     // qu'elle le soit retombe silencieusement sur une police de secours plus
@@ -9668,6 +9761,7 @@ async function startPhotoTranslation(){
         return;
     }
 
+    if(mySession !== translateSessionId) return;
     translateView.hidden = false;
     translateOverlay.innerHTML = "";
     setTranslateStatus("Analyse du texte…");
@@ -9679,6 +9773,7 @@ async function startPhotoTranslation(){
         // l'échelle des blocs traduits — sans ça, un chargement plus lent
         // que d'habitude donnerait des positions fausses (0x0).
         await new Promise(resolve=>{ translateImage.onload = resolve; });
+        if(mySession !== translateSessionId) return;
 
         const filePath = nativeFilePathFromCameraResult(photo);
         if(!filePath){
@@ -9687,6 +9782,7 @@ async function startPhotoTranslation(){
         }
 
         const { text, blocks } = await window.Capacitor.Plugins.TextRecognition.processImage({path:filePath});
+        if(mySession !== translateSessionId) return;
 
         if(!text.trim()){
             setTranslateStatus("Aucun texte détecté sur cette photo.");
@@ -9694,6 +9790,7 @@ async function startPhotoTranslation(){
         }
 
         const { language: detectedLanguage } = await window.Capacitor.Plugins.LanguageIdentification.identifyLanguage({text});
+        if(mySession !== translateSessionId) return;
         const sourceLanguage = detectedLanguage!=="und" ? detectedLanguage : "en";
 
         if(sourceLanguage===TRANSLATE_TARGET_LANGUAGE){
@@ -9726,6 +9823,7 @@ async function startPhotoTranslation(){
             .sort((a,b)=>a.boundingBox.top-b.boundingBox.top);
 
         for(let i=0;i<lines.length;i++){
+            if(mySession !== translateSessionId) return;
             const line = lines[i];
             try{
                 const { text: translated } = await window.Capacitor.Plugins.Translation.translate({
@@ -9733,6 +9831,7 @@ async function startPhotoTranslation(){
                     sourceLanguage,
                     targetLanguage: TRANSLATE_TARGET_LANGUAGE
                 });
+                if(mySession !== translateSessionId) return;
 
                 const thisTop = line.boundingBox.top*scaleY;
                 const rawLineHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
@@ -10227,11 +10326,12 @@ async function renderDayPhotos(){
 
     photos.forEach((photo,i)=>{
 
-        const { url, type } = group[i];
+        const { url, type, caption, dateLabel } = group[i];
 
         const thumb = document.createElement("button");
         thumb.type = "button";
         thumb.className = "day-photo-thumb";
+        thumb.setAttribute("aria-label",mediaThumbAriaLabel(type,caption,dateLabel));
 
         const { media, badge } = createMediaThumbElement(url,type);
         thumb.appendChild(media);
@@ -10839,11 +10939,12 @@ function renderPhotoGroups(container,photos,planningSource,objectUrls,emptyMessa
 
             visible.forEach((photo,i)=>{
 
-                const { url, type } = groupUrls[i];
+                const { url, type, caption, dateLabel } = groupUrls[i];
 
                 const thumb = document.createElement("button");
                 thumb.type = "button";
                 thumb.className = "day-photo-thumb";
+                thumb.setAttribute("aria-label",mediaThumbAriaLabel(type,caption,dateLabel) + (extra>0 && i===visible.length-1 ? ` (+${extra})` : ""));
 
                 const { media, badge } = createMediaThumbElement(url,type);
                 thumb.appendChild(media);
@@ -10902,11 +11003,12 @@ function renderCompactPhotoGrid(container,photos,objectUrls,emptyMessage){
     });
 
     sorted.forEach((photo,i)=>{
-        const { url, type } = urls[i];
+        const { url, type, caption, dateLabel } = urls[i];
 
         const thumb = document.createElement("button");
         thumb.type = "button";
         thumb.className = "day-photo-thumb";
+        thumb.setAttribute("aria-label",mediaThumbAriaLabel(type,caption,dateLabel));
 
         const { media, badge } = createMediaThumbElement(url,type);
         thumb.appendChild(media);
