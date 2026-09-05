@@ -9629,26 +9629,34 @@ async function startPhotoTranslation(){
         const scaleY = translateImage.clientHeight / translateImage.naturalHeight;
         let translatedAny = false;
 
-        for(const block of blocks){
-            if(!block.text.trim() || !block.boundingBox) continue;
+        // Traduit ligne par ligne plutôt que bloc par bloc : un bloc ML Kit
+        // regroupe plusieurs lignes (souvent sans rapport entre elles, avec
+        // des retours à la ligne bruts dans le texte), ce que le petit modèle
+        // de traduction embarqué (hors-ligne) gère mal — il donne de bien
+        // meilleurs résultats sur une phrase courte et isolée. En prime, le
+        // cadre de chaque ligne colle mieux au texte que celui du bloc entier.
+        const lines = blocks.flatMap(block=>block.lines || []);
+
+        for(const line of lines){
+            if(!line.text.trim() || !line.boundingBox) continue;
             try{
                 const { text: translated } = await window.Capacitor.Plugins.Translation.translate({
-                    text: block.text,
+                    text: line.text,
                     sourceLanguage,
                     targetLanguage: TRANSLATE_TARGET_LANGUAGE
                 });
 
                 const overlayEl = document.createElement("div");
                 overlayEl.className = "translate-block";
-                overlayEl.style.left = (block.boundingBox.left*scaleX)+"px";
-                overlayEl.style.top = (block.boundingBox.top*scaleY)+"px";
-                overlayEl.style.width = ((block.boundingBox.right-block.boundingBox.left)*scaleX)+"px";
-                overlayEl.style.height = ((block.boundingBox.bottom-block.boundingBox.top)*scaleY)+"px";
+                overlayEl.style.left = (line.boundingBox.left*scaleX)+"px";
+                overlayEl.style.top = (line.boundingBox.top*scaleY)+"px";
+                overlayEl.style.width = ((line.boundingBox.right-line.boundingBox.left)*scaleX)+"px";
+                overlayEl.style.height = ((line.boundingBox.bottom-line.boundingBox.top)*scaleY)+"px";
                 overlayEl.textContent = translated;
                 translateOverlay.appendChild(overlayEl);
                 translatedAny = true;
             }catch(err){
-                console.error("Traduction d'un bloc impossible :",err);
+                console.error("Traduction d'une ligne impossible :",err);
             }
         }
 
