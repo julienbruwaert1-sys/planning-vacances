@@ -265,6 +265,64 @@ async function getCurrentPositionAsync(options){
     });
 }
 
+/* Stockage sécurisé/chiffré (2026-09-06, résolu — infrastructure)
+   capacitor-secure-storage-plugin (Android Keystore/EncryptedSharedPreferences
+   côté natif ; simple localStorage encodé en base64 côté web, PAS un vrai
+   chiffrement — ce plugin ne sert donc à rien de plus que localStorage sur
+   le web/PWA, seul le natif apporte un vrai bénéfice).
+   Volontairement PAS branché sur tripLockPinHash (le seul "secret" actuel
+   de l'appli, voir TRIP_LOCK_PIN_HASH_KEY) : requestTripUnlock() lit
+   isTripLockPinSet() de façon SYNCHRONE pour décider d'afficher l'écran de
+   verrouillage dès l'ouverture d'un voyage, et collectSyncData()/
+   applySyncData() lisent/écrivent tripLockPinHash de façon SYNCHRONE pour
+   le partager entre appareils appairés — l'API de ce plugin est
+   entièrement asynchrone. Y migrer la valeur SANS garder aussi une copie
+   en clair dans localStorage casserait ces deux dépendances synchrones
+   (risque réel de contourner l'écran de verrouillage pendant la fenêtre
+   avant qu'une lecture async n'ait fini) ; la garder aussi en clair à côté
+   ferait du stockage sécurisé une façade sans vrai bénéfice (la copie en
+   clair reste lisible telle quelle). Chiffrer un simple hash SHA-256 déjà
+   isolé dans le stockage propre à l'appli n'en valait pas le risque. Cette
+   fonction reste prête pour le jour où une vraie donnée sensible (ex. un
+   jeton d'authentification à conserver entre sessions) apparaîtra et
+   pourra, elle, vivre uniquement ici sans contrainte de lecture
+   synchrone. */
+function secureStorageAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SecureStoragePlugin);
+}
+
+async function secureSetItem(key,value){
+    if(!secureStorageAvailable()) return false;
+    try{
+        await window.Capacitor.Plugins.SecureStoragePlugin.set({key,value});
+        return true;
+    }catch(err){
+        console.error(`Stockage sécurisé : écriture de "${key}" impossible :`,err);
+        return false;
+    }
+}
+
+async function secureGetItem(key){
+    if(!secureStorageAvailable()) return null;
+    try{
+        const { value } = await window.Capacitor.Plugins.SecureStoragePlugin.get({key});
+        return value;
+    }catch(err){
+        // Le plugin rejette si la clé n'existe pas encore — pas une vraie erreur.
+        return null;
+    }
+}
+
+async function secureRemoveItem(key){
+    if(!secureStorageAvailable()) return false;
+    try{
+        await window.Capacitor.Plugins.SecureStoragePlugin.remove({key});
+        return true;
+    }catch(err){
+        return false;
+    }
+}
+
 /* Impression / export PDF (résolu 2026-09-05) : window.print() n'existe
    pas dans une WebView Android — window.print() reste utilisé tel quel
    sur le web (fonctionne très bien), mais en natif exportPrintViewAsPdf()
@@ -7194,6 +7252,26 @@ window.addEventListener("popstate",()=>{
     }
 });
 
+/* CAPACITOR (2026-09-06, résolu) : App.addListener('backButton',...) —
+   jusqu'ici le bouton matériel Android reposait sur le comportement PAR
+   DÉFAUT de la WebView (history.back(), déclenchant le piège popstate
+   ci-dessus), non officiellement garanti par la doc Capacitor. Un vrai
+   listener appelle directement handleBackNavigation() (même logique,
+   réutilisée telle quelle) et, seulement si rien n'a été fermé, quitte
+   explicitement l'appli via App.exitApp() — une fois un listener
+   enregistré, Capacitor ne déclenche plus le comportement par défaut tout
+   seul, c'est à l'appli de tout gérer. N'a aucun effet sur le web/PWA (le
+   piège popstate ci-dessus reste seul actif hors isNativeApp()). */
+if(isNativeApp() && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
+    window.Capacitor.Plugins.App.addListener("backButton",()=>{
+        if(!handleBackNavigation()){
+            window.Capacitor.Plugins.App.exitApp();
+        }
+    }).catch(err=>{
+        console.error("Listener bouton retour natif impossible à enregistrer :",err);
+    });
+}
+
 [...bottomNavTabs,...desktopSidebarItems].forEach(btn=>{
     btn.addEventListener("click",(e)=>{
 
@@ -12001,15 +12079,33 @@ async function downloadMapAreaOffline(){
 mapDownloadAreaBtn.addEventListener("click",downloadMapAreaOffline);
 
 /* --- Écran toujours allumé pendant la navigation sur la carte ---
-   CAPACITOR : l'API web Screen Wake Lock (utilisée ici) fonctionne déjà
-   dans une WebView Capacitor sans plugin — @capacitor/keep-awake ne
-   serait utile que si ça s'avère faux sur un vrai appareil/émulateur. */
+   CAPACITOR (2026-09-06, résolu) : l'API web Screen Wake Lock fonctionnait
+   déjà dans une WebView Capacitor, mais reste relâchée par le système dès
+   que l'appli passe en arrière-plan (visio, notification...) — le retour
+   au premier plan la redemande (voir le visibilitychange plus bas), mais
+   entre-temps l'écran a pu s'éteindre. @capacitor-community/keep-awake
+   s'appuie sur du code natif Android (FLAG_KEEP_SCREEN_ON), plus robuste
+   dans ce genre de cas. Utilisé quand disponible ; Screen Wake Lock reste
+   le repli web/PWA inchangé (et le repli natif si jamais le plugin est
+   absent d'un build donné). */
 const mapWakeLockToggle = document.getElementById("mapWakeLockToggle");
 const wakeLockSupported = "wakeLock" in navigator;
 let wakeLockSentinel = null;
 let wakeLockWanted = false;
 
+function nativeKeepAwakeAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.KeepAwake);
+}
+
 async function requestMapWakeLock(){
+    if(nativeKeepAwakeAvailable()){
+        try{
+            await window.Capacitor.Plugins.KeepAwake.keepAwake();
+            return;
+        }catch(err){
+            console.error("Écran allumé (natif) impossible, repli sur l'API web :",err);
+        }
+    }
     if(!wakeLockSupported) return;
     try{
         wakeLockSentinel = await navigator.wakeLock.request("screen");
@@ -12027,13 +12123,18 @@ function releaseMapWakeLock(){
         mapWakeLockToggle.classList.remove("active");
         mapWakeLockToggle.setAttribute("aria-pressed","false");
     }
+    if(nativeKeepAwakeAvailable()){
+        window.Capacitor.Plugins.KeepAwake.allowSleep().catch(err=>{
+            console.error("Écran allumé (natif) : libération impossible :",err);
+        });
+    }
     if(wakeLockSentinel){
         wakeLockSentinel.release();
         wakeLockSentinel = null;
     }
 }
 
-if(wakeLockSupported){
+if(wakeLockSupported || nativeKeepAwakeAvailable()){
 
     mapWakeLockToggle.hidden = false;
 
@@ -12043,9 +12144,16 @@ if(wakeLockSupported){
         mapWakeLockToggle.setAttribute("aria-pressed",String(wakeLockWanted));
         if(wakeLockWanted){
             await requestMapWakeLock();
-        }else if(wakeLockSentinel){
-            wakeLockSentinel.release();
-            wakeLockSentinel = null;
+        }else{
+            if(nativeKeepAwakeAvailable()){
+                window.Capacitor.Plugins.KeepAwake.allowSleep().catch(err=>{
+                    console.error("Écran allumé (natif) : libération impossible :",err);
+                });
+            }
+            if(wakeLockSentinel){
+                wakeLockSentinel.release();
+                wakeLockSentinel = null;
+            }
         }
     });
 

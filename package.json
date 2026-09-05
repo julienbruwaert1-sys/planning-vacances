@@ -21,6 +21,7 @@
   "homepage": "https://github.com/julienbruwaert1-sys/planning-vacances#readme",
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor-community/media": "^9.1.0",
     "@capacitor-mlkit/barcode-scanning": "^8.1.1",
     "@capacitor-mlkit/language-identification": "^8.2.0",
@@ -37,6 +38,7 @@
     "@capgo/capacitor-pedometer": "^8.0.39",
     "@capgo/capacitor-social-login": "^8.5.5",
     "@ebarooni/capacitor-calendar": "^8.5.0",
+    "capacitor-secure-storage-plugin": "^0.13.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1"
   },

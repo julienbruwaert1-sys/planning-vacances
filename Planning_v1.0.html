@@ -1224,6 +1224,16 @@ Masquer les éléments cochés
 <script src="vendor/capacitor-mlkit-text-recognition.js"></script>
 <script src="vendor/capacitor-mlkit-language-identification.js"></script>
 <script src="vendor/capacitor-mlkit-translation.js"></script>
+<!-- @capacitor-community/keep-awake (2026-09-06, écran allumé pendant la
+     navigation sur la carte, plus robuste que la Screen Wake Lock API web
+     seule) s'enregistre sous "KeepAwake" — voir requestMapWakeLock()/
+     releaseMapWakeLock() dans app.js. -->
+<script src="vendor/capacitor-keep-awake.js"></script>
+<!-- capacitor-secure-storage-plugin (2026-09-06, stockage chiffré via
+     Android Keystore/EncryptedSharedPreferences) s'enregistre sous
+     "SecureStoragePlugin" — voir secureSetItem()/secureGetItem() dans
+     app.js, utilisé pour tripLockPinHash (le seul "secret" de l'appli). -->
+<script src="vendor/capacitor-secure-storage.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
