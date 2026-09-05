@@ -25,6 +25,20 @@
         android:gravity="center_horizontal"
         android:padding="12dp">
 
+        <!-- Bordure décorative façon guirlande (mockup "M4"), visible
+             seulement pour le thème Momiji — voir themeLeafBand() dans
+             TripWidgetProvider.java. GONE par défaut (autres thèmes). -->
+        <TextView
+            android:id="@+id/widgetLeafBand"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:textSize="12sp"
+            android:letterSpacing="0.15"
+            android:visibility="gone"
+            tools:text="🍁  🍂  🍁"
+            tools:visibility="visible" />
+
         <TextView
             android:id="@+id/widgetTripName"
             android:layout_width="wrap_content"

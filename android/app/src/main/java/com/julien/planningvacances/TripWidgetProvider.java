@@ -61,6 +61,14 @@ public class TripWidgetProvider extends AppWidgetProvider {
         views.setInt(R.id.widgetRoot, "setBackgroundResource", themeBackgroundRes(theme));
         views.setTextColor(R.id.widgetBigNumber, themeAccentColor(theme));
 
+        String leafBand = themeLeafBand(theme);
+        if (leafBand == null) {
+            views.setViewVisibility(R.id.widgetLeafBand, android.view.View.GONE);
+        } else {
+            views.setViewVisibility(R.id.widgetLeafBand, android.view.View.VISIBLE);
+            views.setTextViewText(R.id.widgetLeafBand, leafBand);
+        }
+
         if (TextUtils.isEmpty(tripName)) {
             views.setTextViewText(R.id.widgetTripName, context.getString(R.string.widget_default_title));
             views.setTextViewText(R.id.widgetBigNumber, "✈");
@@ -133,6 +141,14 @@ public class TripWidgetProvider extends AppWidgetProvider {
             case "neon": return Color.parseColor("#4DE8FF");
             default: return Color.parseColor("#F0935A");
         }
+    }
+
+    /* Bordure décorative "M4" (voir la comparaison de mockups) — seul le
+       thème Momiji en a une pour l'instant ; les autres restent GONE tant
+       qu'ils n'ont pas été choisis parmi les mockups équivalents. */
+    private static String themeLeafBand(String theme) {
+        if ("momiji".equals(theme)) return "🍁  🍂  🍁";
+        return null;
     }
 
     private static class Countdown {

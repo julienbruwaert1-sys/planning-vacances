@@ -9,17 +9,18 @@
      cellule UNE FOIS à l'ajout du widget, sans jamais la ré-agrandir si le
      contenu s'allonge ensuite (ex. la ligne "prochaine activité" qui
      n'existe pas dans l'état vide affiché au tout premier rendu) — la
-     valeur doit donc couvrir le cas le PLUS rempli (4 lignes : nom, gros
-     nombre, légende, prochaine activité), pas le cas vide. Différent du
-     souci inverse rencontré avec l'ancienne mise en page (3 lignes) : une
-     valeur trop généreuse pour SON contenu laissait un grand vide — ici
-     c'est la bonne taille pour CE contenu-ci. -->
+     valeur doit donc couvrir le cas le PLUS rempli (5 lignes avec la
+     bordure de feuilles Momiji : bordure, nom, gros nombre, légende,
+     prochaine activité), pas le cas vide. Différent du souci inverse
+     rencontré avec l'ancienne mise en page (3 lignes) : une valeur trop
+     généreuse pour SON contenu laissait un grand vide — ici c'est la bonne
+     taille pour CE contenu-ci. -->
 
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
-    android:minHeight="110dp"
+    android:minHeight="126dp"
     android:minResizeWidth="180dp"
-    android:minResizeHeight="90dp"
+    android:minResizeHeight="100dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
