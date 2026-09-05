@@ -110,8 +110,14 @@
      l'appli (voir l'appel dans syncTripStepsOnce() + le listener
      visibilitychange) donne le vrai nombre de pas entre les deux, sans
      avoir besoin d'écouter en continu — donc sans service Android en
-     arrière-plan à maintenir. Distance/cadence/étages sont iOS uniquement,
-     jamais exposés dans l'UI pour cette raison.
+     arrière-plan à maintenir. Distance/cadence/étages restent iOS
+     uniquement côté plugin ; la "Distance" affichée dans l'UI est une
+     ESTIMATION à partir des pas (estimateDistanceKm(), foulée moyenne
+     0,75 m), jamais une vraie mesure GPS. Décompte borné à la fenêtre
+     réelle du voyage (getTripDateWindowStatus(), 2026-09-05) : rien
+     n'est ajouté avant la date de départ ni après le dernier jour — le
+     total reste ensuite figé tel quel, consultable dans l'Historique des
+     voyages une fois le voyage archivé (voir openTripHistoryDetail()).
    - Export calendrier (exportIcsBtn, buildPlanningICS()) : génère un
      fichier .ics que l'utilisateur doit ouvrir manuellement — un plugin
      natif d'écriture calendrier (ex. @capacitor-community/calendar)
@@ -4766,6 +4772,43 @@ const TRIP_STEP_LAST_RAW_KEY = "tripStepLastRaw";
 
 let pedometerSyncInProgress = false;
 
+/* Signalé 2026-09-05 : le décompte doit correspondre au VOYAGE (date de
+   départ → dernier jour), pas juste "depuis que ce voyage est actif" —
+   sans quoi une personne qui planifie deux semaines à l'avance verrait
+   ses pas du quotidien comptés comme des pas de voyage. "before" avance
+   quand même TRIP_STEP_LAST_RAW_KEY (sans jamais l'ajouter à
+   tripStepCount) : le jour du départ ne compte donc pas non plus les pas
+   faits juste avant de partir. "after" arrête tout net — le total reste
+   figé tel quel une fois le voyage terminé (voir openTripHistoryDetail()
+   pour le retrouver une fois archivé). */
+function getTripDateWindowStatus(){
+    const start = localStorage.getItem("startDate");
+    if(!start) return "during"; // pas de date définie : aucune restriction possible
+    const tripStart = new Date(start+"T00:00:00");
+    if(isNaN(tripStart.getTime())) return "during";
+    const dayCountValue = parseInt(localStorage.getItem("dayCount"),10) || 1;
+    const tripEnd = new Date(tripStart);
+    tripEnd.setDate(tripEnd.getDate() + dayCountValue - 1);
+    tripEnd.setHours(23,59,59,999);
+    const now = getTripNow();
+    if(now < tripStart) return "before";
+    if(now > tripEnd) return "after";
+    return "during";
+}
+
+/* Estimation, pas une vraie mesure GPS — le capteur de pas ne donne que
+   des pas, jamais de distance sur Android (voir isAvailable() plus haut,
+   distance:false). ~0.75 m est la foulée moyenne couramment utilisée par
+   les appareils de fitness qui n'ont pas de GPS dédié pour ça (≈1 330
+   pas/km) — assez pour donner un ordre de grandeur, explicitement
+   labellisé "estimée" partout où c'est affiché plutôt que présenté comme
+   une mesure exacte. */
+const AVERAGE_STRIDE_METERS = 0.75;
+
+function estimateDistanceKm(steps){
+    return (steps * AVERAGE_STRIDE_METERS) / 1000;
+}
+
 async function syncTripStepsOnce(){
 
     if(!isNativeApp() || !(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorPedometer)) return;
@@ -4776,6 +4819,20 @@ async function syncTripStepsOnce(){
     pedometerSyncInProgress = true;
 
     try{
+        /* getTripDateWindowStatus() appelle getTripNow(), qui référence
+           TRIP_TIMEZONE_KEY (déclaré bien plus bas dans le fichier, section
+           "Date de départ") — DANS le try, pas avant : au tout premier
+           appel (déclenché en bas de ce même bloc, avant que ce const plus
+           tardif n'existe), ça lève un vrai TDZ. Rester dans le try le
+           fait échouer proprement une fois au démarrage (comme
+           renderDayWeather()/renderDayPhotos(), voir weather_feature) —
+           auto-guéri dès le prochain appel réel (visibilitychange,
+           ouverture de Statistiques du voyage), qui a alors tout le
+           script déjà exécuté. Signalé par un vrai rejet de promesse non
+           géré découvert en testant, pas juste un risque théorique. */
+        const dateStatus = getTripDateWindowStatus();
+        if(dateStatus==="after") return; // voyage terminé : total figé, rien de plus à synchroniser
+
         const availability = await Pedometer.isAvailable();
         if(!availability.stepCounting) return;
 
@@ -4789,7 +4846,7 @@ async function syncTripStepsOnce(){
         const newRaw = result.rawStepsSinceBoot;
         const lastRawStr = localStorage.getItem(TRIP_STEP_LAST_RAW_KEY);
 
-        if(lastRawStr!==null){
+        if(dateStatus==="during" && lastRawStr!==null){
             const lastRaw = parseInt(lastRawStr,10) || 0;
             // newRaw < lastRaw : le téléphone a redémarré entre les deux
             // lectures (le capteur matériel repart de zéro) — impossible
@@ -4804,11 +4861,10 @@ async function syncTripStepsOnce(){
                 if(statsView && !statsView.hidden) renderProfileStats();
             }
         }
-        // Sinon (lastRawStr===null) : toute première synchro pour ce
-        // voyage (ou après restoreTrip()/un nouveau voyage, voir leurs
-        // resets de TRIP_STEP_LAST_RAW_KEY) — se contente de poser le
-        // point de départ, rien à ajouter tant qu'il n'y a pas de
-        // référence antérieure à comparer.
+        // "before" (pas encore parti), ou "during" avec lastRawStr===null
+        // (toute première synchro de ce voyage, ou après restoreTrip()/un
+        // nouveau voyage, voir leurs resets de TRIP_STEP_LAST_RAW_KEY) :
+        // rien à ajouter, juste avancer la référence pour la prochaine fois.
         localStorage.setItem(TRIP_STEP_LAST_RAW_KEY,String(newRaw));
     }catch(err){
         console.error("Podomètre indisponible :",err);
@@ -6569,18 +6625,22 @@ function renderProfileStats(){
         }
     }
 
-    /* Distance/cadence/étages ne sont jamais disponibles sur Android via
-       @capgo/capacitor-pedometer (iOS uniquement, voir isAvailable()) —
-       pas affichés du tout plutôt qu'un "0 km" en permanence trompeur.
-       Le hint diffère web/natif : sur le web, aucun capteur n'existe pour
-       de vrai ; sur Android, les pas comptent même appli fermée (patch
-       natif getRawStepCount(), voir le commentaire CAPACITOR en tête de
-       fichier) mais se synchronisent seulement à l'ouverture/la reprise
-       de l'appli, pas en temps réel en arrière-plan. */
-    const tripStepCount = localStorage.getItem(TRIP_STEP_COUNT_KEY);
-    const stepCountDisplay = tripStepCount ? Number(tripStepCount).toLocaleString("fr-FR") : "0";
+    /* Distance/cadence/étages ne sont jamais mesurés directement sur
+       Android via @capgo/capacitor-pedometer (iOS uniquement, voir
+       isAvailable()) — la distance affichée ici est donc une ESTIMATION
+       à partir des pas (voir estimateDistanceKm()), jamais une vraie
+       mesure GPS, explicitement labellisée comme telle. Le hint diffère
+       web/natif : sur le web, aucun capteur n'existe pour de vrai ; sur
+       Android, les pas comptent même appli fermée (patch natif
+       getRawStepCount(), voir le commentaire CAPACITOR en tête de
+       fichier), mais seulement entre la date de départ et la fin du
+       voyage (voir getTripDateWindowStatus()), et se synchronisent à
+       l'ouverture/la reprise de l'appli, pas en temps réel en arrière-plan. */
+    const tripStepCount = parseInt(localStorage.getItem(TRIP_STEP_COUNT_KEY),10) || 0;
+    const stepCountDisplay = tripStepCount.toLocaleString("fr-FR");
+    const distanceDisplay = estimateDistanceKm(tripStepCount).toLocaleString("fr-FR",{maximumFractionDigits:1,minimumFractionDigits:1});
     const stepsHint = isNativeApp()
-        ? "🚶 Les pas comptent même appli fermée — le total se met à jour à chaque fois que tu rouvres Tabi Go."
+        ? "🚶 Comptés entre le départ et la fin du voyage, même appli fermée — distance estimée à partir des pas, pas une vraie mesure GPS."
         : "🚶 Comptage des pas disponible uniquement dans l'appli Android.";
 
     profileStatsEl.innerHTML = `
@@ -6599,6 +6659,10 @@ function renderProfileStats(){
         <div class="profile-stat">
             <span class="profile-stat-value">${stepCountDisplay}</span>
             <span class="profile-stat-label">Pas</span>
+        </div>
+        <div class="profile-stat">
+            <span class="profile-stat-value">${distanceDisplay} km</span>
+            <span class="profile-stat-label">Distance (estimée)</span>
         </div>
         <div class="profile-stat-full">${daysRemainingText}</div>
         <div class="profile-stat-full profile-stat-hint">${stepsHint}</div>
@@ -10019,10 +10083,16 @@ async function openTripHistoryDetail(trip){
 
     tripHistoryDetailInfo.textContent = "";
     const countryLabel = COUNTRIES[trip.country] ? COUNTRIES[trip.country].fr : "";
+    /* trip.stepCount : absent (undefined/0) sur les voyages archivés avant
+       l'existence du podomètre (2026-09-05) ou jamais synchronisé pendant
+       le voyage (jamais ouvert l'appli entre le départ et la fin) — pas de
+       ligne du tout dans ce cas, plutôt qu'un "0 pas" qui laisserait
+       croire que le voyage a bien été suivi. */
     [
         countryLabel,
         trip.startDate ? `Départ le ${new Date(trip.startDate+"T00:00:00").toLocaleDateString("fr-FR")}` : "",
         `${trip.dayCount || 0} jour(s)`,
+        trip.stepCount ? `🚶 ${trip.stepCount.toLocaleString("fr-FR")} pas · ${estimateDistanceKm(trip.stepCount).toLocaleString("fr-FR",{maximumFractionDigits:1,minimumFractionDigits:1})} km (estimée)` : "",
         `Archivé le ${new Date(trip.archivedAt).toLocaleDateString("fr-FR")}`
     ].filter(Boolean).forEach(line=>{
         const p = document.createElement("p");
