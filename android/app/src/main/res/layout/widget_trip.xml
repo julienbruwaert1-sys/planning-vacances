@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget d'écran d'accueil, voir
+     TripWidgetProvider.java) : LinearLayout uniquement — RemoteViews
+     (mécanisme de rendu des widgets) ne supporte qu'un sous-ensemble limité
+     de vues, pas ConstraintLayout. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/widgetTripName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#33404A"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="Voyage au Japon" />
+
+    <TextView
+        android:id="@+id/widgetCountdown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#5B7A8C"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="Départ dans 12 jours" />
+
+    <TextView
+        android:id="@+id/widgetNextActivity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="#33404A"
+        android:textSize="13sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="09:30 · Visite du musée" />
+
+</LinearLayout>

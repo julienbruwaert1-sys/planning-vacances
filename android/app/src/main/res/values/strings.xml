@@ -8,4 +8,9 @@
     <string name="shortcut_scanqr_long">Scanner un QR code</string>
     <string name="shortcut_addactivity_short">Nouvelle activité</string>
     <string name="shortcut_addactivity_long">Ajouter une activité</string>
+    <string name="widget_default_title">Tabi Go</string>
+    <string name="widget_default_subtitle">Ouvre l\'appli pour commencer</string>
+    <string name="widget_days_remaining">Départ dans %d jour(s)</string>
+    <string name="widget_today">C\'est aujourd\'hui !</string>
+    <string name="widget_ongoing">Voyage en cours</string>
 </resources>

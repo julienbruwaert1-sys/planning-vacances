@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06) : métadonnées du widget d'écran d'accueil — voir
+     TripWidgetProvider.java et le <receiver> dans AndroidManifest.xml.
+     updatePeriodMillis à 30 min (le minimum réellement imposé par Android)
+     ne sert que de filet de sécurité si l'appli reste fermée longtemps : le
+     vrai rafraîchissement instantané vient du push JS via HomeWidgetPlugin
+     (voir updateHomeWidgetData() dans app.js), pas de ce cycle périodique. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="80dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_trip"
+    android:previewImage="@mipmap/ic_launcher"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

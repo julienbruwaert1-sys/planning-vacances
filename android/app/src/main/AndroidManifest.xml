@@ -678,6 +678,23 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- CAPACITOR (2026-09-06) : widget d'écran d'accueil — voir
+             TripWidgetProvider.java/HomeWidgetPlugin.java. Rafraîchi
+             immédiatement depuis l'appli (voir updateHomeWidgetData() dans
+             app.js) ; l'intent-filter APPWIDGET_UPDATE ne sert que de filet
+             de sécurité périodique (updatePeriodMillis, voir
+             res/xml/widget_info.xml). -->
+        <receiver
+            android:name=".TripWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
         <!-- CAPACITOR (2026-09-05, @capacitor-mlkit/barcode-scanning) :
              déclare le module ML Kit "barcode_ui" nécessaire à scan() —
              voir scanQrNative() dans app.js. Sans ça, isGoogleBarcodeScanner

@@ -183,20 +183,25 @@
      charge cette URL telle quelle, ?shortcut=xxx apparaît directement
      dans location.search au démarrage, même mécanisme déjà en place pour
      ?sync=CODE, aucun code natif Java au-delà du fichier XML.
-   - Widget écran d'accueil (2026-09-05, PRÉPARATION seulement — aucun
-     widget visuel construit) : un widget Android est un composant natif à
-     part entière (AppWidgetProvider + RemoteViews + layout XML), sans
-     équivalent Capacitor — la WebView de l'appli n'y a joue aucun rôle,
-     rien de possible depuis ce fichier JS seul. Ce qui EST fait ici :
-     updateHomeWidgetData() (voir juste après syncScheduledNotifications())
-     maintient à jour un petit objet JSON stable dans localStorage
-     (HOME_WIDGET_DATA_KEY : nom du voyage, jours restants, prochaine
-     activité) à chaque sauvegarde du planning et à chaque changement de
-     dates — le jour où un vrai widget natif est construit, son
-     AppWidgetProvider Java lira cette même clé (via WebView.
-     evaluateJavascript ou, plus simplement, en dupliquant l'écriture vers
-     une SharedPreferences côté natif) plutôt que de recalculer la logique
-     "prochaine activité" une seconde fois en Java.
+   - Widget écran d'accueil (résolu 2026-09-06, voir nativeHomeWidgetAvailable()/
+     updateHomeWidgetData() près de syncScheduledNotifications(), et côté
+     natif android/.../HomeWidgetPlugin.java + TripWidgetProvider.java) :
+     un widget Android reste un composant natif à part entière
+     (AppWidgetProvider + RemoteViews + layout XML), sans équivalent
+     Capacitor — écrit ici comme un petit plugin Capacitor 100% LOCAL à ce
+     projet (pas un paquet npm à vendoriser), puisque le localStorage de la
+     WebView n'est pas lisible depuis un composant natif séparé. JS écrit
+     tripName/startDate/nextActivityTitle/nextActivityAt dans une vraie
+     SharedPreferences via HomeWidgetPlugin.updateWidgetData() (même
+     accroche que le localStorage existant : boot, visibilitychange,
+     savePlanning()) ; TripWidgetProvider recalcule les jours restants AU
+     RENDU à partir de startDate (pas une valeur relative poussée une fois,
+     qui deviendrait périmée si l'appli reste fermée) et se rafraîchit
+     immédiatement après chaque écriture, sans attendre le prochain cycle
+     updatePeriodMillis (30 min, gardé seulement comme filet de sécurité).
+     Approximation assumée : le calcul utilise le fuseau horaire du
+     téléphone, pas celui du voyage (getTripNow()) — suffisant pour un
+     coup d'œil sur l'écran d'accueil.
    - Traduction par appareil photo (fonctionnelle 2026-09-05, bouton
      "Traduire une photo" dans le menu ⋮ → Importer, voir
      startPhotoTranslation() près de captureNativePhotoOrFallback()) :
@@ -3646,13 +3651,22 @@ function scheduleNotificationsSyncDebounced(){
     notificationsSyncTimer = setTimeout(syncScheduledNotifications,2000);
 }
 
-/* --- Préparation widget écran d'accueil (2026-09-05) ---
+/* --- Widget écran d'accueil (résolu 2026-09-06) ---
    Voir le commentaire CAPACITOR "Widget écran d'accueil" tout en haut du
-   fichier : aucun widget visuel construit ici (nécessiterait un vrai
-   composant Android natif), seulement les données tenues à jour pour
-   qu'un futur AppWidgetProvider n'ait qu'à les lire plutôt qu'à recalculer
-   "prochaine activité"/"jours restants" une seconde fois côté Java. */
+   fichier pour le détail complet. localStorage[HOME_WIDGET_DATA_KEY] reste
+   maintenu à jour tel quel (utile pour du débogage web, personne ne le lit
+   plus côté widget) ; le vrai pont vers le widget natif passe par
+   HomeWidgetPlugin (SharedPreferences), voir nativeHomeWidgetAvailable()
+   juste en dessous. */
 const HOME_WIDGET_DATA_KEY = "homeWidgetData";
+
+/* CAPACITOR (2026-09-06, résolu) : HomeWidgetPlugin est un plugin Capacitor
+   100% local à ce projet (voir android/.../HomeWidgetPlugin.java), pas un
+   paquet npm — rien à vendoriser, juste vérifier sa présence comme les
+   autres plugins natifs. */
+function nativeHomeWidgetAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.HomeWidget);
+}
 
 function updateHomeWidgetData(){
 
@@ -3685,6 +3699,21 @@ function updateHomeWidgetData(){
             nextActivityAt: nextEvent ? nextEvent.start.getTime() : null,
             updatedAt: now
         }));
+
+        // Le widget natif recalcule lui-même les jours restants au rendu à
+        // partir de startDate (voir TripWidgetProvider.java) plutôt que de
+        // recevoir daysRemaining déjà calculé — resterait juste si l'appli
+        // reste fermée plusieurs jours sinon.
+        if(nativeHomeWidgetAvailable()){
+            window.Capacitor.Plugins.HomeWidget.updateWidgetData({
+                tripName: tripName || "",
+                startDate: startDate || "",
+                nextActivityTitle: nextEvent ? nextEvent.title : "",
+                nextActivityAt: nextEvent ? nextEvent.start.getTime() : 0
+            }).catch(err=>{
+                console.error("Widget natif : mise à jour impossible :",err);
+            });
+        }
     }catch(err){
         console.error("Mise à jour des données du widget impossible :",err);
     }

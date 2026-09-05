@@ -1,5 +1,7 @@
 package com.julien.planningvacances;
 
+import android.os.Bundle;
+
 import com.getcapacitor.BridgeActivity;
 import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
 
@@ -13,4 +15,15 @@ import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
 public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
     @Override
     public void IHaveModifiedTheMainActivityForTheUseWithSocialLoginPlugin() {}
+
+    /* CAPACITOR (2026-09-06, widget d'écran d'accueil) : HomeWidgetPlugin
+       est un plugin Capacitor 100% local à ce projet (pas un paquet npm à
+       vendoriser) — doit être enregistré manuellement AVANT super.onCreate(),
+       convention Capacitor standard pour un plugin qui n'est pas découvert
+       automatiquement via node_modules. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(HomeWidgetPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
 }
