@@ -1,0 +1,131 @@
+diff --git a/node_modules/@capgo/capacitor-pedometer/android/src/main/java/app/capgo/pedometer/CapacitorPedometerPlugin.java b/node_modules/@capgo/capacitor-pedometer/android/src/main/java/app/capgo/pedometer/CapacitorPedometerPlugin.java
+index a829be7..555232e 100644
+--- a/node_modules/@capgo/capacitor-pedometer/android/src/main/java/app/capgo/pedometer/CapacitorPedometerPlugin.java
++++ b/node_modules/@capgo/capacitor-pedometer/android/src/main/java/app/capgo/pedometer/CapacitorPedometerPlugin.java
+@@ -8,6 +8,8 @@ import android.hardware.SensorEvent;
+ import android.hardware.SensorEventListener;
+ import android.hardware.SensorManager;
+ import android.os.Build;
++import android.os.Handler;
++import android.os.Looper;
+ import androidx.annotation.Nullable;
+ import com.getcapacitor.JSObject;
+ import com.getcapacitor.PermissionState;
+@@ -42,6 +44,29 @@ public class CapacitorPedometerPlugin extends Plugin implements SensorEventListe
+ 
+     private boolean updatesActive = false;
+ 
++    /* --- Patch Tabi Go (2026-09-05) ---
++       TYPE_STEP_COUNTER tourne en continu au niveau du système, MÊME
++       quand aucune appli n'écoute — mais cette classe d'origine ne
++       transmettait jamais que "currentStepCount" (déjà relatif à
++       initialStepCount, remis à zéro à chaque startMeasurementUpdates()),
++       jamais la valeur brute cumulée depuis le démarrage du téléphone.
++       Impossible donc de savoir combien de pas ont été faits pendant que
++       l'appli était fermée. getRawStepCount() ajoute une lecture "one-
++       shot" de cette valeur brute (s'enregistre, attend le premier
++       évènement, se désinscrit aussitôt si aucune session continue n'est
++       par ailleurs active) — côté JS, comparer deux lectures brutes
++       successives donne le nombre de pas réel entre les deux, qu'importe
++       si l'appli était ouverte entre-temps ou non. */
++    @Nullable
++    private PluginCall pendingRawStepCall;
++
++    private boolean rawReadActive = false;
++
++    private final Handler rawReadTimeoutHandler = new Handler(Looper.getMainLooper());
++
++    @Nullable
++    private Runnable rawReadTimeoutRunnable;
++
+     @Override
+     public void load() {
+         Context context = getContext();
+@@ -67,6 +92,55 @@ public class CapacitorPedometerPlugin extends Plugin implements SensorEventListe
+         call.resolve(result);
+     }
+ 
++    /* Patch Tabi Go (2026-09-05) — voir le commentaire près des champs
++       pendingRawStepCall/rawReadActive plus haut. */
++    @PluginMethod
++    public void getRawStepCount(PluginCall call) {
++        if (stepCounter == null) {
++            call.reject("Step counter sensor not available on this device.");
++            return;
++        }
++
++        if (!hasActivityRecognitionPermission()) {
++            call.reject("Activity recognition permission not granted.");
++            return;
++        }
++
++        if (rawReadActive) {
++            call.reject("A raw step count read is already in progress.");
++            return;
++        }
++
++        pendingRawStepCall = call;
++        rawReadActive = true;
++
++        boolean registered = sensorManager != null && sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_FASTEST);
++
++        if (!registered) {
++            rawReadActive = false;
++            pendingRawStepCall = null;
++            call.reject("Failed to register step counter listener.");
++            return;
++        }
++
++        // Filet de sécurité : TYPE_STEP_COUNTER délivre normalement sa
++        // valeur actuelle quasi immédiatement à l'enregistrement, mais
++        // sans garantie absolue sur tous les appareils/versions Android —
++        // rejette proprement plutôt que de laisser la promesse JS en
++        // attente pour toujours.
++        rawReadTimeoutRunnable = () -> {
++            if (rawReadActive && pendingRawStepCall != null) {
++                pendingRawStepCall.reject("Timed out waiting for step counter reading.");
++                pendingRawStepCall = null;
++                rawReadActive = false;
++                if (!updatesActive && sensorManager != null) {
++                    sensorManager.unregisterListener(CapacitorPedometerPlugin.this);
++                }
++            }
++        };
++        rawReadTimeoutHandler.postDelayed(rawReadTimeoutRunnable, 5000);
++    }
++
+     @PluginMethod
+     public void isAvailable(PluginCall call) {
+         JSObject result = new JSObject();
+@@ -180,6 +254,31 @@ public class CapacitorPedometerPlugin extends Plugin implements SensorEventListe
+ 
+         int totalSteps = (int) event.values[0];
+ 
++        // Patch Tabi Go (2026-09-05) : sert d'abord une éventuelle lecture
++        // brute "one-shot" en attente (getRawStepCount()), indépendante de
++        // toute session d'écoute continue.
++        if (rawReadActive && pendingRawStepCall != null) {
++            if (rawReadTimeoutRunnable != null) {
++                rawReadTimeoutHandler.removeCallbacks(rawReadTimeoutRunnable);
++                rawReadTimeoutRunnable = null;
++            }
++            JSObject rawResult = new JSObject();
++            rawResult.put("rawStepsSinceBoot", totalSteps);
++            pendingRawStepCall.resolve(rawResult);
++            pendingRawStepCall = null;
++            rawReadActive = false;
++            if (!updatesActive && sensorManager != null) {
++                sensorManager.unregisterListener(this);
++            }
++        }
++
++        // Comportement d'origine du plugin (startMeasurementUpdates()) —
++        // inchangé, mais ne doit plus s'exécuter pendant une lecture brute
++        // ponctuelle qui n'a pas par ailleurs de session active.
++        if (!updatesActive) {
++            return;
++        }
++
+         if (initialStepCount == -1) {
+             initialStepCount = totalSteps;
+             currentStepCount = 0;

@@ -96,15 +96,22 @@
      appareil réel montrait le contraire.
    - Podomètre (fonctionnel 2026-09-05, @capgo/capacitor-pedometer —
      statistique "Pas" dans Statistiques du voyage, voir
-     startTripStepTracking() juste après le bloc verrou par voyage) :
-     le capteur Android (TYPE_STEP_COUNTER) n'a pas d'historique
-     interrogeable "depuis telle date" — il ne compte QUE pendant que
-     l'appli écoute activement, remis à 0 à chaque nouvel appel de
-     startMeasurementUpdates() (donc à chaque redémarrage de l'appli
-     aussi). tripStepCount additionne les sessions successives plutôt
-     qu'un vrai suivi 24h/24 — limitation documentée dans le hint affiché
-     à l'utilisateur, pas un bug. Distance/cadence/étages sont iOS
-     uniquement, jamais exposés dans l'UI pour cette raison.
+     syncTripStepsOnce() juste après le bloc verrou par voyage) : l'API
+     publique d'origine du plugin (startMeasurementUpdates()/écoute
+     continue) ne comptait QUE pendant que l'appli écoutait activement —
+     perdait les pas faits appli fermée ou même juste en arrière-plan
+     (signalé 2026-09-05). Corrigé par un vrai patch natif
+     (patches/@capgo+capacitor-pedometer+*.patch, réappliqué automatiquement
+     après chaque npm install via patch-package, voir "postinstall" dans
+     package.json) qui ajoute getRawStepCount() : une lecture ponctuelle de
+     la valeur BRUTE cumulée depuis le démarrage du téléphone (le capteur
+     matériel tourne en continu au niveau du système, quelle que soit
+     l'appli). Comparer deux lectures brutes à chaque ouverture/reprise de
+     l'appli (voir l'appel dans syncTripStepsOnce() + le listener
+     visibilitychange) donne le vrai nombre de pas entre les deux, sans
+     avoir besoin d'écouter en continu — donc sans service Android en
+     arrière-plan à maintenir. Distance/cadence/étages sont iOS uniquement,
+     jamais exposés dans l'UI pour cette raison.
    - Export calendrier (exportIcsBtn, buildPlanningICS()) : génère un
      fichier .ics que l'utilisateur doit ouvrir manuellement — un plugin
      natif d'écriture calendrier (ex. @capacitor-community/calendar)
@@ -3906,6 +3913,7 @@ document.getElementById("welcomeCreateBtn").addEventListener("click",()=>{
                compteur de pas du précédent, même bug de fond que celui
                corrigé sur restoreTrip()/buildCurrentTripSnapshot(). */
             localStorage.removeItem(TRIP_STEP_COUNT_KEY);
+            localStorage.removeItem(TRIP_STEP_LAST_RAW_KEY);
             currentTripLocked = false;
             localStorage.setItem(CURRENT_TRIP_LOCKED_KEY,"0");
         }
@@ -4693,29 +4701,46 @@ currentTripLockToggle.addEventListener("click",()=>{
 });
 
 /* --- Podomètre du voyage (2026-09-05, @capgo/capacitor-pedometer) ---
-   CAPACITOR : le capteur natif Android (TYPE_STEP_COUNTER) n'a pas
-   d'historique interrogeable "depuis telle date" — il ne compte QUE les
-   pas pris PENDANT que l'appli écoute activement, et startMeasurementUpdates()
-   redémarre ce décompte à 0 à chaque nouvel appel (donc à chaque
-   redémarrage de l'appli aussi). tripStepCount additionne donc les
-   sessions d'écoute successives (persisté à chaque évènement reçu),
-   PAS un vrai compteur 24h/24 depuis la date de départ : l'appli doit
-   avoir été ouverte pendant la marche pour que les pas comptent. Voir
-   le hint affiché dans renderProfileStats(). Distance/cadence/étages
-   (Measurement.distance etc.) sont iOS uniquement (voir isAvailable()),
-   jamais disponibles ici — pas exposés dans l'UI pour cette raison. */
+   CAPACITOR : le capteur natif Android (TYPE_STEP_COUNTER) tourne en
+   continu au niveau du système, MÊME quand aucune appli n'écoute — mais
+   l'API publique d'origine du plugin (startMeasurementUpdates()/
+   addListener("measurement",...)) ne transmet qu'un compte RELATIF à
+   l'instant où l'écoute démarre, remis à 0 à chaque redémarrage de
+   l'appli : les pas faits pendant qu'elle est fermée ou juste en arrière-
+   plan (handleOnPause() désinscrit le capteur) étaient donc perdus,
+   signalé 2026-09-05 ("je veux que les pas soient comptés même lorsque
+   l'appli n'est pas ouverte").
+
+   Corrigé par un patch natif (patches/@capgo+capacitor-pedometer+*.patch,
+   appliqué automatiquement après chaque npm install via patch-package —
+   voir "postinstall" dans package.json) qui ajoute getRawStepCount() :
+   une lecture ponctuelle de la valeur BRUTE cumulée depuis le démarrage
+   du téléphone, indépendante de toute session d'écoute. En comparant
+   deux lectures brutes successives (à chaque ouverture de l'app, pas
+   besoin d'écouter en continu), on obtient le vrai nombre de pas entre
+   les deux, QU'IMPORTE si l'appli était ouverte entre-temps — tant que
+   le téléphone n'a pas redémarré (le compteur matériel repart alors de
+   zéro ; détecté via newRaw < lastRaw, traité en ajoutant newRaw tel
+   quel plutôt que de perdre ces pas silencieusement).
+
+   syncTripStepsOnce() est donc appelée à chaque ouverture/reprise de
+   l'appli (boot + visibilitychange), pas seulement une fois — voir plus
+   bas. Distance/cadence/étages (Measurement.distance etc.) restent iOS
+   uniquement (voir isAvailable()), jamais disponibles ici — pas exposés
+   dans l'UI pour cette raison. */
 const TRIP_STEP_COUNT_KEY = "tripStepCount";
+const TRIP_STEP_LAST_RAW_KEY = "tripStepLastRaw";
 
-let pedometerSessionBaseline = 0;
-let pedometerListening = false;
+let pedometerSyncInProgress = false;
 
-async function startTripStepTracking(){
+async function syncTripStepsOnce(){
 
     if(!isNativeApp() || !(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorPedometer)) return;
-    if(pedometerListening) return;
+    if(pedometerSyncInProgress) return;
     if(localStorage.getItem(TRIP_CREATED_KEY)!=="1") return;
 
     const Pedometer = window.Capacitor.Plugins.CapacitorPedometer;
+    pedometerSyncInProgress = true;
 
     try{
         const availability = await Pedometer.isAvailable();
@@ -4727,23 +4752,46 @@ async function startTripStepTracking(){
         }
         if(permStatus.activityRecognition!=="granted") return;
 
-        pedometerSessionBaseline = parseInt(localStorage.getItem(TRIP_STEP_COUNT_KEY),10) || 0;
+        const result = await Pedometer.getRawStepCount();
+        const newRaw = result.rawStepsSinceBoot;
+        const lastRawStr = localStorage.getItem(TRIP_STEP_LAST_RAW_KEY);
 
-        await Pedometer.addListener("measurement",event=>{
-            const steps = pedometerSessionBaseline + (event.numberOfSteps || 0);
-            localStorage.setItem(TRIP_STEP_COUNT_KEY,String(steps));
-            const statsView = document.getElementById("tripStatsView");
-            if(statsView && !statsView.hidden) renderProfileStats();
-        });
-
-        await Pedometer.startMeasurementUpdates();
-        pedometerListening = true;
+        if(lastRawStr!==null){
+            const lastRaw = parseInt(lastRawStr,10) || 0;
+            // newRaw < lastRaw : le téléphone a redémarré entre les deux
+            // lectures (le capteur matériel repart de zéro) — impossible
+            // de calculer un vrai delta, mais additionner newRaw tel quel
+            // (pas depuis ce redémarrage) reste bien plus juste que de
+            // perdre ces pas silencieusement.
+            const delta = newRaw>=lastRaw ? (newRaw-lastRaw) : newRaw;
+            if(delta>0){
+                const current = parseInt(localStorage.getItem(TRIP_STEP_COUNT_KEY),10) || 0;
+                localStorage.setItem(TRIP_STEP_COUNT_KEY,String(current+delta));
+                const statsView = document.getElementById("tripStatsView");
+                if(statsView && !statsView.hidden) renderProfileStats();
+            }
+        }
+        // Sinon (lastRawStr===null) : toute première synchro pour ce
+        // voyage (ou après restoreTrip()/un nouveau voyage, voir leurs
+        // resets de TRIP_STEP_LAST_RAW_KEY) — se contente de poser le
+        // point de départ, rien à ajouter tant qu'il n'y a pas de
+        // référence antérieure à comparer.
+        localStorage.setItem(TRIP_STEP_LAST_RAW_KEY,String(newRaw));
     }catch(err){
         console.error("Podomètre indisponible :",err);
+    }finally{
+        pedometerSyncInProgress = false;
     }
 }
 
-startTripStepTracking();
+syncTripStepsOnce();
+
+// Reprise au premier plan (l'appli n'a pas été tuée, juste mise de côté) :
+// re-synchronise à chaque fois plutôt qu'une seule fois au démarrage, pour
+// que les pas faits pendant l'absence soient bien récupérés au retour.
+document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible") syncTripStepsOnce();
+});
 
 /* --- Réglages "Vue Planning" (Affichage → Vue Planning, 2026-09-02) ---
    Par défaut à true (comportement historique inchangé) : ce sont des
@@ -6448,6 +6496,13 @@ const profileStatsEl = document.getElementById("profileStats");
 
 function renderProfileStats(){
 
+    // Fire-and-forget : re-synchronise au passage sur cette page plutôt
+    // que de compter uniquement sur le démarrage/visibilitychange — voir
+    // syncTripStepsOnce(). Sans effet si déjà en cours (pedometerSyncInProgress)
+    // ou hors contexte natif ; ne redéclenche renderProfileStats() que si
+    // de nouveaux pas sont réellement trouvés, jamais de boucle.
+    syncTripStepsOnce();
+
     let totalPrice = 0;
     let activityCount = 0;
 
@@ -6482,16 +6537,17 @@ function renderProfileStats(){
     }
 
     /* Distance/cadence/étages ne sont jamais disponibles sur Android via
-       @capgo/capacitor-pedometer (iOS uniquement, voir startTripStepTracking())
-       — pas affichés du tout plutôt qu'un "0 km" en permanence trompeur.
+       @capgo/capacitor-pedometer (iOS uniquement, voir isAvailable()) —
+       pas affichés du tout plutôt qu'un "0 km" en permanence trompeur.
        Le hint diffère web/natif : sur le web, aucun capteur n'existe pour
-       de vrai ; sur Android, le capteur existe mais ne compte QUE pendant
-       que l'appli est ouverte (pas d'historique en arrière-plan), voir le
-       commentaire CAPACITOR au-dessus de startTripStepTracking(). */
+       de vrai ; sur Android, les pas comptent même appli fermée (patch
+       natif getRawStepCount(), voir le commentaire CAPACITOR en tête de
+       fichier) mais se synchronisent seulement à l'ouverture/la reprise
+       de l'appli, pas en temps réel en arrière-plan. */
     const tripStepCount = localStorage.getItem(TRIP_STEP_COUNT_KEY);
     const stepCountDisplay = tripStepCount ? Number(tripStepCount).toLocaleString("fr-FR") : "0";
     const stepsHint = isNativeApp()
-        ? "🚶 Pas comptés pendant que Tabi Go était ouverte pendant la marche — le capteur ne garde pas d'historique en arrière-plan."
+        ? "🚶 Les pas comptent même appli fermée — le total se met à jour à chaque fois que tu rouvres Tabi Go."
         : "🚶 Comptage des pas disponible uniquement dans l'appli Android.";
 
     profileStatsEl.innerHTML = `
@@ -10128,11 +10184,14 @@ async function restoreTrip(trip){
     localStorage.setItem(TRIP_CREATED_KEY,"1");
     /* Même précaution que pour le verrou juste en dessous — trip.stepCount
        absent (undefined) sur les voyages archivés avant l'existence du
-       podomètre retombe sur 0, pas une régression. Redémarre une nouvelle
-       session d'écoute avec ce total comme point de départ (voir
-       startTripStepTracking(), pas rappelé automatiquement ici :
-       location.reload() plus bas s'en charge au prochain démarrage). */
+       podomètre retombe sur 0, pas une régression. TRIP_STEP_LAST_RAW_KEY
+       n'est PAS repris de l'archive (ce n'est pas une donnée du voyage,
+       juste un repère technique de la dernière lecture du capteur) — le
+       supprimer force syncTripStepsOnce() à repartir d'une référence
+       fraîche au prochain démarrage plutôt que de compter à tort les pas
+       faits pendant que ce voyage était archivé. */
     localStorage.setItem(TRIP_STEP_COUNT_KEY,String(trip.stepCount || 0));
+    localStorage.removeItem(TRIP_STEP_LAST_RAW_KEY);
     /* Bug signalé 2026-09-04 ("un voyage verrouillé restauré ne reste pas
        verrouillé") : trip.locked n'était jamais reporté sur
        currentTripLocked/CURRENT_TRIP_LOCKED_KEY, qui restait donc sur
