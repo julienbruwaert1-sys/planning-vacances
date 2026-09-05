@@ -61,15 +61,17 @@
      retour via history.pushState()/popstate (se réarme tant qu'il y a
      quelque chose à fermer : modale/visionneuse/menu/vue plein écran/onglet
      non-Planning), testable dès maintenant dans un navigateur normal.
-     Fonctionnera tel quel une fois empaqueté (la WebView Capacitor
-     déclenche déjà history.back() par défaut sur le bouton matériel tant
-     qu'aucun App.addListener('backButton',...) n'est enregistré) —
-     l'installer resterait une amélioration de robustesse, pas un
-     prérequis. Étendu (2026-09-04, audit "verif") pour couvrir #tripLockView
-     en toute première branche — sans ça, le retour tombait dans le cas
-     générique et pouvait fermer des panneaux/changer d'onglet SOUS l'écran
-     de verrouillage encore affiché, voire quitter l'appli, sans jamais agir
-     sur le verrou lui-même.
+     Étendu (2026-09-04, audit "verif") pour couvrir #tripLockView en toute
+     première branche — sans ça, le retour tombait dans le cas générique et
+     pouvait fermer des panneaux/changer d'onglet SOUS l'écran de
+     verrouillage encore affiché, voire quitter l'appli, sans jamais agir
+     sur le verrou lui-même. Listener natif ajouté (résolu 2026-09-06, voir
+     juste après le piège popstate) : App.addListener('backButton',...)
+     appelle directement handleBackNavigation() et quitte explicitement via
+     App.exitApp() si rien n'a été fermé — remplace la dépendance au
+     comportement par défaut de la WebView (jamais officiellement garanti
+     par la doc Capacitor). Web/PWA inchangé, le piège popstate y reste
+     seul actif.
    - navigator.clipboard (copyTextToClipboard, ex. code de synchro) :
      fonctionne tel quel dans une WebView Capacitor (contexte sécurisé,
      capacitor://localhost) — pas de changement prévu, @capacitor/clipboard
@@ -93,10 +95,13 @@
      web/Android, mais jamais sur iOS (Safari/WKWebView n'a pas l'API
      Vibration) — @capacitor/haptics couvrirait aussi iOS avec de vrais
      motifs (impact léger/moyen/fort) au lieu d'un buzz minuté.
-   - Écran allumé pendant la navigation (mapWakeLockToggle, Screen Wake
-     Lock API) : fonctionne déjà dans une WebView Capacitor sans plugin —
-     @capacitor/keep-awake resterait un filet de secours si un test sur
-     appareil réel montrait le contraire.
+   - Écran allumé pendant la navigation (résolu 2026-09-06, voir
+     requestMapWakeLock()/releaseMapWakeLock() près de mapWakeLockToggle) :
+     la Screen Wake Lock API web fonctionnait déjà, mais reste relâchée par
+     le système dès que l'appli passe en arrière-plan — @capacitor-
+     community/keep-awake (FLAG_KEEP_SCREEN_ON natif, plus robuste dans ce
+     cas) prend le relais quand disponible ; l'API web reste le repli web/
+     PWA inchangé.
    - Podomètre (fonctionnel 2026-09-05, @capgo/capacitor-pedometer —
      statistique "Pas" dans Statistiques du voyage, voir
      syncTripStepsOnce() juste après le bloc verrou par voyage) : l'API
@@ -217,19 +222,25 @@
      allowDeviceCredential:false pour ne jamais laisser le déverrouillage
      du TÉLÉPHONE lui-même se substituer au code de l'appli, deux secrets
      sans rapport l'un avec l'autre.
-   - Stockage sécurisé/chiffré (2026-09-04, aucun code existant) :
-     @capacitor/preferences (le stockage clé-valeur officiel Capacitor,
-     remplacerait localStorage) N'EST PAS chiffré par défaut — un vrai
-     stockage sécurisé demanderait un plugin dédié (ex.
-     capacitor-secure-storage-plugin, s'appuie sur Android Keystore).
-     Aujourd'hui, rien dans l'appli n'a vraiment besoin de ce niveau de
-     protection : le code de synchro n'est pas un secret au sens fort (accès
-     limité par les règles Firebase, pas par le secret du code lui-même),
-     et le reste (planning, checklist...) n'est pas sensible. À reconsidérer
-     seulement si une vraie donnée sensible apparaît un jour (ex. un
-     identifiant de connexion, si l'authentification biométrique ci-dessus
-     est construite et a besoin de stocker quelque chose entre les
-     sessions).
+   - Stockage sécurisé/chiffré (2026-09-06, infrastructure résolue, voir
+     secureStorageAvailable()/secureSetItem()/secureGetItem()/
+     secureRemoveItem() près de nativeGeolocationAvailable()) :
+     capacitor-secure-storage-plugin (Android Keystore/
+     EncryptedSharedPreferences côté natif ; simple localStorage encodé en
+     base64 côté web, pas un vrai chiffrement). Volontairement PAS branché
+     sur tripLockPinHash (le seul "secret" actuel de l'appli) : ce hash est
+     lu/écrit de façon SYNCHRONE par requestTripUnlock() (garde de sécurité
+     à l'ouverture d'un voyage) et par collectSyncData()/applySyncData()
+     (partage entre appareils appairés), incompatible avec l'API
+     entièrement asynchrone de ce plugin sans risquer soit un contournement
+     de l'écran de verrouillage (fenêtre entre affichage et lecture async),
+     soit une fausse sécurité (garder aussi une copie en clair à côté).
+     Prêt pour une vraie donnée sensible future qui n'aurait pas cette
+     contrainte de lecture synchrone (ex. un jeton d'authentification à
+     conserver entre sessions). Patch requis (patches/capacitor-secure-
+     storage-plugin+0.13.0.patch, réappliqué via patch-package) : son
+     build.gradle utilisait getDefaultProguardFile('proguard-android.txt'),
+     obsolète et rejeté par la version AGP de ce projet.
    - Nouveau JS/CSS/HTML : à chaque nouvelle fonction touchant caméra,
      téléchargement de fichier, impression, géolocalisation, presse-papier,
      partage, lien externe ou navigation (retour matériel), ajoute le même
