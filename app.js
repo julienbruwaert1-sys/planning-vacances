@@ -9646,12 +9646,22 @@ async function startPhotoTranslation(){
                     targetLanguage: TRANSLATE_TARGET_LANGUAGE
                 });
 
+                const boxHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
+
                 const overlayEl = document.createElement("div");
                 overlayEl.className = "translate-block";
                 overlayEl.style.left = (line.boundingBox.left*scaleX)+"px";
                 overlayEl.style.top = (line.boundingBox.top*scaleY)+"px";
                 overlayEl.style.width = ((line.boundingBox.right-line.boundingBox.left)*scaleX)+"px";
-                overlayEl.style.height = ((line.boundingBox.bottom-line.boundingBox.top)*scaleY)+"px";
+                overlayEl.style.height = boxHeight+"px";
+                // Une étiquette au texte dense donne des lignes hautes de
+                // quelques px à peine une fois mises à l'échelle — une taille
+                // de police fixe y déborderait toujours. On l'adapte à la
+                // hauteur réelle (bornée entre 7 et 13px) et on centre
+                // verticalement en calant line-height sur la hauteur de la
+                // boîte (astuce classique pour du texte sur une seule ligne).
+                overlayEl.style.fontSize = Math.max(7,Math.min(13,boxHeight*0.72))+"px";
+                overlayEl.style.lineHeight = boxHeight+"px";
                 overlayEl.textContent = translated;
                 translateOverlay.appendChild(overlayEl);
                 translatedAny = true;

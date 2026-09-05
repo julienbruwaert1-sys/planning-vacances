@@ -4537,17 +4537,26 @@ body.dark .trip-history-delete-btn:hover{
     pointer-events:none;
 }
 
+/* box-sizing:border-box + padding minime : sur une étiquette au texte dense,
+   les lignes détectées sont parfois hautes de quelques px à peine une fois
+   mises à l'échelle — un padding "en plus" de la hauteur (box-sizing par
+   défaut) suffisait à faire déborder chaque bloc sur ses voisins. Largeur
+   forcée en une seule ligne (white-space:nowrap + ellipsis) : le français
+   traduit est presque toujours plus long que le texte source, un retour à
+   la ligne automatique dans une boîte casée pour une seule ligne d'origine
+   débordait verticalement sur le bloc suivant — d'où la superposition
+   illisible signalée par l'utilisateur. font-size et line-height sont fixés
+   en JS (startPhotoTranslation) pour s'adapter à la hauteur réelle de
+   chaque ligne plutôt qu'une taille fixe qui ignore les petites lignes. */
 .translate-block{
     position:absolute;
-    background:rgba(10,16,32,.88);
+    box-sizing:border-box;
+    background:rgba(10,16,32,.9);
     color:#fff;
-    font-size:11px;
-    line-height:1.25;
-    padding:2px 4px;
+    padding:0 2px;
     overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    white-space:nowrap;
+    text-overflow:ellipsis;
     text-align:center;
     border-radius:2px;
 }
