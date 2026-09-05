@@ -201,7 +201,17 @@
      updatePeriodMillis (30 min, gardé seulement comme filet de sécurité).
      Approximation assumée : le calcul utilise le fuseau horaire du
      téléphone, pas celui du voyage (getTripNow()) — suffisant pour un
-     coup d'œil sur l'écran d'accueil.
+     coup d'œil sur l'écran d'accueil. Piège rencontré sur appareil réel
+     (res/xml/widget_info.xml) : un minHeight/targetCellHeight déclaré trop
+     généreux (110dp/2 cellules) fait que le lanceur (OneUI Samsung testé)
+     accorde au widget une cellule bien plus grande que son contenu, qui
+     semble alors "mal centré" avec un grand vide en dessous — alors que le
+     centrage lui-même (FrameLayout + LinearLayout en layout_gravity, vérifié
+     correct via aapt2 dump xmltree sur l'APK compilée) fonctionnait depuis
+     le début. La bonne taille par défaut (minHeight="60dp",
+     targetCellHeight="1", proche du contenu réel) règle le symptôme —
+     inutile de chercher un problème de cache de rendu (déjà exclu : testé
+     jusqu'à la désinstallation complète + réinstallation, sans effet).
    - Traduction par appareil photo (fonctionnelle 2026-09-05, bouton
      "Traduire une photo" dans le menu ⋮ → Importer, voir
      startPhotoTranslation() près de captureNativePhotoOrFallback()) :
