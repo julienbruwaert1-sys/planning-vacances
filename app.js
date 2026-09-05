@@ -2496,9 +2496,9 @@ exportDataBtn.addEventListener("click",()=>{
    ci-dessus est la SEULE source de vérité du contenu sauvegardé, partagée
    avec l'export JSON manuel. */
 
-// REMPLIR APRÈS CRÉATION DU PROJET GOOGLE CLOUD (voir le plan/la doc du
-// commit) : Client ID de type "Web application", PAS le Client ID Android.
-const GOOGLE_WEB_CLIENT_ID = "";
+// Client ID de type "Web application" (projet Google Cloud "Tabi Go",
+// 2026-09-05) — PAS le Client ID Android, jamais utilisé ici.
+const GOOGLE_WEB_CLIENT_ID = "56397126933-kpnf1i8h9i2b9cftv4of8olg3h98h5bs.apps.googleusercontent.com";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_DRIVE_BACKUP_FILENAME = "planning_vacances_backup.json";
 
