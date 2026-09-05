@@ -192,19 +192,17 @@
      evaluateJavascript ou, plus simplement, en dupliquant l'écriture vers
      une SharedPreferences côté natif) plutôt que de recalculer la logique
      "prochaine activité" une seconde fois en Java.
-   - Traduction par appareil photo (2026-09-04, aucun code existant, point
-     d'entrée à créer entièrement) : viserait un bouton quelque part
-     (Réglages ? Une activité ? Un nouveau raccourci caméra ?) qui capture
-     une photo, en extrait le texte (OCR) et le traduit à l'écran par-dessus
-     l'image. Deux voies possibles, à choisir plus tard : ML Kit Text
-     Recognition + Translation côté natif (gratuit, hors-ligne, mais
-     100% Capacitor — aucun équivalent web, donc rien de testable avant un
-     vrai projet Android) OU une API cloud payante (Google Cloud Vision +
-     Translation, ou équivalent) appelable depuis le web dès maintenant,
-     mais avec un coût par appel à budgéter. Pas raisonnable de coder l'un
-     ou l'autre sans cette décision — juste le noter comme un nouveau point
-     d'entrée à créer (pas une fonction existante à faire évoluer, contrairement
-     à tout le reste de cette liste).
+   - Traduction par appareil photo (fonctionnelle 2026-09-05, bouton
+     "Traduire une photo" dans le menu ⋮ → Importer, voir
+     startPhotoTranslation() près de captureNativePhotoOrFallback()) :
+     choix retenu = gratuit/hors-ligne, @capacitor-mlkit/text-recognition
+     (OCR, modèle Latin embarqué dans l'appli) + language-identification
+     (détecte la langue source) + translation (modèle téléchargé à la
+     demande, ~30 Mo, mis en cache ensuite) — 100% Capacitor, aucun
+     équivalent web, bouton masqué hors isNativeApp(). Traduit toujours
+     vers le français (TRANSLATE_TARGET_LANGUAGE). L'option API cloud
+     payante (Google Cloud Vision + Translation) reste documentée ici pour
+     mémoire mais n'a pas été retenue.
    - Authentification biométrique (fonctionnelle 2026-09-04 — voir le
      verrou par voyage, requestTripUnlock()/openTripLockView() juste après
      la section haptique) : @aparajita/capacitor-biometric-auth (pas
@@ -9506,6 +9504,137 @@ async function captureNativePhotoOrFallback(){
         await startCameraStream();
     }
 }
+
+/* --- Traduction par appareil photo (2026-09-05) ---
+   100% natif (@capacitor-mlkit/text-recognition + language-identification
+   + translation — gratuit, hors-ligne une fois le modèle téléchargé, basé
+   sur Google ML Kit) : aucun équivalent web, bouton masqué hors
+   isNativeApp(). Capture une photo (Camera.takePhoto, resultType:"uri" —
+   processImage() a besoin d'un vrai chemin de fichier, contrairement au
+   reste de l'appli qui travaille en blob), détecte le texte + sa langue,
+   traduit vers le français (TRANSLATE_TARGET_LANGUAGE), puis superpose la
+   traduction par-dessus l'image à la position de chaque bloc détecté
+   (boundingBox de processImage(), mis à l'échelle sur la taille RÉELLEMENT
+   affichée de l'image — pas sa résolution native). */
+
+const TRANSLATE_TARGET_LANGUAGE = "fr";
+
+function nativeTranslationAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins
+        && window.Capacitor.Plugins.TextRecognition
+        && window.Capacitor.Plugins.LanguageIdentification
+        && window.Capacitor.Plugins.Translation);
+}
+
+const translateBtn = document.getElementById("translateBtn");
+const translateView = document.getElementById("translateView");
+const translateImage = document.getElementById("translateImage");
+const translateOverlay = document.getElementById("translateOverlay");
+const translateStatus = document.getElementById("translateStatus");
+const translateCloseBtn = document.getElementById("translateCloseBtn");
+
+translateBtn.hidden = !nativeTranslationAvailable();
+
+function closeTranslateView(){
+    translateView.hidden = true;
+    translateOverlay.innerHTML = "";
+    if(translateImage.src) URL.revokeObjectURL(translateImage.src);
+    translateImage.src = "";
+    translateImage.onload = null;
+}
+
+translateCloseBtn.addEventListener("click",closeTranslateView);
+
+function setTranslateStatus(message){
+    if(!message){
+        translateStatus.hidden = true;
+        return;
+    }
+    translateStatus.hidden = false;
+    translateStatus.textContent = message;
+}
+
+async function startPhotoTranslation(){
+
+    if(!nativeTranslationAvailable()) return;
+    optionsMenuPanel.hidden = true;
+
+    const Camera = window.Capacitor.Plugins.Camera;
+
+    let photo;
+    try{
+        photo = await Camera.takePhoto({quality:90,resultType:"uri",correctOrientation:true});
+    }catch(err){
+        if(err && (err.message || err.code || "").toLowerCase().includes("cancel")) return;
+        console.error("Caméra indisponible pour la traduction :",err);
+        showToast("Caméra indisponible.",{type:"error"});
+        return;
+    }
+
+    translateView.hidden = false;
+    translateOverlay.innerHTML = "";
+    setTranslateStatus("Analyse du texte…");
+
+    try{
+        const blob = await fetchMediaResultBlob(photo);
+        translateImage.src = URL.createObjectURL(blob);
+        // Attend le vrai rendu (naturalWidth/clientWidth) avant de calculer
+        // l'échelle des blocs traduits — sans ça, un chargement plus lent
+        // que d'habitude donnerait des positions fausses (0x0).
+        await new Promise(resolve=>{ translateImage.onload = resolve; });
+
+        const { text, blocks } = await window.Capacitor.Plugins.TextRecognition.processImage({path:photo.path});
+
+        if(!text.trim()){
+            setTranslateStatus("Aucun texte détecté sur cette photo.");
+            return;
+        }
+
+        const { language: detectedLanguage } = await window.Capacitor.Plugins.LanguageIdentification.identifyLanguage({text});
+        const sourceLanguage = detectedLanguage!=="und" ? detectedLanguage : "en";
+
+        if(sourceLanguage===TRANSLATE_TARGET_LANGUAGE){
+            setTranslateStatus("Ce texte semble déjà être en français.");
+            return;
+        }
+
+        setTranslateStatus("Traduction en cours (peut prendre un instant la première fois)…");
+
+        const scaleX = translateImage.clientWidth / translateImage.naturalWidth;
+        const scaleY = translateImage.clientHeight / translateImage.naturalHeight;
+        let translatedAny = false;
+
+        for(const block of blocks){
+            if(!block.text.trim() || !block.boundingBox) continue;
+            try{
+                const { text: translated } = await window.Capacitor.Plugins.Translation.translate({
+                    text: block.text,
+                    sourceLanguage,
+                    targetLanguage: TRANSLATE_TARGET_LANGUAGE
+                });
+
+                const overlayEl = document.createElement("div");
+                overlayEl.className = "translate-block";
+                overlayEl.style.left = (block.boundingBox.left*scaleX)+"px";
+                overlayEl.style.top = (block.boundingBox.top*scaleY)+"px";
+                overlayEl.style.width = ((block.boundingBox.right-block.boundingBox.left)*scaleX)+"px";
+                overlayEl.style.height = ((block.boundingBox.bottom-block.boundingBox.top)*scaleY)+"px";
+                overlayEl.textContent = translated;
+                translateOverlay.appendChild(overlayEl);
+                translatedAny = true;
+            }catch(err){
+                console.error("Traduction d'un bloc impossible :",err);
+            }
+        }
+
+        setTranslateStatus(translatedAny ? "" : "Traduction impossible sur cet appareil.");
+    }catch(err){
+        console.error("Traduction par photo impossible :",err);
+        setTranslateStatus("Traduction impossible sur cet appareil.");
+    }
+}
+
+translateBtn.addEventListener("click",startPhotoTranslation);
 
 async function openDayCameraView(day,activityId){
     cameraCaptureMode = "day";

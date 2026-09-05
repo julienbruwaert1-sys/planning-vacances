@@ -298,6 +298,18 @@
 <p class="camera-hint">Vise un QR code de réservation avec l'appareil photo</p>
 </div>
 
+<!-- CAPACITOR (2026-09-05, traduction par appareil photo) : 100% natif
+     (ML Kit Text Recognition + Language Identification + Translation),
+     voir startPhotoTranslation() dans app.js. -->
+<div id="translateView" class="camera-view" hidden>
+<div id="translateImageWrap">
+<img id="translateImage" alt="">
+<div id="translateOverlay"></div>
+</div>
+<p id="translateStatus" class="camera-hint"></p>
+<button id="translateCloseBtn" class="camera-close-btn" type="button" aria-label="Fermer la traduction">✕</button>
+</div>
+
 <div id="printView"></div>
 
 <!-- Toujours rendu au niveau racine (jamais dans une vue qui peut être
@@ -351,6 +363,7 @@
 <button id="importIcsBtn" type="button" hidden></button>
 <button id="pasteImportBtn" type="button" hidden></button>
 <button id="qrScanBtn" class="menu-item" type="button" role="menuitem" title="Scanner un QR code" aria-label="Scanner un QR code"><span class="menu-item-icon">🔳</span><span class="menu-item-label">Scanner un QR code</span></button>
+<button id="translateBtn" class="menu-item" type="button" role="menuitem" title="Traduire une photo" aria-label="Traduire une photo" hidden><span class="menu-item-icon">🌐</span><span class="menu-item-label">Traduire une photo</span></button>
 <input type="file" id="importIcsFile" accept=".ics,text/calendar" hidden>
 <input type="file" id="dayPhotoInput" accept="image/*,video/*" hidden>
 
@@ -1204,6 +1217,13 @@ Masquer les éléments cochés
      voir exportPrintViewAsPdf() dans app.js, près de printOrExportPdfIfNative(). -->
 <script src="vendor/jspdf.js"></script>
 <script src="vendor/html2canvas.js"></script>
+<!-- @capacitor-mlkit/text-recognition + language-identification + translation
+     (2026-09-05, traduction par appareil photo, gratuit/hors-ligne) —
+     s'enregistrent sous "TextRecognition"/"LanguageIdentification"/
+     "Translation", voir startPhotoTranslation() dans app.js. -->
+<script src="vendor/capacitor-mlkit-text-recognition.js"></script>
+<script src="vendor/capacitor-mlkit-language-identification.js"></script>
+<script src="vendor/capacitor-mlkit-translation.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
