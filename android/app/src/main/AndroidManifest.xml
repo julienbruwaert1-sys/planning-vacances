@@ -493,13 +493,21 @@
          tant qu'aucun plugin natif n'est ajouté. READ_MEDIA_IMAGES
          (Android 13+, 2026-09-05) : @capacitor-community/media doit
          pouvoir lister les albums existants (getAlbums()) avant de créer
-         "Tabi Go" — voir ensureNativePhotoAlbum() dans app.js. -->
+         "Tabi Go" — voir ensureNativePhotoAlbum() dans app.js.
+         READ/WRITE_CALENDAR (2026-09-05) : @ebarooni/capacitor-calendar
+         doit pouvoir trouver le calendrier par défaut (getDefaultCalendar)
+         et y écrire (createEvent) — voir addPlanningToNativeCalendar()
+         dans app.js. La demande d'autorisation à l'exécution reste gérée
+         par le plugin (requestFullCalendarAccess()), ces déclarations ne
+         font que rendre la permission disponible à demander. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>

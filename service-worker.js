@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v320";
+const CACHE_NAME = "planning-v321";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -99,7 +99,9 @@ const APP_SHELL = [
     "./vendor/capacitor-app-icon.js",
     "./vendor/capacitor-mlkit-barcode-scanning.js",
     "./vendor/capacitor-community-media.js",
-    "./vendor/capacitor-social-login.js"
+    "./vendor/capacitor-social-login.js",
+    "./vendor/capacitor-browser.js",
+    "./vendor/capacitor-calendar.js"
 ];
 
 const RUNTIME_CACHE_HOSTS = [

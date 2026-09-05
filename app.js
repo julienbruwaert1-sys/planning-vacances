@@ -30,14 +30,15 @@
      staleWhileRevalidate pour Google Fonts, cacheFirstTiles pour les tuiles
      OpenStreetMap — reste utile même en natif, et la redondance de l'autre
      partie est un coût négligeable. Pas de branche à écrire ici.
-   - Liens externes (window.open) : Maps/itinéraire, réservations
-     (renderReservations + le popover d'activité), secours "toilettes
-     publiques" (nearbyToiletsBtn) — voir le commentaire "CAPACITOR" à
-     chaque site d'appel. @capacitor/browser (Browser.open()) est le
-     remplacement standard : window.open() n'a pas de comportement garanti
-     dans une WebView Capacitor (navigue parfois la WebView elle-même au
-     lieu d'ouvrir un onglet/navigateur externe, ce qui ferait perdre l'état
-     de l'appli).
+   - Liens externes (résolu 2026-09-05, openExternalUrl()/
+     nativeBrowserAvailable() près de nearbyToiletsBtn) : Maps/itinéraire,
+     réservations (renderReservations + le popover d'activité), secours
+     "toilettes publiques" (nearbyToiletsBtn) passent maintenant par
+     @capacitor/browser (Browser.open()) quand disponible — window.open()
+     n'a pas de comportement garanti dans une WebView Capacitor (navigue
+     parfois la WebView elle-même au lieu d'ouvrir un onglet/navigateur
+     externe, ce qui ferait perdre l'état de l'appli). window.open() reste
+     le repli web/PWA, inchangé.
    - Impression / export PDF (printBtn/tripBookBtn, via printOrWarnIfNative()
      juste en dessous) : les WebView Android n'implémentent pas
      window.print() par défaut — les deux boutons affichent maintenant un
@@ -121,10 +122,14 @@
      n'est ajouté avant la date de départ ni après le dernier jour — le
      total reste ensuite figé tel quel, consultable dans l'Historique des
      voyages une fois le voyage archivé (voir openTripHistoryDetail()).
-   - Export calendrier (exportIcsBtn, buildPlanningICS()) : génère un
-     fichier .ics que l'utilisateur doit ouvrir manuellement — un plugin
-     natif d'écriture calendrier (ex. @capacitor-community/calendar)
-     ajouterait directement les activités au calendrier du téléphone.
+   - Export calendrier : exportIcsBtn/buildPlanningICS() reste un fichier
+     .ics que l'utilisateur doit ouvrir manuellement (utile pour partager
+     vers un autre calendrier/appareil) — voir aussi
+     addPlanningToNativeCalendar() juste après (résolu 2026-09-05,
+     @ebarooni/capacitor-calendar) qui ajoute maintenant les activités
+     DIRECTEMENT dans le calendrier du téléphone, sans dialogue ni fichier
+     intermédiaire. buildPlanningEventList() est la source de vérité
+     partagée entre les deux chemins.
    - Scanner de QR code (fonctionnel 2026-09-05, qrScanBtn, voir
      handleScannedQrValue()/scanQrNative() juste après le bloc synchro) :
      @capacitor-mlkit/barcode-scanning (méthode scan(), interface native
@@ -3230,17 +3235,14 @@ function formatICSDateTime(dateObj){
 
 const ICS_DEFAULT_SLOT_HOURS = { matin:9, midi:12, apresMidi:15, soir:19 };
 
-function buildPlanningICS(){
+/* Source de vérité unique pour un événement de calendrier — réutilisée par
+   l'export .ics (buildPlanningICS()) ET l'ajout direct au calendrier natif
+   du téléphone (addPlanningToNativeCalendar(), voir plus bas près de
+   exportIcsBtn). */
+function buildPlanningEventList(){
 
-    const lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//Tabi Go//FR",
-        "CALSCALE:GREGORIAN"
-    ];
-
+    const events = [];
     const sections = ["matin","midi","apresMidi","soir"];
-    let eventCount = 0;
 
     Object.keys(planning)
     .map(d=>parseInt(d,10))
@@ -3264,24 +3266,48 @@ function buildPlanningICS(){
                 const end = new Date(start);
                 end.setHours(end.getHours()+1);
 
-                eventCount++;
-
-                lines.push("BEGIN:VEVENT");
-                lines.push(`UID:${activity.id || `${day}-${slot}-${eventCount}`}@planification-vacances`);
-                lines.push(`DTSTAMP:${formatICSDateTime(new Date())}Z`);
-                lines.push(`DTSTART:${formatICSDateTime(start)}`);
-                lines.push(`DTEND:${formatICSDateTime(end)}`);
-                lines.push(`SUMMARY:${escapeICSText(`${activityIconPrefix(activity.type)}${activity.name}`)}`);
-                if(activity.address) lines.push(`LOCATION:${escapeICSText(activity.address)}`);
-                if(activity.reservationLink) lines.push(`URL:${escapeICSText(activity.reservationLink)}`);
-                if(activity.note) lines.push(`DESCRIPTION:${escapeICSText(activity.note)}`);
-                lines.push("END:VEVENT");
+                events.push({
+                    id: activity.id || null,
+                    title: `${activityIconPrefix(activity.type)}${activity.name}`,
+                    start,
+                    end,
+                    location: activity.address || "",
+                    url: activity.reservationLink || "",
+                    description: activity.note || ""
+                });
             });
         });
     });
 
+    return events;
+}
+
+function buildPlanningICS(){
+
+    const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Tabi Go//FR",
+        "CALSCALE:GREGORIAN"
+    ];
+
+    const events = buildPlanningEventList();
+
+    events.forEach((event,i)=>{
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${event.id || `evt-${i}`}@planification-vacances`);
+        lines.push(`DTSTAMP:${formatICSDateTime(new Date())}Z`);
+        lines.push(`DTSTART:${formatICSDateTime(event.start)}`);
+        lines.push(`DTEND:${formatICSDateTime(event.end)}`);
+        lines.push(`SUMMARY:${escapeICSText(event.title)}`);
+        if(event.location) lines.push(`LOCATION:${escapeICSText(event.location)}`);
+        if(event.url) lines.push(`URL:${escapeICSText(event.url)}`);
+        if(event.description) lines.push(`DESCRIPTION:${escapeICSText(event.description)}`);
+        lines.push("END:VEVENT");
+    });
+
     lines.push("END:VCALENDAR");
-    return { ics: lines.join("\r\n"), eventCount };
+    return { ics: lines.join("\r\n"), eventCount: events.length };
 }
 
 const exportIcsBtn = document.getElementById("exportIcsBtn");
@@ -3309,6 +3335,94 @@ exportIcsBtn.addEventListener("click",()=>{
     showToast(`${eventCount} activité(s) exportée(s) vers le calendrier.`,{type:"success"});
 });
 
+/* CAPACITOR (2026-09-05, résolu) : @ebarooni/capacitor-calendar ajoute les
+   activités DIRECTEMENT dans le calendrier du téléphone (createEvent(),
+   pas de dialogue) au lieu de générer un .ics que l'utilisateur doit
+   encore ouvrir manuellement. buildPlanningEventList() ci-dessus reste la
+   SEULE source de vérité du contenu, partagée avec l'export .ics — les
+   deux chemins restent proposés (voir le menu Exporter juste en dessous),
+   .ics gardant son utilité (partage vers un autre calendrier/appareil). */
+function nativeCalendarAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorCalendar);
+}
+
+let defaultCalendarIdPromise = null;
+
+function getDefaultCalendarId(){
+    if(!defaultCalendarIdPromise){
+        defaultCalendarIdPromise = (async()=>{
+            const { result } = await window.Capacitor.Plugins.CapacitorCalendar.getDefaultCalendar({useFallbackCalendar:true});
+            return result ? result.id : null;
+        })();
+    }
+    return defaultCalendarIdPromise;
+}
+
+async function addPlanningToNativeCalendar(){
+
+    if(!startDate){
+        showToast(
+            "Ajoute une date de départ (Dates & devise) avant d'ajouter au calendrier.",
+            {type:"error",duration:6000}
+        );
+        return;
+    }
+
+    const events = buildPlanningEventList();
+    if(events.length===0){
+        showToast("Aucune activité à ajouter.",{type:"error"});
+        return;
+    }
+
+    showConfirmModal(
+        `Ajouter ${events.length} activité(s) au calendrier du téléphone ? Les ajouts déjà faits précédemment ne sont pas retirés automatiquement — supprime-les à la main dans l'appli Calendrier si tu réessaies.`,
+        async()=>{
+
+            const Calendar = window.Capacitor.Plugins.CapacitorCalendar;
+
+            try{
+                const { result: permission } = await Calendar.requestFullCalendarAccess();
+                if(permission!=="granted"){
+                    showToast("Permission calendrier refusée.",{type:"error"});
+                    return;
+                }
+            }catch(err){
+                console.error("Permission calendrier impossible :",err);
+                showToast("Permission calendrier impossible à demander.",{type:"error"});
+                return;
+            }
+
+            const calendarId = await getDefaultCalendarId();
+            let added = 0;
+
+            for(const event of events){
+                try{
+                    await Calendar.createEvent({
+                        title: event.title,
+                        startDate: event.start.getTime(),
+                        endDate: event.end.getTime(),
+                        location: event.location || undefined,
+                        description: event.description || undefined,
+                        url: event.url || undefined,
+                        calendarId: calendarId || undefined
+                    });
+                    added++;
+                }catch(err){
+                    console.error("Événement calendrier non ajouté :",err);
+                }
+            }
+
+            if(added===0){
+                showToast("Aucun événement n'a pu être ajouté au calendrier.",{type:"error"});
+            }else if(added<events.length){
+                showToast(`${added}/${events.length} activité(s) ajoutée(s) au calendrier (le reste a échoué).`,{type:"error",duration:6000});
+            }else{
+                showToast(`${added} activité(s) ajoutée(s) au calendrier du téléphone.`,{type:"success"});
+            }
+        }
+    );
+}
+
 const exportBtn = document.getElementById("exportBtn");
 const tripBookBtn = document.getElementById("tripBookBtn");
 
@@ -3320,6 +3434,11 @@ exportBtn.addEventListener("click",(e)=>{
         {icon:"🗓️",label:"Calendrier (.ics)",action:()=>exportIcsBtn.click()},
         {icon:"💾",label:"Mes données (JSON)",action:()=>exportDataBtn.click()}
     ];
+    // CAPACITOR (2026-09-05) : natif seulement, voir addPlanningToNativeCalendar()
+    // juste au-dessus — pas de sens sur web/PWA (pas de plugin).
+    if(nativeCalendarAvailable()){
+        items.push({icon:"📅",label:"Ajouter au calendrier du téléphone",action:addPlanningToNativeCalendar});
+    }
     // CAPACITOR (2026-09-05) : natif seulement, voir connectGoogleDrive()
     // près de exportDataBtn — pas de sens sur web/PWA (pas de plugin).
     if(isNativeApp()){
@@ -5933,11 +6052,29 @@ searchToggleBtn.addEventListener("click",(e)=>{
     toggleSearchPanel();
 });
 
+/* CAPACITOR (2026-09-05, résolu) : @capacitor/browser prend le relais pour
+   tout lien externe quand disponible — window.open() n'a pas de
+   comportement garanti dans une WebView Capacitor (navigue parfois la
+   WebView elle-même au lieu d'ouvrir un onglet/navigateur externe, ce qui
+   ferait perdre l'état de l'appli). Point d'entrée unique pour les 3
+   endroits qui ouvrent une URL externe (openAddressInMaps,
+   openReservationLink, openNearbyToilets juste en dessous). */
+function nativeBrowserAvailable(){
+    return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser);
+}
+
+function openExternalUrl(url){
+    if(nativeBrowserAvailable()){
+        window.Capacitor.Plugins.Browser.open({url});
+        return;
+    }
+    window.open(url,"_blank","noopener,noreferrer");
+}
+
 const nearbyToiletsBtn = document.getElementById("nearbyToiletsBtn");
 
-// CAPACITOR : combine les deux points de vigilance du haut du fichier —
-// navigator.geolocation (permission Android peu fiable hors plugin natif) et
-// window.open pour un lien externe (@capacitor/browser).
+// CAPACITOR : navigator.geolocation (permission Android peu fiable hors
+// plugin natif) — voir la note "Géolocalisation" en tête du fichier.
 function openNearbyToilets(){
 
     const fallbackUrl =
@@ -5945,7 +6082,26 @@ function openNearbyToilets(){
     + encodeURIComponent("toilettes publiques");
 
     if(!navigator.geolocation){
-        window.open(fallbackUrl,"_blank","noopener,noreferrer");
+        openExternalUrl(fallbackUrl);
+        return;
+    }
+
+    /* @capacitor/browser n'a pas de blocage de popup à contourner (contrairement
+       à window.open() sur le web) : pas besoin d'ouvrir un onglet vide à
+       l'avance puis de le rediriger une fois la position connue, on ouvre
+       directement une fois la géolocalisation résolue. Le repli web garde
+       lui l'ancienne technique (onglet ouvert dans le geste utilisateur
+       synchrone, puis .location.href une fois la position connue), toujours
+       nécessaire là où les popups peuvent être bloqués. */
+    if(nativeBrowserAvailable()){
+        navigator.geolocation.getCurrentPosition(
+            pos=>{
+                const { latitude, longitude } = pos.coords;
+                openExternalUrl(`https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`);
+            },
+            ()=>openExternalUrl(fallbackUrl),
+            { timeout:8000 }
+        );
         return;
     }
 
@@ -6936,23 +7092,19 @@ function renderProfileStats(){
 
 /* --- Profil : réservations (vue consolidée des liens par activité) --- */
 
-// CAPACITOR : lien externe — voir "Liens externes" en haut du fichier
-// (@capacitor/browser). Partagé entre le popover d'activité (Planning) et
-// la vue Réservations, plutôt que dupliqué à chaque endroit qui doit
-// ouvrir une adresse.
+// Partagé entre le popover d'activité (Planning) et la vue Réservations,
+// plutôt que dupliqué à chaque endroit qui doit ouvrir une adresse. Voir
+// openExternalUrl()/nativeBrowserAvailable() près de nearbyToiletsBtn.
 function openAddressInMaps(address){
-    window.open(
+    openExternalUrl(
         "https://www.google.com/maps/search/?api=1&query="
-        + encodeURIComponent(address.trim()),
-        "_blank"
+        + encodeURIComponent(address.trim())
     );
 }
 
-// CAPACITOR : lien externe — voir "Liens externes" en haut du fichier
-// (@capacitor/browser). Même raison que openAddressInMaps() ci-dessus.
 function openReservationLink(link){
     if(/^https?:\/\//i.test(link)){
-        window.open(link,"_blank","noopener,noreferrer");
+        openExternalUrl(link);
     }else{
         showToast("Lien de réservation invalide (doit commencer par http:// ou https://).",{type:"error"});
     }
