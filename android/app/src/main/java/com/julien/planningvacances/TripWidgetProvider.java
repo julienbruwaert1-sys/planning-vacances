@@ -78,6 +78,17 @@ public class TripWidgetProvider extends AppWidgetProvider {
         );
         views.setOnClickPendingIntent(R.id.widgetRoot, pendingIntent);
 
+        // updateAppWidget(id, null) avant le vrai contenu : constaté sur
+        // appareil réel (OneUI Samsung), le système garde en mémoire la
+        // hiérarchie de vues déjà appliquée à cet appWidgetId et se
+        // contente d'un "reapply" (mise à jour des valeurs sur les MÊMES
+        // vues) au lieu de ré-inflater res/layout/widget_trip.xml — ce qui
+        // ignorait silencieusement un changement de layout (racine
+        // LinearLayout -> FrameLayout) même après une vraie mise à jour
+        // d'appli. Passer par null casse ce cache et force une inflation
+        // complète à chaque fois, seule façon fiable de garantir que le
+        // widget reflète toujours le layout réellement empaqueté.
+        appWidgetManager.updateAppWidget(appWidgetId, null);
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
