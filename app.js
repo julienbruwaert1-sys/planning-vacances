@@ -3987,9 +3987,40 @@ function absUrl(path){
     return new URL(path,document.baseURI).href;
 }
 
+/* CAPACITOR (2026-09-05, @capawesome/capacitor-app-icon) : sur le web/PWA,
+   changer le logo ne fait que régénérer le manifest.json dynamique
+   ci-dessous — le navigateur garde l'icône d'installation d'origine tant
+   que la PWA n'est pas désinstallée/réinstallée (limitation connue,
+   irréductible côté web). En natif, applique en plus le VRAI changement
+   d'icône de lancement Android via un activity-alias dédié à chaque pays
+   (voir AndroidManifest.xml — un alias .default + un par pays, un seul
+   activé à la fois, le plugin gère lui-même le PackageManager). "default"
+   utilise resetIcon() (revient à .default) plutôt que setIcon("default")
+   : c'est littéralement l'alias qui porte ce nom ici, mais resetIcon()
+   reste la voie officiellement documentée par le plugin pour l'icône
+   d'origine. Ignoré silencieusement si le plugin est absent (web) ou
+   échoue pour une raison quelconque — jamais bloquant pour le reste de
+   la fonction (le manifest web continue de se mettre à jour dans tous
+   les cas). */
+async function applyNativeAppIcon(key){
+    if(!isNativeApp() || !(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppIcon)) return;
+    try{
+        const AppIconPlugin = window.Capacitor.Plugins.AppIcon;
+        if(key==="default"){
+            await AppIconPlugin.resetIcon();
+        }else{
+            await AppIconPlugin.setIcon({icon:key});
+        }
+    }catch(err){
+        console.error("Impossible de changer l'icône native :",err);
+    }
+}
+
 function applyAppIcon(key){
 
     const meta = APP_ICONS[key] || APP_ICONS.default;
+
+    applyNativeAppIcon(key);
 
     faviconLink.href = meta.icon192;
     appleTouchIconLink.href = meta.icon512;
@@ -4035,7 +4066,9 @@ appIconSelect.addEventListener("change",()=>{
             updateMapCountryToggleLabel();
             updateConverterCountryHeader();
             showToast(
-                "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
+                isNativeApp()
+                    ? "Logo mis à jour — ça peut prendre quelques secondes à s'afficher sur l'écran d'accueil."
+                    : "Logo mis à jour. Désinstalle puis réinstalle l'app pour le voir sur l'écran d'accueil.",
                 {type:"success",duration:6000}
             );
         },

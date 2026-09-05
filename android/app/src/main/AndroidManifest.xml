@@ -7,6 +7,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <!-- CAPACITOR (2026-09-05, @capawesome/capacitor-app-icon) : l'icône
+             de lancement change vraiment selon le choix dans Réglages via
+             ces activity-alias, PAS l'icône statique de .MainActivity —
+             voir applyAppIcon() dans app.js. L'intent-filter LAUNCHER a
+             donc été déplacé de .MainActivity vers l'alias .default
+             (activé par défaut) : exactement un alias doit être activé à
+             la fois, le plugin gère lui-même l'activation/désactivation
+             des autres via PackageManager. -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -14,11 +22,449 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:exported="true">
+        </activity>
+
+        <activity-alias
+            android:name=".default"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".germany"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_germany"
+            android:roundIcon="@mipmap/ic_launcher_germany_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".australia"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_australia"
+            android:roundIcon="@mipmap/ic_launcher_australia_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".austria"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_austria"
+            android:roundIcon="@mipmap/ic_launcher_austria_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".belgium"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_belgium"
+            android:roundIcon="@mipmap/ic_launcher_belgium_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".brazil"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_brazil"
+            android:roundIcon="@mipmap/ic_launcher_brazil_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".canada"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_canada"
+            android:roundIcon="@mipmap/ic_launcher_canada_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".chile"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_chile"
+            android:roundIcon="@mipmap/ic_launcher_chile_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".china"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_china"
+            android:roundIcon="@mipmap/ic_launcher_china_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".southkorea"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_southkorea"
+            android:roundIcon="@mipmap/ic_launcher_southkorea_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".croatia"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_croatia"
+            android:roundIcon="@mipmap/ic_launcher_croatia_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".denmark"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_denmark"
+            android:roundIcon="@mipmap/ic_launcher_denmark_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".egypt"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_egypt"
+            android:roundIcon="@mipmap/ic_launcher_egypt_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".spain"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_spain"
+            android:roundIcon="@mipmap/ic_launcher_spain_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".usa"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_usa"
+            android:roundIcon="@mipmap/ic_launcher_usa_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".finland"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_finland"
+            android:roundIcon="@mipmap/ic_launcher_finland_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".france"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_france"
+            android:roundIcon="@mipmap/ic_launcher_france_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".greece"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_greece"
+            android:roundIcon="@mipmap/ic_launcher_greece_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".hungary"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_hungary"
+            android:roundIcon="@mipmap/ic_launcher_hungary_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".india"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_india"
+            android:roundIcon="@mipmap/ic_launcher_india_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".iceland"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_iceland"
+            android:roundIcon="@mipmap/ic_launcher_iceland_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".italy"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_italy"
+            android:roundIcon="@mipmap/ic_launcher_italy_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".japan"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_japan"
+            android:roundIcon="@mipmap/ic_launcher_japan_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".nepal"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_nepal"
+            android:roundIcon="@mipmap/ic_launcher_nepal_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".norway"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_norway"
+            android:roundIcon="@mipmap/ic_launcher_norway_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".netherlands"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_netherlands"
+            android:roundIcon="@mipmap/ic_launcher_netherlands_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".portugal"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_portugal"
+            android:roundIcon="@mipmap/ic_launcher_portugal_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".czechrepublic"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_czechrepublic"
+            android:roundIcon="@mipmap/ic_launcher_czechrepublic_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".romania"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_romania"
+            android:roundIcon="@mipmap/ic_launcher_romania_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".singapore"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_singapore"
+            android:roundIcon="@mipmap/ic_launcher_singapore_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".sweden"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sweden"
+            android:roundIcon="@mipmap/ic_launcher_sweden_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".switzerland"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_switzerland"
+            android:roundIcon="@mipmap/ic_launcher_switzerland_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".thailand"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_thailand"
+            android:roundIcon="@mipmap/ic_launcher_thailand_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".turkey"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_turkey"
+            android:roundIcon="@mipmap/ic_launcher_turkey_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <provider
             android:name="androidx.core.content.FileProvider"
