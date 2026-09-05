@@ -9582,12 +9582,22 @@ function nativeFilePathFromCameraResult(photo){
 function fitTranslateBoxFont(text,maxWidth,initialFontSize){
     const canvas = fitTranslateBoxFont._canvas || (fitTranslateBoxFont._canvas = document.createElement("canvas"));
     const ctx = canvas.getContext("2d");
+    // Doit mesurer avec la police RÉELLEMENT affichée (Inter, pas un
+    // "sans-serif" générique) — l'écart entre les deux faisait déborder le
+    // texte réel de la boîte calculée de quelques px, juste assez pour que
+    // le filet de sécurité CSS (text-overflow:ellipsis) coupe des
+    // caractères. Confirmé en direct sur appareil réel (débogage WebView).
+    const fontFamily = fitTranslateBoxFont._fontFamily || (fitTranslateBoxFont._fontFamily = getComputedStyle(document.body).fontFamily || "sans-serif");
+    // Marge de sécurité supplémentaire : measureText (canvas) et le rendu
+    // DOM réel peuvent encore différer de quelques px (arrondis, kerning)
+    // même à police strictement identique.
+    const safeMaxWidth = maxWidth*0.94;
     let fontSize = initialFontSize;
-    ctx.font = fontSize+"px sans-serif";
+    ctx.font = fontSize+"px "+fontFamily;
     let width = ctx.measureText(text).width;
-    if(width > maxWidth && width > 0){
-        fontSize = Math.max(6, fontSize * (maxWidth/width));
-        ctx.font = fontSize+"px sans-serif";
+    if(width > safeMaxWidth && width > 0){
+        fontSize = Math.max(6, fontSize * (safeMaxWidth/width));
+        ctx.font = fontSize+"px "+fontFamily;
         width = ctx.measureText(text).width;
     }
     return { fontSize, width };
@@ -9655,10 +9665,19 @@ async function startPhotoTranslation(){
         // de traduction embarqué (hors-ligne) gère mal — il donne de bien
         // meilleurs résultats sur une phrase courte et isolée. En prime, le
         // cadre de chaque ligne colle mieux au texte que celui du bloc entier.
-        const lines = blocks.flatMap(block=>block.lines || []);
+        // Triées par position verticale : sur du texte dense, les boundingBox
+        // de lignes voisines renvoyées par ML Kit se touchent ou se
+        // chevauchent parfois nativement de quelques px (constaté en direct
+        // sur appareil réel via débogage WebView) — on limite donc la hauteur
+        // de chaque bloc à l'espace réel disponible jusqu'à la ligne
+        // suivante plutôt que de faire confiance telle quelle à sa propre
+        // boundingBox.
+        const lines = blocks.flatMap(block=>block.lines || [])
+            .filter(line=>line.text.trim() && line.boundingBox)
+            .sort((a,b)=>a.boundingBox.top-b.boundingBox.top);
 
-        for(const line of lines){
-            if(!line.text.trim() || !line.boundingBox) continue;
+        for(let i=0;i<lines.length;i++){
+            const line = lines[i];
             try{
                 const { text: translated } = await window.Capacitor.Plugins.Translation.translate({
                     text: line.text,
@@ -9666,7 +9685,13 @@ async function startPhotoTranslation(){
                     targetLanguage: TRANSLATE_TARGET_LANGUAGE
                 });
 
-                const boxHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
+                const thisTop = line.boundingBox.top*scaleY;
+                let boxHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
+                if(i+1 < lines.length){
+                    const availableToNext = lines[i+1].boundingBox.top*scaleY - thisTop - 1;
+                    if(availableToNext > 0 && availableToNext < boxHeight) boxHeight = availableToNext;
+                }
+                boxHeight = Math.max(4,boxHeight);
                 const centerX = (line.boundingBox.left+line.boundingBox.right)/2*scaleX;
                 const baseFontSize = Math.max(7,Math.min(13,boxHeight*0.72));
 
@@ -9683,7 +9708,7 @@ async function startPhotoTranslation(){
                 const overlayEl = document.createElement("div");
                 overlayEl.className = "translate-block";
                 overlayEl.style.left = boxLeft+"px";
-                overlayEl.style.top = (line.boundingBox.top*scaleY)+"px";
+                overlayEl.style.top = thisTop+"px";
                 overlayEl.style.width = boxWidth+"px";
                 overlayEl.style.height = boxHeight+"px";
                 // Centrage vertical calé sur line-height = hauteur de la
