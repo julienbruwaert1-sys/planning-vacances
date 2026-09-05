@@ -9554,6 +9554,20 @@ function setTranslateStatus(message){
     translateStatus.textContent = message;
 }
 
+/* Depuis Capacitor 8, le flux caméra Android par défaut (IonCameraFlow) ne
+   renvoie plus jamais de champ "path" — seulement "webPath", au format
+   <serveur webview>/_capacitor_file_<chemin réel absolu>. TextRecognition.
+   processImage() a besoin du vrai chemin natif (pas de l'URL webview), donc
+   on le reconstruit en retirant ce préfixe (même logique que native-bridge.js
+   côté Capacitor). Sans ça, photo.path est undefined et ML Kit échoue avec
+   "path must be provided." — confirmé via adb logcat sur appareil réel. */
+function nativeFilePathFromCameraResult(photo){
+    if(photo.path) return photo.path;
+    const marker = "/_capacitor_file_";
+    const idx = photo.webPath ? photo.webPath.indexOf(marker) : -1;
+    return idx!==-1 ? photo.webPath.slice(idx+marker.length) : null;
+}
+
 async function startPhotoTranslation(){
 
     if(!nativeTranslationAvailable()) return;
@@ -9583,7 +9597,13 @@ async function startPhotoTranslation(){
         // que d'habitude donnerait des positions fausses (0x0).
         await new Promise(resolve=>{ translateImage.onload = resolve; });
 
-        const { text, blocks } = await window.Capacitor.Plugins.TextRecognition.processImage({path:photo.path});
+        const filePath = nativeFilePathFromCameraResult(photo);
+        if(!filePath){
+            setTranslateStatus("Traduction impossible sur cet appareil.");
+            return;
+        }
+
+        const { text, blocks } = await window.Capacitor.Plugins.TextRecognition.processImage({path:filePath});
 
         if(!text.trim()){
             setTranslateStatus("Aucun texte détecté sur cette photo.");
