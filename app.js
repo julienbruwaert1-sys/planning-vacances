@@ -9582,29 +9582,40 @@ function nativeFilePathFromCameraResult(photo){
    en réduisant la police jusqu'à ce que TOUT le texte tienne dans la
    hauteur réellement disponible (l'espace jusqu'à la ligne détectée
    suivante) — l'ellipsis CSS ne sert alors plus que de filet de sécurité
-   pour les cas vraiment extrêmes (texte énorme dans un espace minuscule). */
+   pour les cas vraiment extrêmes (texte énorme dans un espace minuscule).
+   Mesure via un VRAI élément DOM invisible plutôt qu'un canvas : essayé
+   d'abord avec canvas.measureText() (police explicite + document.fonts.ready)
+   mais toujours faux sur appareil réel pour les toutes petites tailles —
+   Android WebView applique une taille de police minimale forcée à
+   l'affichage réel du texte (indépendante du CSS demandé), à laquelle un
+   canvas 2D n'est PAS soumis. Une mesure DOM subit exactement les mêmes
+   contraintes que le texte réellement affiché, quelle que soit la valeur
+   de ce plancher (pas besoin de la deviner). Confirmé en direct sur
+   appareil réel (débogage WebView). */
 function fitTranslateBoxText(text,maxWidth,maxHeight,initialFontSize){
-    const canvas = fitTranslateBoxText._canvas || (fitTranslateBoxText._canvas = document.createElement("canvas"));
-    const ctx = canvas.getContext("2d");
-    // Doit mesurer avec la police RÉELLEMENT affichée (Inter, pas un
-    // "sans-serif" générique) — l'écart entre les deux faisait déborder le
-    // texte réel de la largeur calculée de quelques px, juste assez pour
-    // que le filet de sécurité CSS (text-overflow:ellipsis) coupe des
-    // caractères. Confirmé en direct sur appareil réel (débogage WebView).
-    const fontFamily = fitTranslateBoxText._fontFamily || (fitTranslateBoxText._fontFamily = getComputedStyle(document.body).fontFamily || "sans-serif");
-    // Marge de sécurité : measureText (canvas) et le rendu DOM réel peuvent
-    // encore différer de quelques px (arrondis, kerning) à police identique.
+    const measureEl = fitTranslateBoxText._measureEl || (fitTranslateBoxText._measureEl = (()=>{
+        const el = document.createElement("div");
+        el.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:0;margin:0;padding:0;border:0;";
+        document.body.appendChild(el);
+        return el;
+    })());
+    function measure(str,fontSize){
+        measureEl.style.fontSize = fontSize+"px";
+        measureEl.textContent = str || "​";
+        const rect = measureEl.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+    }
+
+    // Marge de sécurité pour les petits écarts d'arrondi restants.
     const safeMaxWidth = maxWidth*0.94;
-    const lineHeightRatio = 1.15;
 
     function wrap(fontSize){
-        ctx.font = fontSize+"px "+fontFamily;
         const words = text.split(" ");
         const wrapped = [];
         let current = "";
         for(const word of words){
             const test = current ? current+" "+word : word;
-            if(current==="" || ctx.measureText(test).width<=safeMaxWidth){
+            if(current==="" || measure(test,fontSize).width<=safeMaxWidth){
                 current = test;
             }else{
                 wrapped.push(current);
@@ -9617,14 +9628,15 @@ function fitTranslateBoxText(text,maxWidth,maxHeight,initialFontSize){
 
     let fontSize = initialFontSize;
     let wrappedLines = wrap(fontSize);
-    while(wrappedLines.length*fontSize*lineHeightRatio > maxHeight && fontSize > 5){
+    let lineHeight = measure(wrappedLines[0],fontSize).height;
+    while(wrappedLines.length*lineHeight > maxHeight && fontSize > 6){
         fontSize -= 0.5;
         wrappedLines = wrap(fontSize);
+        lineHeight = measure(wrappedLines[0],fontSize).height;
     }
 
-    ctx.font = fontSize+"px "+fontFamily;
-    const width = Math.min(safeMaxWidth, Math.max(0,...wrappedLines.map(l=>ctx.measureText(l).width)));
-    return { fontSize, lines: wrappedLines, lineHeight: fontSize*lineHeightRatio, width };
+    const width = Math.min(safeMaxWidth, Math.max(0,...wrappedLines.map(l=>measure(l,fontSize).width)));
+    return { fontSize, lines: wrappedLines, lineHeight, width };
 }
 
 async function startPhotoTranslation(){
