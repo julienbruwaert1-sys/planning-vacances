@@ -9632,6 +9632,18 @@ async function startPhotoTranslation(){
     if(!nativeTranslationAvailable()) return;
     optionsMenuPanel.hidden = true;
 
+    // Juste après une réouverture de l'appli, la police Inter (Google Fonts)
+    // peut ne pas encore être chargée. Un canvas.measureText() lancé avant
+    // qu'elle le soit retombe silencieusement sur une police de secours plus
+    // étroite pour CETTE mesure précise, alors que le DOM, lui, affichera
+    // bien Inter dès qu'elle finit de charger (souvent quelques centaines de
+    // ms plus tard) — d'où un texte réellement rendu plus large que prévu,
+    // débordant de la boîte calculée. Attendu ici (recouvre la prise de
+    // photo, donc sans latence perçue) plutôt que dans fitTranslateBoxText,
+    // pour ne le faire qu'une fois par appel plutôt qu'une fois par ligne.
+    // Confirmé comme cause réelle via débogage WebView sur appareil réel.
+    const fontsReady = (document.fonts && document.fonts.ready) || Promise.resolve();
+
     const Camera = window.Capacitor.Plugins.Camera;
 
     let photo;
@@ -9678,6 +9690,7 @@ async function startPhotoTranslation(){
         }
 
         setTranslateStatus("Traduction en cours (peut prendre un instant la première fois)…");
+        await fontsReady;
 
         const scaleX = translateImage.clientWidth / translateImage.naturalWidth;
         const scaleY = translateImage.clientHeight / translateImage.naturalHeight;
