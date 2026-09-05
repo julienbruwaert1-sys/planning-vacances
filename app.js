@@ -9573,6 +9573,26 @@ function nativeFilePathFromCameraResult(photo){
     return idx!==-1 ? "file://"+photo.webPath.slice(idx+marker.length) : null;
 }
 
+/* Le français traduit est presque toujours plus long que le texte source —
+   tronquer avec "…" (essayé d'abord) rendait des mots entiers illisibles.
+   On réduit plutôt la taille de police jusqu'à ce que le texte tienne en
+   entier sur sa largeur disponible (mesurée via canvas, pas une estimation),
+   avec un minimum de 6px en dernier recours — l'ellipsis CSS ne sert alors
+   plus que de filet de sécurité pour les cas vraiment extrêmes. */
+function fitTranslateBoxFont(text,maxWidth,initialFontSize){
+    const canvas = fitTranslateBoxFont._canvas || (fitTranslateBoxFont._canvas = document.createElement("canvas"));
+    const ctx = canvas.getContext("2d");
+    let fontSize = initialFontSize;
+    ctx.font = fontSize+"px sans-serif";
+    let width = ctx.measureText(text).width;
+    if(width > maxWidth && width > 0){
+        fontSize = Math.max(6, fontSize * (maxWidth/width));
+        ctx.font = fontSize+"px sans-serif";
+        width = ctx.measureText(text).width;
+    }
+    return { fontSize, width };
+}
+
 async function startPhotoTranslation(){
 
     if(!nativeTranslationAvailable()) return;
@@ -9647,20 +9667,28 @@ async function startPhotoTranslation(){
                 });
 
                 const boxHeight = (line.boundingBox.bottom-line.boundingBox.top)*scaleY;
+                const centerX = (line.boundingBox.left+line.boundingBox.right)/2*scaleX;
+                const baseFontSize = Math.max(7,Math.min(13,boxHeight*0.72));
+
+                // Largeur d'origine de la ligne détectée : point de départ,
+                // pas une limite — le bloc peut s'élargir jusqu'aux bords de
+                // l'image (centré sur la ligne d'origine) pour laisser la
+                // traduction, plus longue, tenir en entier sans réduire la
+                // police plus que nécessaire.
+                const maxAvailableWidth = translateImage.clientWidth - 8;
+                const { fontSize, width: textWidth } = fitTranslateBoxFont(translated,maxAvailableWidth,baseFontSize);
+                const boxWidth = Math.min(maxAvailableWidth, textWidth + 8);
+                const boxLeft = Math.max(0, Math.min(centerX - boxWidth/2, translateImage.clientWidth - boxWidth));
 
                 const overlayEl = document.createElement("div");
                 overlayEl.className = "translate-block";
-                overlayEl.style.left = (line.boundingBox.left*scaleX)+"px";
+                overlayEl.style.left = boxLeft+"px";
                 overlayEl.style.top = (line.boundingBox.top*scaleY)+"px";
-                overlayEl.style.width = ((line.boundingBox.right-line.boundingBox.left)*scaleX)+"px";
+                overlayEl.style.width = boxWidth+"px";
                 overlayEl.style.height = boxHeight+"px";
-                // Une étiquette au texte dense donne des lignes hautes de
-                // quelques px à peine une fois mises à l'échelle — une taille
-                // de police fixe y déborderait toujours. On l'adapte à la
-                // hauteur réelle (bornée entre 7 et 13px) et on centre
-                // verticalement en calant line-height sur la hauteur de la
+                // Centrage vertical calé sur line-height = hauteur de la
                 // boîte (astuce classique pour du texte sur une seule ligne).
-                overlayEl.style.fontSize = Math.max(7,Math.min(13,boxHeight*0.72))+"px";
+                overlayEl.style.fontSize = fontSize+"px";
                 overlayEl.style.lineHeight = boxHeight+"px";
                 overlayEl.textContent = translated;
                 translateOverlay.appendChild(overlayEl);
