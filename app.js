@@ -6946,6 +6946,47 @@ function haversineMeters(lat1,lon1,lat2,lon2){
     return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+/* L'instance publique overpass-api.de est connue pour être parfois
+   surchargée/en rate-limit aux heures de pointe (429/504 passagers, pas une
+   vraie panne) — signalé par l'utilisateur ("Résultats indisponibles" trop
+   fréquent). Deux miroirs publics testés (overpass.kumi.systems,
+   overpass.openstreetmap.ru) mais tous deux injoignables (timeout) depuis
+   le réseau utilisé pour développer cette fonctionnalité — les garder en
+   repli aurait juste ajouté ~10-15s d'attente pure avant l'échec final,
+   sans jamais aboutir. À la place : 2 essais successifs sur LE MÊME
+   overpass-api.de, avec une courte pause entre les deux — une surcharge
+   passagère (429/503/504) a de bonnes chances d'être résolue quelques
+   secondes plus tard, sans dépendre d'un miroir dont la fiabilité n'a pas
+   pu être vérifiée. */
+const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+const OVERPASS_MAX_ATTEMPTS = 2;
+const OVERPASS_RETRY_DELAY_MS = 2500;
+
+// wait() est déjà déclarée plus bas dans le fichier (reverseGeocodeCity) —
+// réutilisée telle quelle, safe à appeler ici (hoisting), pas de raison
+// d'en redéclarer une deuxième copie.
+async function queryOverpass(query){
+    let lastError = null;
+    for(let attempt=1; attempt<=OVERPASS_MAX_ATTEMPTS; attempt++){
+        try{
+            const response = await fetchWithTimeout(OVERPASS_ENDPOINT+"?data="+encodeURIComponent(query),12000);
+            if(!response.ok){
+                lastError = new Error("Overpass : réponse HTTP "+response.status);
+                if(response.status===429 || response.status>=500){
+                    if(attempt<OVERPASS_MAX_ATTEMPTS) await wait(OVERPASS_RETRY_DELAY_MS);
+                    continue;
+                }
+                throw lastError;
+            }
+            return await response.json();
+        }catch(err){
+            lastError = err;
+            if(attempt<OVERPASS_MAX_ATTEMPTS) await wait(OVERPASS_RETRY_DELAY_MS);
+        }
+    }
+    throw lastError || new Error("Overpass : échec après plusieurs essais");
+}
+
 async function loadNearbyPlaces(){
 
     nearbyStatusEl.textContent = "Localisation…";
@@ -6973,12 +7014,7 @@ async function loadNearbyPlaces(){
         + `way["${category.tag}"="${category.value}"](${around}););out center ${NEARBY_RESULT_LIMIT};`;
 
     try{
-        const response = await fetchWithTimeout(
-            "https://overpass-api.de/api/interpreter?data="+encodeURIComponent(overpassQuery),
-            15000
-        );
-        if(!response.ok) throw new Error("Overpass: réponse HTTP "+response.status);
-        const data = await response.json();
+        const data = await queryOverpass(overpassQuery);
 
         const results = (data.elements||[]).map(el=>{
             const lat = el.lat!=null ? el.lat : (el.center && el.center.lat);
@@ -6996,7 +7032,16 @@ async function loadNearbyPlaces(){
 
     }catch(err){
         console.error("Recherche à proximité impossible :",err);
-        nearbyStatusEl.textContent = "Résultats indisponibles pour l'instant (pas de connexion, ou service surchargé) — réessaie dans un instant.";
+        nearbyStatusEl.innerHTML = "";
+        const msg = document.createElement("span");
+        msg.textContent = "Résultats indisponibles pour l'instant (pas de connexion, ou service surchargé) — ";
+        const retryBtn = document.createElement("button");
+        retryBtn.type = "button";
+        retryBtn.className = "rate-retry-btn";
+        retryBtn.textContent = "🔄 Réessayer";
+        retryBtn.addEventListener("click",loadNearbyPlaces);
+        nearbyStatusEl.appendChild(msg);
+        nearbyStatusEl.appendChild(retryBtn);
     }
 }
 
