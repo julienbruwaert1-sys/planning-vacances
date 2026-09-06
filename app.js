@@ -13204,6 +13204,12 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
             const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
             if(trigger) trigger.click();
         }
+
+        // Révèle la page maintenant que le bon onglet/la bonne vue est en
+        // place — voir le script anti-flash tout en haut de <body> dans
+        // Planning_v1.0.html, qui masque tout jusqu'ici (avec un filet de
+        // sécurité à 1.5s si jamais cette ligne n'était pas atteinte).
+        document.body.style.visibility = "";
     },0);
 })();
 

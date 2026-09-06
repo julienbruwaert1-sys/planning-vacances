@@ -40,6 +40,21 @@
         var t = localStorage.getItem("appTheme");
         if(t && t!=="default") document.body.classList.add("theme-"+t);
     }catch(e){}
+    /* Anti-flash de PAGE (pas seulement de thème) : restoreLastMainView()
+       dans app.js rouvre le dernier onglet/la dernière vue plein écran
+       (Convertisseur, Carte, À proximité...) via un setTimeout(fn,0)
+       délibéré (voir son propre commentaire — nécessaire pour éviter un
+       vrai crash TDZ). Le Planning par défaut a donc le temps d'être peint
+       une première fois AVANT que ce setTimeout ne bascule vers la vraie
+       dernière vue — un aller-retour trop rapide pour être lu, mais visible
+       (signalé par l'utilisateur : "affiche une autre page à l'ouverture").
+       Cache tout le corps de page jusqu'à ce que ce basculement soit fait
+       (visibility, pas display : garde les dimensions réelles pour tout
+       code qui en dépendrait, ex. isDesktopContext()). Filet de sécurité
+       à 1.5s : si jamais restoreLastMainView() ne réaffiche pas lui-même
+       (futur bug), la page ne reste jamais bloquée indéfiniment blanche. */
+    document.body.style.visibility = "hidden";
+    setTimeout(function(){ document.body.style.visibility = ""; },1500);
 })();
 </script>
 
