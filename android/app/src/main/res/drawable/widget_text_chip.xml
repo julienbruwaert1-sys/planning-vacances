@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, verif lisibilité) : fond translucide posé
+     derrière le bloc de texte uniquement (pas toute la photo), façon
+     légende de story — pour Ghibli/Sakura/Momiji, dont la photo est trop
+     claire ou trop proche de la couleur du texte pour rester lisible avec
+     la seule ombre portée. Le reste de la photo autour reste visible à
+     100%, contrairement à un voile sur toute la carte. Voir
+     widgetContentBlock dans widget_trip.xml / TripWidgetProvider.java. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#8A000000" />
+    <corners android:radius="14dp" />
+</shape>

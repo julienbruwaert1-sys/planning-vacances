@@ -51,7 +51,15 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_scene_default" />
 
+    <!-- id ajouté (verif lisibilité 2026-09-06) : reçoit @drawable/
+         widget_text_chip en fond, uniquement pour Ghibli/Sakura/Momiji
+         (photo trop claire ou trop proche de la couleur du texte) — voir
+         TripWidgetProvider.java. Bande large comme la carte mais haute
+         seulement du contenu texte (wrap_content), pas toute la carte :
+         le haut/bas de la photo restent visibles, contrairement à un
+         voile plein cadre. -->
     <LinearLayout
+        android:id="@+id/widgetContentBlock"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
