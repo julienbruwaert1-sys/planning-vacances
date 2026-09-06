@@ -61,7 +61,19 @@ public class TripWidgetProvider extends AppWidgetProvider {
         views.setInt(R.id.widgetRoot, "setBackgroundResource", WidgetThemeColors.backgroundRes(theme));
         views.setTextColor(R.id.widgetBigNumber, WidgetThemeColors.accentColor(theme));
 
-        String leafBand = themeLeafBand(theme);
+        // Photo réelle (style "P1", choisie parmi la comparaison de
+        // mockups) : remplace la bordure "M4" pour Sakura/Momiji/Ghibli —
+        // redondant d'afficher à la fois une vraie photo de fleurs/feuilles
+        // ET la bordure emoji équivalente par-dessus.
+        int photoRes = WidgetThemeColors.photoRes(theme);
+        boolean hasPhoto = photoRes != 0;
+        views.setViewVisibility(R.id.widgetPhoto, hasPhoto ? android.view.View.VISIBLE : android.view.View.GONE);
+        views.setViewVisibility(R.id.widgetPhotoOverlay, hasPhoto ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (hasPhoto) {
+            views.setImageViewResource(R.id.widgetPhoto, photoRes);
+        }
+
+        String leafBand = hasPhoto ? null : themeLeafBand(theme);
         if (leafBand == null) {
             views.setViewVisibility(R.id.widgetLeafBand, android.view.View.GONE);
         } else {

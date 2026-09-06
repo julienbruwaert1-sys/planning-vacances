@@ -37,6 +37,21 @@ public class WidgetThemeColors {
         }
     }
 
+    /* Vraies photos (licence Pixabay, usage commercial libre sans
+       attribution — voir les fichiers res/drawable/widget_photo_*.{jpg,png})
+       remplaçant la bordure "M4" pour ces 3 thèmes, style "P1 dégradé en
+       bas" choisi parmi la comparaison de mockups. 0 = pas de photo pour ce
+       thème (Noël/Halloween/Néon/default gardent leur propre traitement). */
+    public static int photoRes(String theme) {
+        if (theme == null) return 0;
+        switch (theme) {
+            case "sakura": return R.drawable.widget_photo_sakura;
+            case "momiji": return R.drawable.widget_photo_momiji;
+            case "ghibli": return R.drawable.widget_photo_ghibli;
+            default: return 0;
+        }
+    }
+
     public static int accentColor(String theme) {
         if (theme == null) return android.graphics.Color.parseColor("#F0935A");
         switch (theme) {

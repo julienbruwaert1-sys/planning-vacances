@@ -18,6 +18,32 @@
     android:background="@drawable/widget_bg_default"
     android:clipToOutline="true">
 
+    <!-- Photo réelle (style "P1 dégradé en bas", choisi parmi la
+         comparaison de mockups) — Sakura/Momiji/Ghibli uniquement, voir
+         TripWidgetProvider.themePhotoRes(). scaleType="centerCrop" :
+         remplit le widget en conservant les proportions, quelle que soit
+         sa taille réelle (contrairement à widgetScene en fitXY, qui
+         convient à une silhouette dessinée mais déformerait une vraie
+         photo). GONE pour les autres thèmes (widget_bg_default/thème
+         reprend alors la main comme fond). -->
+    <ImageView
+        android:id="@+id/widgetPhoto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        tools:src="@drawable/widget_photo_sakura"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/widgetPhotoOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_photo_overlay"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <!-- Scène "H3 nuit étoilée" (lune/étoiles/montagnes), thème "default"
          uniquement — voir widget_scene_default.xml. scaleType="fitXY" :
          s'étire pour remplir le widget quelle que soit sa taille réelle,

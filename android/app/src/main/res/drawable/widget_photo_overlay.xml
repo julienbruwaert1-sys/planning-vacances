@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget écran d'accueil, style "P1 dégradé en bas"
+     choisi parmi la comparaison de mockups) : voile dégradé transparent en
+     haut -> sombre en bas, posé par-dessus une photo réelle (Sakura/Momiji/
+     Ghibli, voir widgetPhoto dans widget_trip.xml) pour garder le texte
+     lisible. Partagé entre les 3 thèmes photo, aucune couleur propre à un
+     thème. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- Transition transparent -> sombre atteinte dès 32% de la hauteur
+       (centerColor = endColor), puis reste sombre jusqu'en bas — donne
+       un fond suffisamment sombre au bloc de texte CENTRÉ verticalement
+       (layout_gravity="center_vertical" inchangé, même mécanisme déjà
+       validé pour les autres thèmes) sans avoir besoin de le rebasculer
+       en bas spécifiquement pour les thèmes photo. -->
+    <gradient
+        android:angle="270"
+        android:startColor="#00000000"
+        android:centerColor="#D1000000"
+        android:endColor="#D1000000"
+        android:centerY="0.32" />
+</shape>
