@@ -1135,6 +1135,83 @@ document.getElementById("dayTitleEditBtn").addEventListener("click",()=>{
     renderTabs();
 });
 
+/* --- Partage d'une seule journée en lecture seule (2026-09-06, implémenté
+   sur demande directe) ---
+   Volontairement PAS un lien public vers les données Firebase (ça
+   donnerait un accès complet en lecture/écriture au voyage, comme le QR de
+   synchro déjà existant) — un simple texte formaté envoyé via le partage
+   natif du téléphone (SMS/WhatsApp/e-mail...) ou copié dans le presse-
+   papier. Quelqu'un qui n'utilise pas l'appli (famille restée à la
+   maison...) n'a besoin que de LIRE le programme du jour, jamais d'y
+   accéder en direct — choix de conception, pas un raccourci technique. */
+function buildDayShareText(day){
+
+    const dayData = planning[day];
+    if(!dayData) return "";
+
+    const dateLabel = formatDayDateShort(day);
+    let heading = dateLabel || `Jour ${day}`;
+    if(dayData.title) heading += ` — ${dayData.title}`;
+
+    const sections = [
+        {key:"matin",label:"🌅 Matin"},
+        {key:"midi",label:"🍽️ Midi"},
+        {key:"apresMidi",label:"☀️ Après-midi"},
+        {key:"soir",label:"🌙 Soir"}
+    ];
+
+    const lines = [`📅 ${heading}`,""];
+    let hasAnyActivity = false;
+
+    sections.forEach(section=>{
+        const list = dayData[section.key] || [];
+        if(!list.length) return;
+        hasAnyActivity = true;
+
+        lines.push(section.label);
+        list.forEach(activity=>{
+            let line = "• ";
+            if(activity.time) line += activity.time+" · ";
+            line += activityIconPrefix(activity.type)+activity.name;
+            lines.push(line);
+            if(activity.address) lines.push(`   📍 ${activity.address}`);
+        });
+        lines.push("");
+    });
+
+    if(!hasAnyActivity) lines.push("Aucune activité prévue ce jour-là.");
+
+    lines.push("— Envoyé depuis Tabi Go");
+
+    return lines.join("\n").trim();
+}
+
+async function shareCurrentDay(){
+
+    const text = buildDayShareText(currentDay);
+    if(!text){
+        showToast("Rien à partager pour ce jour.",{type:"error"});
+        return;
+    }
+
+    if(navigator.share){
+        try{
+            await navigator.share({text});
+            return;
+        }catch(err){
+            // AbortError : l'utilisateur a juste fermé la feuille de partage
+            // sans rien choisir — pas une vraie erreur, pas de repli presse-
+            // papier dans ce cas précis (surprendrait l'utilisateur).
+            if(err && err.name==="AbortError") return;
+            console.error("Partage natif impossible :",err);
+        }
+    }
+
+    copyTextToClipboard(text);
+}
+
+document.getElementById("dayShareBtn").addEventListener("click",shareCurrentDay);
+
 document.getElementById("dayDuplicateBtn").addEventListener("click",()=>{
 
     const input = prompt(
@@ -7330,6 +7407,81 @@ const checklistSuggestions = [
     {label:"Prise multiple",category:"Électronique"}
 ];
 
+/* --- Checklist intelligente selon la météo (2026-09-06, implémenté sur
+   demande directe) ---
+   Réutilise exactement la même technique que le rappel météo avant le
+   départ (geocodeAddress() sur le nom du pays + Open-Meteo pour la date de
+   départ, voir syncScheduledNotifications()) : approximation à l'échelle
+   du pays, même limite déjà acceptée là-bas — l'appli n'a pas de ville de
+   destination précise, seulement un pays. Résultat mis en cache dans le
+   même store que le reste de la météo (WEATHER_CACHE_KEY/TTL), donc pas de
+   nouvel appel réseau à chaque ouverture de la checklist tant que le cache
+   est frais. */
+const CHECKLIST_WEATHER_RAIN_CODES = [51,53,55,61,63,65,80,81,82,95,96,99];
+let checklistWeatherSuggestions = [];
+
+async function computeChecklistWeatherSuggestions(){
+
+    checklistWeatherSuggestions = [];
+
+    if(!startDate || !tripCountry) return;
+
+    const departureDate = new Date(startDate+"T00:00:00");
+    if(isNaN(departureDate.getTime())) return;
+
+    const countryLabel = APP_ICONS[tripCountry] ? APP_ICONS[tripCountry].label : "";
+    const countryName = countryLabel.split(" ").slice(1).join(" ");
+    if(!countryName) return;
+
+    try{
+        const coords = await geocodeAddress(countryName);
+        const dateStr = toISODateLocal(departureDate);
+        const cacheKey = `${coords.lat.toFixed(2)},${coords.lon.toFixed(2)}_${dateStr}`;
+        const cache = loadWeatherCache();
+        const cached = cache[cacheKey];
+
+        let dayWeather = (cached && (Date.now()-cached.timestamp) < WEATHER_CACHE_TTL_MS)
+            ? cached.data
+            : null;
+
+        if(!dayWeather){
+            const url =
+                "https://api.open-meteo.com/v1/forecast?latitude="+coords.lat
+                + "&longitude="+coords.lon
+                + "&daily=weathercode,temperature_2m_max,precipitation_probability_max"
+                + "&timezone=auto&start_date="+dateStr+"&end_date="+dateStr;
+
+            const response = await fetchWithTimeout(url,8000);
+            if(!response.ok) return;
+            const data = await response.json();
+            if(!data.daily || !data.daily.time || !data.daily.time.length) return;
+
+            dayWeather = {
+                code: data.daily.weathercode[0],
+                max: Math.round(data.daily.temperature_2m_max[0]),
+                precip: data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[0] : 0
+            };
+            cache[cacheKey] = {data:dayWeather,timestamp:Date.now()};
+            saveWeatherCache(cache);
+        }
+
+        const isRainy = CHECKLIST_WEATHER_RAIN_CODES.includes(dayWeather.code) || dayWeather.precip>=50;
+
+        if(isRainy){
+            checklistWeatherSuggestions.push({label:"Parapluie",category:"Divers",icon:"☔",reason:"Pluie prévue le jour du départ"});
+        }
+        if(!isRainy && dayWeather.max>=25){
+            checklistWeatherSuggestions.push({label:"Crème solaire",category:"Santé",icon:"☀️",reason:"Chaleur prévue le jour du départ"});
+            checklistWeatherSuggestions.push({label:"Lunettes de soleil",category:"Vêtements",icon:"☀️",reason:"Chaleur prévue le jour du départ"});
+        }
+        if(dayWeather.max<=5){
+            checklistWeatherSuggestions.push({label:"Vêtements chauds",category:"Vêtements",icon:"🥶",reason:"Froid prévu le jour du départ"});
+        }
+    }catch(err){
+        console.error("Suggestions météo de la checklist impossibles :",err);
+    }
+}
+
 const CHECKLIST_TEMPLATES = {
     "🏖️ Plage":[
         {label:"Maillot de bain",category:"Vêtements"},
@@ -7609,26 +7761,36 @@ function renderChecklistSuggestions(){
     const existingLabels =
     checklist.filter(i=>i && typeof i.label==="string").map(i=>i.label.toLowerCase());
 
+    function addSuggestionChip(suggestion,isWeather){
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = isWeather ? "checklist-chip checklist-chip-weather" : "checklist-chip";
+        chip.textContent = isWeather ? `+ ${suggestion.icon} ${suggestion.label}` : `+ ${suggestion.label}`;
+        if(isWeather) chip.title = suggestion.reason;
+        chip.addEventListener("click",()=>{
+            checklist.push({
+                label:suggestion.label,
+                checked:false,
+                category:suggestion.category
+            });
+            saveChecklist();
+            renderChecklist();
+        });
+        checklistSuggestEl.appendChild(chip);
+    }
+
+    /* Suggestions météo D'ABORD (verif visuelle : ce sont les plus
+       pertinentes puisque contextuelles à ce voyage précis, contrairement
+       aux suggestions statiques ci-dessous qui sont les mêmes pour tout le
+       monde) — checklist-chip-weather leur donne un style légèrement
+       accentué pour qu'elles ne se perdent pas au milieu des autres. */
+    checklistWeatherSuggestions
+        .filter(s=>!existingLabels.includes(s.label.toLowerCase()))
+        .forEach(s=>addSuggestionChip(s,true));
+
     checklistSuggestions
         .filter(s=>!existingLabels.includes(s.label.toLowerCase()))
-        .forEach(suggestion=>{
-
-            const chip = document.createElement("button");
-            chip.type = "button";
-            chip.className = "checklist-chip";
-            chip.textContent = `+ ${suggestion.label}`;
-            chip.addEventListener("click",()=>{
-                checklist.push({
-                    label:suggestion.label,
-                    checked:false,
-                    category:suggestion.category
-                });
-                saveChecklist();
-                renderChecklist();
-            });
-
-            checklistSuggestEl.appendChild(chip);
-        });
+        .forEach(s=>addSuggestionChip(s,false));
 }
 
 function addChecklistItem(){
@@ -7668,6 +7830,11 @@ function openChecklistView(){
     checklistBackBtn.focus();
     updateCountdownBanner();
     localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"checklistView");
+
+    // Suggestions météo : calcul async, la vue s'ouvre tout de suite avec les
+    // suggestions statiques habituelles, puis se complète (sans re-render
+    // bloquant) dès que la prévision arrive.
+    computeChecklistWeatherSuggestions().then(renderChecklistSuggestions);
 }
 
 function closeChecklistView(){

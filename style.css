@@ -2515,6 +2515,17 @@ body.dark .checklist-chip{
     color:#3D7CFF;
 }
 
+/* Suggestion contextuelle (météo du jour de départ) plutôt que générique —
+   même couleurs de base que .checklist-chip, juste un contour pour la
+   distinguer, pas une nouvelle couleur inventée. */
+.checklist-chip-weather{
+    border:1.5px solid #D2503B;
+}
+
+body.dark .checklist-chip-weather{
+    border-color:#3D7CFF;
+}
+
 .checklist-add-row{
     display:flex;
     gap:8px;
