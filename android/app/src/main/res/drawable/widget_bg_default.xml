@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- CAPACITOR (2026-09-06, widget écran d'accueil, style "B2 nuit étoilée")
-     un fond par thème (voir TripWidgetProvider.themeColors()) — celui-ci
-     est le style par défaut (aucun thème saisonnier choisi dans l'appli). -->
+<!-- CAPACITOR (2026-09-06, widget écran d'accueil, style "H3 nuit étoilée")
+     Dégradé 3 tons (au lieu de 2) : ciel nocturne violet, du plus profond en
+     haut au plus clair en bas — voir aussi widget_scene_default.xml
+     (lune + étoiles + silhouette) superposé par-dessus dans widget_trip.xml. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <gradient
-        android:angle="135"
-        android:startColor="#0E2038"
-        android:endColor="#152C4A" />
+        android:angle="270"
+        android:startColor="#160E22"
+        android:centerColor="#2A1C3D"
+        android:endColor="#3D2A55"
+        android:centerY="0.55" />
     <corners android:radius="16dp" />
 </shape>

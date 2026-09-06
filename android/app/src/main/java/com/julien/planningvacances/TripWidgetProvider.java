@@ -74,6 +74,13 @@ public class TripWidgetProvider extends AppWidgetProvider {
         views.setViewVisibility(R.id.widgetNeonGlow,
             "neon".equals(theme) ? android.view.View.VISIBLE : android.view.View.GONE);
 
+        // Scène "H3 nuit étoilée" (mockup équivalent choisi) : uniquement
+        // quand aucun thème saisonnier n'est actif — ces 6 thèmes ont déjà
+        // leur propre décor (bordure "M4"/barre néon) sur leur propre
+        // dégradé de fond.
+        views.setViewVisibility(R.id.widgetScene,
+            (theme == null || "default".equals(theme)) ? android.view.View.VISIBLE : android.view.View.GONE);
+
         if (TextUtils.isEmpty(tripName)) {
             views.setTextViewText(R.id.widgetTripName, context.getString(R.string.widget_default_title));
             views.setTextViewText(R.id.widgetBigNumber, "✈");

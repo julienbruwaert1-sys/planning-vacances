@@ -15,7 +15,21 @@
     android:id="@+id/widgetRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg_default">
+    android:background="@drawable/widget_bg_default"
+    android:clipToOutline="true">
+
+    <!-- Scène "H3 nuit étoilée" (lune/étoiles/montagnes), thème "default"
+         uniquement — voir widget_scene_default.xml. scaleType="fitXY" :
+         s'étire pour remplir le widget quelle que soit sa taille réelle,
+         comme le mockup HTML (preserveAspectRatio="none"). clipToOutline
+         sur le FrameLayout parent évite que les coins de l'image ne
+         dépassent des coins arrondis du fond. -->
+    <ImageView
+        android:id="@+id/widgetScene"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_scene_default" />
 
     <LinearLayout
         android:layout_width="match_parent"
