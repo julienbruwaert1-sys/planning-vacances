@@ -61,14 +61,16 @@ public class TripWidgetProvider extends AppWidgetProvider {
         views.setInt(R.id.widgetRoot, "setBackgroundResource", WidgetThemeColors.backgroundRes(theme));
         views.setTextColor(R.id.widgetBigNumber, WidgetThemeColors.accentColor(theme));
 
-        // Photo réelle (style "P1", choisie parmi la comparaison de
-        // mockups) : remplace la bordure "M4" pour Sakura/Momiji/Ghibli —
-        // redondant d'afficher à la fois une vraie photo de fleurs/feuilles
-        // ET la bordure emoji équivalente par-dessus.
+        // Photo réelle (style "P2 sans assombrissement", choisie parmi la
+        // comparaison de mockups) : remplace la bordure "M4"/la barre néon
+        // pour Sakura/Momiji/Ghibli/Halloween/Néon — redondant d'afficher à
+        // la fois une vraie photo ET la décoration emoji/lumineuse
+        // équivalente par-dessus. Pas de voile sombre (retiré à la demande,
+        // voir le commentaire dans widget_trip.xml) : la lisibilité vient
+        // de l'ombre portée posée directement sur chaque TextView.
         int photoRes = WidgetThemeColors.photoRes(theme);
         boolean hasPhoto = photoRes != 0;
         views.setViewVisibility(R.id.widgetPhoto, hasPhoto ? android.view.View.VISIBLE : android.view.View.GONE);
-        views.setViewVisibility(R.id.widgetPhotoOverlay, hasPhoto ? android.view.View.VISIBLE : android.view.View.GONE);
         if (hasPhoto) {
             views.setImageViewResource(R.id.widgetPhoto, photoRes);
         }
@@ -82,9 +84,11 @@ public class TripWidgetProvider extends AppWidgetProvider {
         }
 
         // Barre lumineuse (mockup "N2") : Néon uniquement, sous le nom du
-        // voyage — voir res/drawable/widget_neon_glow.xml.
+        // voyage — voir res/drawable/widget_neon_glow.xml. GONE si Néon a
+        // maintenant une vraie photo (hasPhoto), même raisonnement que la
+        // bordure "M4" ci-dessus.
         views.setViewVisibility(R.id.widgetNeonGlow,
-            "neon".equals(theme) ? android.view.View.VISIBLE : android.view.View.GONE);
+            ("neon".equals(theme) && !hasPhoto) ? android.view.View.VISIBLE : android.view.View.GONE);
 
         // Scène "H3 nuit étoilée" (mockup équivalent choisi) : uniquement
         // quand aucun thème saisonnier n'est actif — ces 6 thèmes ont déjà

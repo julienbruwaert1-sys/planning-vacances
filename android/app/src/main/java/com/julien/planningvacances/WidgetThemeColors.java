@@ -39,15 +39,20 @@ public class WidgetThemeColors {
 
     /* Vraies photos (licence Pixabay, usage commercial libre sans
        attribution — voir les fichiers res/drawable/widget_photo_*.{jpg,png})
-       remplaçant la bordure "M4" pour ces 3 thèmes, style "P1 dégradé en
-       bas" choisi parmi la comparaison de mockups. 0 = pas de photo pour ce
-       thème (Noël/Halloween/Néon/default gardent leur propre traitement). */
+       remplaçant la bordure "M4"/la barre néon, style "P2 sans
+       assombrissement" choisi parmi la comparaison de mockups (photo
+       pleine carte, pas de voile sombre — la lisibilité du texte vient de
+       l'ombre portée posée sur chaque TextView, voir widget_trip.xml).
+       0 = pas de photo pour ce thème (Noël/default gardent leur propre
+       traitement pour l'instant). */
     public static int photoRes(String theme) {
         if (theme == null) return 0;
         switch (theme) {
             case "sakura": return R.drawable.widget_photo_sakura;
             case "momiji": return R.drawable.widget_photo_momiji;
             case "ghibli": return R.drawable.widget_photo_ghibli;
+            case "halloween": return R.drawable.widget_photo_halloween;
+            case "neon": return R.drawable.widget_photo_neon;
             default: return 0;
         }
     }

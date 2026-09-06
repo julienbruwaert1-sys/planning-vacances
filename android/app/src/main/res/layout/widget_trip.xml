@@ -18,14 +18,17 @@
     android:background="@drawable/widget_bg_default"
     android:clipToOutline="true">
 
-    <!-- Photo réelle (style "P1 dégradé en bas", choisi parmi la
-         comparaison de mockups) — Sakura/Momiji/Ghibli uniquement, voir
-         TripWidgetProvider.themePhotoRes(). scaleType="centerCrop" :
-         remplit le widget en conservant les proportions, quelle que soit
-         sa taille réelle (contrairement à widgetScene en fitXY, qui
-         convient à une silhouette dessinée mais déformerait une vraie
-         photo). GONE pour les autres thèmes (widget_bg_default/thème
-         reprend alors la main comme fond). -->
+    <!-- Photo réelle (style "P2 sans assombrissement", choisi parmi la
+         comparaison de mockups) — Sakura/Momiji/Ghibli/Halloween/Néon, voir
+         WidgetThemeColors.photoRes(). scaleType="centerCrop" : remplit le
+         widget en conservant les proportions, quelle que soit sa taille
+         réelle (contrairement à widgetScene en fitXY, qui convient à une
+         silhouette dessinée mais déformerait une vraie photo). GONE pour
+         les autres thèmes (widget_bg_default/thème reprend alors la main
+         comme fond). Pas de voile sombre par-dessus (essayé, retiré à la
+         demande) — la lisibilité du texte vient de l'ombre portée posée
+         sur chaque TextView plus bas, pas d'un assombrissement de la
+         photo. -->
     <ImageView
         android:id="@+id/widgetPhoto"
         android:layout_width="match_parent"
@@ -33,15 +36,6 @@
         android:scaleType="centerCrop"
         android:visibility="gone"
         tools:src="@drawable/widget_photo_sakura"
-        tools:visibility="visible" />
-
-    <ImageView
-        android:id="@+id/widgetPhotoOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:src="@drawable/widget_photo_overlay"
-        android:visibility="gone"
         tools:visibility="visible" />
 
     <!-- Scène "H3 nuit étoilée" (lune/étoiles/montagnes), thème "default"
@@ -76,9 +70,18 @@
             android:textSize="12sp"
             android:letterSpacing="0.15"
             android:visibility="gone"
+            android:shadowColor="#B0000000"
+            android:shadowRadius="4"
+            android:shadowDy="1"
             tools:text="🍁  🍂  🍁"
             tools:visibility="visible" />
 
+        <!-- Ombre portée sur tout le texte (mockup "P2 sans
+             assombrissement") : sans voile sombre par-dessus les thèmes
+             photo, c'est cette ombre qui garde le texte lisible quelle que
+             soit la luminosité de la photo en dessous. Inoffensif pour les
+             autres thèmes (fond déjà sombre), pas de logique conditionnelle
+             nécessaire — un même layout partagé par tous les thèmes. -->
         <TextView
             android:id="@+id/widgetTripName"
             android:layout_width="wrap_content"
@@ -90,6 +93,9 @@
             android:letterSpacing="0.04"
             android:maxLines="1"
             android:ellipsize="end"
+            android:shadowColor="#B0000000"
+            android:shadowRadius="4"
+            android:shadowDy="1"
             tools:text="Japon" />
 
         <!-- Barre lumineuse (mockup "N2"), thème Néon uniquement — voir
@@ -114,6 +120,9 @@
             android:textSize="34sp"
             android:textStyle="bold"
             android:maxLines="1"
+            android:shadowColor="#C0000000"
+            android:shadowRadius="5"
+            android:shadowDy="1"
             tools:text="9" />
 
         <TextView
@@ -126,6 +135,9 @@
             android:letterSpacing="0.06"
             android:maxLines="1"
             android:ellipsize="end"
+            android:shadowColor="#B0000000"
+            android:shadowRadius="4"
+            android:shadowDy="1"
             tools:text="jours avant le départ" />
 
         <TextView
@@ -138,6 +150,9 @@
             android:gravity="center_horizontal"
             android:maxLines="1"
             android:ellipsize="end"
+            android:shadowColor="#B0000000"
+            android:shadowRadius="4"
+            android:shadowDy="1"
             tools:text="09:00 · Visite du musée" />
 
     </LinearLayout>
