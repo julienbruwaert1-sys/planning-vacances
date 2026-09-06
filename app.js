@@ -3495,6 +3495,29 @@ function formatICSDateTime(dateObj){
 
 const ICS_DEFAULT_SLOT_HOURS = { matin:9, midi:12, apresMidi:15, soir:19 };
 
+/* activity.duration est du texte libre saisi par l'utilisateur ("2h",
+   "1h30", "45 min", "1:30"...) — reconnaît les formats courants et renvoie
+   des minutes, ou null si le format n'est pas reconnu (repli sur +1h par
+   l'appelant, comportement historique conservé pour tout texte imprévu). */
+function parseActivityDurationMinutes(text){
+    if(!text) return null;
+    const str = text.trim().toLowerCase();
+
+    let m = str.match(/^(\d+)\s*h\s*(\d{1,2})?$/);
+    if(m) return parseInt(m[1],10)*60 + (m[2] ? parseInt(m[2],10) : 0);
+
+    m = str.match(/^(\d+)\s*:\s*(\d{2})$/);
+    if(m) return parseInt(m[1],10)*60 + parseInt(m[2],10);
+
+    m = str.match(/^(\d+(?:[.,]\d+)?)\s*heures?$/);
+    if(m) return Math.round(parseFloat(m[1].replace(",","."))*60);
+
+    m = str.match(/^(\d+)\s*min(?:ute)?s?$/);
+    if(m) return parseInt(m[1],10);
+
+    return null;
+}
+
 /* Source de vérité unique pour un événement de calendrier — réutilisée par
    l'export .ics (buildPlanningICS()) ET l'ajout direct au calendrier natif
    du téléphone (addPlanningToNativeCalendar(), voir plus bas près de
@@ -3523,8 +3546,9 @@ function buildPlanningEventList(){
                     start.setHours(ICS_DEFAULT_SLOT_HOURS[slot] || 9,0,0,0);
                 }
 
+                const durationMinutes = parseActivityDurationMinutes(activity.duration);
                 const end = new Date(start);
-                end.setHours(end.getHours()+1);
+                end.setMinutes(end.getMinutes() + (durationMinutes !== null ? durationMinutes : 60));
 
                 events.push({
                     id: activity.id || null,
@@ -3819,7 +3843,7 @@ async function addPlanningToNativeCalendar(){
     }
 
     showConfirmModal(
-        `Ajouter ${events.length} activité(s) au calendrier du téléphone ? Les ajouts déjà faits précédemment ne sont pas retirés automatiquement — supprime-les à la main dans l'appli Calendrier si tu réessaies.`,
+        `Ajouter ${events.length} activité(s) au calendrier du téléphone ? Les événements déjà présents (même titre et même horaire) ne seront pas dupliqués.`,
         async()=>{
 
             const Calendar = window.Capacitor.Plugins.CapacitorCalendar;
@@ -3845,9 +3869,33 @@ async function addPlanningToNativeCalendar(){
                 // et retombe sur le calendrier par défaut du système.
             }
 
+            // Anti-doublon (2026-09-06) : liste les événements déjà présents sur
+            // la plage couverte par le voyage et saute toute activité qui a déjà
+            // un événement de même titre ET même horaire de départ — repère
+            // volontairement grossier (pas d'id partagé possible, createEvent()
+            // ne renvoie pas d'id réutilisable côté app), mais suffisant pour le
+            // cas réel visé : ré-appuyer sur "Ajouter au calendrier" sans tout
+            // dupliquer. Si la liste échoue, on retombe sur l'ancien comportement
+            // (création sans vérif) plutôt que de bloquer tout l'ajout.
+            const existingKeys = new Set();
+            try{
+                const rangeStart = Math.min(...events.map(e=>e.start.getTime()));
+                const rangeEnd = Math.max(...events.map(e=>e.end.getTime()));
+                const { result: existingEvents } = await Calendar.listEventsInRange({from:rangeStart,to:rangeEnd});
+                (existingEvents || []).forEach(e=>existingKeys.add(`${e.title}|${e.startDate}`));
+            }catch(err){
+                console.error("Liste des événements existants indisponible :",err);
+            }
+
             let added = 0;
+            let skipped = 0;
 
             for(const event of events){
+                const key = `${event.title}|${event.start.getTime()}`;
+                if(existingKeys.has(key)){
+                    skipped++;
+                    continue;
+                }
                 try{
                     await Calendar.createEvent({
                         title: event.title,
@@ -3859,15 +3907,20 @@ async function addPlanningToNativeCalendar(){
                         calendarId: calendarId || undefined
                     });
                     added++;
+                    existingKeys.add(key);
                 }catch(err){
                     console.error("Événement calendrier non ajouté :",err);
                 }
             }
 
-            if(added===0){
+            const failed = events.length - added - skipped;
+
+            if(added===0 && skipped===0){
                 showToast("Aucun événement n'a pu être ajouté au calendrier.",{type:"error"});
-            }else if(added<events.length){
-                showToast(`${added}/${events.length} activité(s) ajoutée(s) au calendrier (le reste a échoué).`,{type:"error",duration:6000});
+            }else if(failed>0){
+                showToast(`${added} activité(s) ajoutée(s), ${skipped} déjà présente(s), ${failed} échec(s).`,{type:"error",duration:6000});
+            }else if(skipped>0){
+                showToast(`${added} activité(s) ajoutée(s) au calendrier (${skipped} déjà présente(s), non dupliquée(s)).`,{type:"success",duration:6000});
             }else{
                 showToast(`${added} activité(s) ajoutée(s) au calendrier du téléphone.`,{type:"success"});
             }
@@ -9870,6 +9923,49 @@ function fitTranslateBoxText(text,maxWidth,maxHeight,initialFontSize){
     return { fontSize, lines: wrappedLines, lineHeight, width };
 }
 
+// Regroupe les lignes détectées par colonne (chevauchement horizontal des
+// boundingBox) avant de les ordonner ligne par ligne — un simple tri global
+// par position verticale (l'ancien comportement) mélange l'ordre de lecture
+// dès que la photo a 2 colonnes de texte côte à côte (panneau bilingue,
+// carte de musée...) : une ligne de la colonne de droite peut avoir un "top"
+// plus petit qu'une ligne plus bas dans la colonne de gauche, et serait à
+// tort considérée comme "la ligne suivante" de cette dernière (voir
+// _nextTop, utilisé par startPhotoTranslation pour limiter la hauteur
+// dispo de chaque bloc traduit). Heuristique volontairement simple (pas de
+// vraie détection de mise en page) : regroupe par recouvrement horizontal
+// significatif (>40% de la plus étroite des deux largeurs), suffisant pour
+// les cas réels visés (2-3 colonnes nettement séparées).
+function orderLinesByColumn(lines){
+    const columns = [];
+
+    [...lines].sort((a,b)=>a.boundingBox.left-b.boundingBox.left).forEach(line=>{
+        const { left, right } = line.boundingBox;
+        const column = columns.find(col=>{
+            const overlap = Math.min(right,col.right) - Math.max(left,col.left);
+            return overlap > Math.min(right-left,col.right-col.left)*0.4;
+        });
+        if(column){
+            column.left = Math.min(column.left,left);
+            column.right = Math.max(column.right,right);
+            column.lines.push(line);
+        }else{
+            columns.push({left,right,lines:[line]});
+        }
+    });
+
+    columns.sort((a,b)=>a.left-b.left);
+
+    const ordered = [];
+    columns.forEach(col=>{
+        col.lines.sort((a,b)=>a.boundingBox.top-b.boundingBox.top);
+        col.lines.forEach((line,i)=>{
+            line._nextTop = i+1 < col.lines.length ? col.lines[i+1].boundingBox.top : null;
+            ordered.push(line);
+        });
+    });
+    return ordered;
+}
+
 async function startPhotoTranslation(){
 
     if(!nativeTranslationAvailable()) return;
@@ -9956,16 +10052,17 @@ async function startPhotoTranslation(){
         // de traduction embarqué (hors-ligne) gère mal — il donne de bien
         // meilleurs résultats sur une phrase courte et isolée. En prime, le
         // cadre de chaque ligne colle mieux au texte que celui du bloc entier.
-        // Triées par position verticale : sur du texte dense, les boundingBox
-        // de lignes voisines renvoyées par ML Kit se touchent ou se
-        // chevauchent parfois nativement de quelques px (constaté en direct
-        // sur appareil réel via débogage WebView) — on limite donc la hauteur
-        // de chaque bloc à l'espace réel disponible jusqu'à la ligne
-        // suivante plutôt que de faire confiance telle quelle à sa propre
-        // boundingBox.
-        const lines = blocks.flatMap(block=>block.lines || [])
-            .filter(line=>line.text.trim() && line.boundingBox)
-            .sort((a,b)=>a.boundingBox.top-b.boundingBox.top);
+        // Ordonnées par colonne puis position verticale (orderLinesByColumn) :
+        // sur du texte dense, les boundingBox de lignes voisines renvoyées par
+        // ML Kit se touchent ou se chevauchent parfois nativement de quelques
+        // px (constaté en direct sur appareil réel via débogage WebView) — on
+        // limite donc la hauteur de chaque bloc à l'espace réel disponible
+        // jusqu'à la ligne suivante DE LA MÊME COLONNE (line._nextTop) plutôt
+        // que de faire confiance telle quelle à sa propre boundingBox.
+        const lines = orderLinesByColumn(
+            blocks.flatMap(block=>block.lines || [])
+                .filter(line=>line.text.trim() && line.boundingBox)
+        );
 
         for(let i=0;i<lines.length;i++){
             if(mySession !== translateSessionId) return;
@@ -9987,8 +10084,8 @@ async function startPhotoTranslation(){
                 // texte à passer sur 2 lignes quand une seule ne suffit pas,
                 // sans jamais empiéter sur le bloc voisin.
                 let availableHeight;
-                if(i+1 < lines.length){
-                    availableHeight = Math.max(4, lines[i+1].boundingBox.top*scaleY - thisTop - 1);
+                if(line._nextTop != null){
+                    availableHeight = Math.max(4, line._nextTop*scaleY - thisTop - 1);
                 }else{
                     availableHeight = Math.max(rawLineHeight, translateImage.clientHeight - thisTop - 4);
                 }
