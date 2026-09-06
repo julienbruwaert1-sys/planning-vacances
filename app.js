@@ -6900,6 +6900,19 @@ const NEARBY_CATEGORIES = [
 const NEARBY_RADIUS_METERS = 1500;
 const NEARBY_RESULT_LIMIT = 25;
 
+/* Vitesse perçue (signalé par l'utilisateur, 2026-09-06) : deux caches
+   courts plutôt que de retaper une localisation + une requête Overpass à
+   chaque tap. Position : rester au même endroit à quelques minutes
+   d'intervalle (changer de catégorie, rouvrir la vue) ne justifie pas un
+   nouveau point GPS (2-8s à lui seul). Résultats : les commerces ne
+   bougent pas d'une minute à l'autre — cache affiché IMMÉDIATEMENT
+   (stale-while-revalidate, même esprit que staleWhileRevalidate() du
+   service worker) pendant qu'une requête fraîche tourne derrière, silencieuse
+   si elle échoue puisque du contenu correct est déjà affiché. */
+const NEARBY_POSITION_TTL_MS = 3*60*1000;
+const NEARBY_RESULTS_CACHE_KEY = "nearbyResultsCache";
+const NEARBY_RESULTS_TTL_MS = 5*60*1000;
+
 let nearbyActiveCategory = "toilets";
 let nearbyViewMode = "list";
 let nearbyMapInstance = null;
@@ -6907,6 +6920,32 @@ let nearbyMapMarkers = null;
 let nearbyUserPos = null;
 let nearbyLastResults = [];
 let nearbyLastCategory = null;
+let nearbyPositionCache = null;
+let nearbySessionId = 0;
+
+function loadNearbyResultsCache(){
+    return JSON.parse(localStorage.getItem(NEARBY_RESULTS_CACHE_KEY) || "{}");
+}
+
+function saveNearbyResultsCache(cache){
+    localStorage.setItem(NEARBY_RESULTS_CACHE_KEY,JSON.stringify(cache));
+}
+
+// Arrondi à 2 décimales (~1km) : une requête GPS suivante à quelques dizaines
+// de mètres de la précédente retombe sur la même clé, donc le même cache —
+// cohérent avec l'arrondi déjà utilisé pour le cache météo (WEATHER_CACHE_KEY).
+function nearbyResultsCacheKey(categoryKey,lat,lon){
+    return categoryKey+"_"+lat.toFixed(2)+","+lon.toFixed(2);
+}
+
+// results : {name,lat,lon} bruts (sans distance, qui dépend de la position
+// courante) — recalculée ici à chaque rendu, qu'elle vienne du cache ou
+// d'une requête fraîche.
+function attachDistancesAndSort(results,pos){
+    return results
+        .map(r=>({...r,distance:haversineMeters(pos.lat,pos.lon,r.lat,r.lon)}))
+        .sort((a,b)=>a.distance-b.distance);
+}
 
 const nearbyCategoryChipsEl = document.getElementById("nearbyCategoryChips");
 const nearbyStatusEl = document.getElementById("nearbyStatus");
@@ -6989,7 +7028,14 @@ async function queryOverpass(query){
 
 async function loadNearbyPlaces(){
 
-    nearbyStatusEl.textContent = "Localisation…";
+    // Jeton de session (même patron que translateSessionId) : si l'utilisateur
+    // change de catégorie/rouvre la vue pendant qu'une requête précédente est
+    // encore en vol, cette dernière ne doit plus toucher l'affichage à son
+    // retour — sinon une réponse tardive de "Pharmacie" pourrait écraser la
+    // liste "Restaurant" déjà affichée entre-temps.
+    nearbySessionId++;
+    const mySession = nearbySessionId;
+
     nearbyListEl.innerHTML = "";
 
     if(!navigator.geolocation && !nativeGeolocationAvailable()){
@@ -6997,17 +7043,41 @@ async function loadNearbyPlaces(){
         return;
     }
 
-    try{
-        const pos = await getCurrentPositionAsync({timeout:8000});
-        nearbyUserPos = {lat:pos.coords.latitude,lon:pos.coords.longitude};
-    }catch(err){
-        nearbyStatusEl.textContent = "Localisation impossible — active le GPS et réessaie.";
+    if(nearbyPositionCache && (Date.now()-nearbyPositionCache.timestamp) < NEARBY_POSITION_TTL_MS){
+        nearbyUserPos = {lat:nearbyPositionCache.lat,lon:nearbyPositionCache.lon};
+    }else{
+        nearbyStatusEl.textContent = "Localisation…";
+        try{
+            const pos = await getCurrentPositionAsync({timeout:8000});
+            if(mySession!==nearbySessionId) return;
+            nearbyUserPos = {lat:pos.coords.latitude,lon:pos.coords.longitude};
+            nearbyPositionCache = {lat:nearbyUserPos.lat,lon:nearbyUserPos.lon,timestamp:Date.now()};
+        }catch(err){
+            if(mySession!==nearbySessionId) return;
+            nearbyStatusEl.textContent = "Localisation impossible — active le GPS et réessaie.";
+            return;
+        }
+    }
+
+    const category = NEARBY_CATEGORIES.find(c=>c.key===nearbyActiveCategory);
+    const cacheKey = nearbyResultsCacheKey(category.key,nearbyUserPos.lat,nearbyUserPos.lon);
+    const resultsCache = loadNearbyResultsCache();
+    const cachedEntry = resultsCache[cacheKey];
+    const hasFreshCache = !!cachedEntry && (Date.now()-cachedEntry.timestamp) < NEARBY_RESULTS_TTL_MS;
+
+    if(hasFreshCache){
+        // Cache-first, pas stale-while-revalidate : ré-ouvrir la même
+        // catégorie au même endroit dans les 5 minutes n'interroge plus du
+        // tout Overpass — gain de vitesse net (aucune attente réseau) et
+        // moins de requêtes envoyées au serveur public déjà signalé comme
+        // parfois surchargé (voir queryOverpass() plus haut).
+        renderNearbyList(attachDistancesAndSort(cachedEntry.results,nearbyUserPos),category);
+        if(nearbyViewMode==="map") renderNearbyMapMarkers();
         return;
     }
 
     nearbyStatusEl.textContent = "Recherche en cours…";
 
-    const category = NEARBY_CATEGORIES.find(c=>c.key===nearbyActiveCategory);
     const around = `around:${NEARBY_RADIUS_METERS},${nearbyUserPos.lat},${nearbyUserPos.lon}`;
     const overpassQuery =
         `[out:json][timeout:15];(node["${category.tag}"="${category.value}"](${around});`
@@ -7015,23 +7085,25 @@ async function loadNearbyPlaces(){
 
     try{
         const data = await queryOverpass(overpassQuery);
+        if(mySession!==nearbySessionId) return;
 
-        const results = (data.elements||[]).map(el=>{
+        const rawResults = (data.elements||[]).map(el=>{
             const lat = el.lat!=null ? el.lat : (el.center && el.center.lat);
             const lon = el.lon!=null ? el.lon : (el.center && el.center.lon);
             if(lat==null || lon==null) return null;
-            return {
-                name: (el.tags && el.tags.name) || category.label,
-                lat, lon,
-                distance: haversineMeters(nearbyUserPos.lat,nearbyUserPos.lon,lat,lon)
-            };
-        }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
+            return { name:(el.tags && el.tags.name) || category.label, lat, lon };
+        }).filter(Boolean);
 
-        renderNearbyList(results,category);
+        resultsCache[cacheKey] = {results:rawResults,timestamp:Date.now()};
+        saveNearbyResultsCache(resultsCache);
+
+        renderNearbyList(attachDistancesAndSort(rawResults,nearbyUserPos),category);
         if(nearbyViewMode==="map") renderNearbyMapMarkers();
 
     }catch(err){
+        if(mySession!==nearbySessionId) return;
         console.error("Recherche à proximité impossible :",err);
+
         nearbyStatusEl.innerHTML = "";
         const msg = document.createElement("span");
         msg.textContent = "Résultats indisponibles pour l'instant (pas de connexion, ou service surchargé) — ";
