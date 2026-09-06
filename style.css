@@ -62,7 +62,15 @@ select:focus-visible{
     bottom:16px;
     left:50%;
     transform:translateX(-50%);
-    z-index:2000;
+    /* Doit rester AU-DESSUS de tout le reste de l'appli, y compris l'écran
+       de bienvenue (#welcomeView, 3000) et le verrou par voyage
+       (#tripLockView, 3900, le z-index le plus élevé du reste du fichier)
+       — sans ça, un toast déclenché pendant que l'un de ces écrans est
+       affiché est bien créé mais reste invisible derrière lui. Repéré via
+       "aucun message ne s'affiche en cliquant sur Créer le voyage sans
+       pays sélectionné" (2026-09-06) alors que le code appelait bien
+       showToast(). */
+    z-index:4000;
     display:flex;
     flex-direction:column;
     gap:8px;
