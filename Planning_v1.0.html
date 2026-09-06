@@ -18,6 +18,30 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- Anti-clignotement (2026-09-06) : app.js applique body.dark/body.theme-X
+     à la ligne ~5200 (applySelectedTheme()) — beaucoup trop tard dans un
+     fichier de cette taille, le navigateur a largement le temps de peindre
+     une première fois en thème clair/par défaut avant que ce script,
+     placé en fin de <body>, n'atteigne cette ligne. Signalé par
+     l'utilisateur ("clignotement à l'ouverture"). Ce petit script inline,
+     tout en haut du <body> (avant le moindre élément décoratif visible),
+     lit directement les DEUX mêmes clés localStorage ("theme"/"appTheme")
+     et pose juste les classes CSS correspondantes — pas d'appel aux
+     fonctions de particules (startNoelSnow() etc.), qui dépendent de tout
+     le reste d'app.js et n'ont de toute façon aucun effet visible sur la
+     toute première peinture. Les VRAIES valeurs sont réappliquées par
+     applySelectedTheme()/le bloc dark plus bas au chargement normal —
+     ceci n'est qu'un raccourci pour la première peinture, jamais une
+     deuxième source de vérité. -->
+<script>
+(function(){
+    try{
+        if(localStorage.getItem("theme")==="dark") document.body.classList.add("dark");
+        var t = localStorage.getItem("appTheme");
+        if(t && t!=="default") document.body.classList.add("theme-"+t);
+    }catch(e){}
+})();
+</script>
 
 <div id="noelSnow" class="noel-snow" aria-hidden="true"></div>
 <div id="ghibliLeaves" class="ghibli-leaves" aria-hidden="true"></div>
