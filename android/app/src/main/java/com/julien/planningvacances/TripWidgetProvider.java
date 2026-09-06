@@ -75,20 +75,6 @@ public class TripWidgetProvider extends AppWidgetProvider {
             views.setImageViewResource(R.id.widgetPhoto, photoRes);
         }
 
-        // Verif lisibilité (2026-09-06) : Ghibli (sentier très lumineux) et
-        // Sakura (ciel bleu clair) rendaient le texte quasi illisible avec
-        // la seule ombre portée ; Momiji (nombre orange sur feuilles
-        // orange/rouge) souffrait d'un contraste de teinte trop proche ;
-        // Noël (boule argentée claire pile derrière le nombre) même souci.
-        // Halloween/Néon restent sans chip, déjà lisibles tels quels. Fond
-        // translucide DERRIÈRE le bloc de texte seulement (pas toute la
-        // photo) plutôt qu'un voile plein cadre, pour rester dans l'esprit
-        // "sans assombrissement" de la photo elle-même.
-        boolean needsTextChip = "ghibli".equals(theme) || "sakura".equals(theme)
-            || "momiji".equals(theme) || "noel".equals(theme);
-        views.setInt(R.id.widgetContentBlock, "setBackgroundResource",
-            needsTextChip ? R.drawable.widget_text_chip : 0);
-
         String leafBand = hasPhoto ? null : themeLeafBand(theme);
         if (leafBand == null) {
             views.setViewVisibility(R.id.widgetLeafBand, android.view.View.GONE);

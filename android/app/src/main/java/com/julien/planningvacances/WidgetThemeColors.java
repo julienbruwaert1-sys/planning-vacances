@@ -58,14 +58,23 @@ public class WidgetThemeColors {
         }
     }
 
+    /* Verif lisibilité (2026-09-06) : Ghibli/Momiji avaient un nombre de la
+       même famille de teinte que leur photo (or sur lumière dorée, orange
+       sur feuilles orange/rouge) ; Noël souffrait du même problème de
+       CONTRASTE DE VALEUR (or clair sur boule argentée claire, même sans
+       être la même teinte). Le halo (voir widget_trip.xml) aide, mais un
+       vrai changement de couleur reste plus fiable qu'une teinte qui se
+       fond dans le fond quel que soit le contraste. Passés au blanc cassé
+       (comme le reste du texte) pour ces 3. Sakura/Halloween/Néon gardent
+       leur couleur d'origine, déjà assez distincte/contrastée. */
     public static int accentColor(String theme) {
         if (theme == null) return android.graphics.Color.parseColor("#F0935A");
         switch (theme) {
-            case "noel": return android.graphics.Color.parseColor("#E8C468");
-            case "ghibli": return android.graphics.Color.parseColor("#D8B25C");
+            case "noel": return android.graphics.Color.parseColor("#F5F8FB");
+            case "ghibli": return android.graphics.Color.parseColor("#F5F8FB");
             case "halloween": return android.graphics.Color.parseColor("#F2954B");
             case "sakura": return android.graphics.Color.parseColor("#F5A9C6");
-            case "momiji": return android.graphics.Color.parseColor("#E8834A");
+            case "momiji": return android.graphics.Color.parseColor("#F5F8FB");
             case "neon": return android.graphics.Color.parseColor("#4DE8FF");
             default: return android.graphics.Color.parseColor("#F0935A");
         }

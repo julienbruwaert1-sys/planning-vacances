@@ -51,13 +51,6 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_scene_default" />
 
-    <!-- id ajouté (verif lisibilité 2026-09-06) : reçoit @drawable/
-         widget_text_chip en fond, uniquement pour Ghibli/Sakura/Momiji
-         (photo trop claire ou trop proche de la couleur du texte) — voir
-         TripWidgetProvider.java. Bande large comme la carte mais haute
-         seulement du contenu texte (wrap_content), pas toute la carte :
-         le haut/bas de la photo restent visibles, contrairement à un
-         voile plein cadre. -->
     <LinearLayout
         android:id="@+id/widgetContentBlock"
         android:layout_width="match_parent"
@@ -78,32 +71,37 @@
             android:textSize="12sp"
             android:letterSpacing="0.15"
             android:visibility="gone"
-            android:shadowColor="#B0000000"
-            android:shadowRadius="4"
-            android:shadowDy="1"
+            android:shadowColor="#D0000000"
+            android:shadowRadius="6"
+            android:shadowDx="0"
+            android:shadowDy="0"
             tools:text="🍁  🍂  🍁"
             tools:visibility="visible" />
 
-        <!-- Ombre portée sur tout le texte (mockup "P2 sans
-             assombrissement") : sans voile sombre par-dessus les thèmes
-             photo, c'est cette ombre qui garde le texte lisible quelle que
-             soit la luminosité de la photo en dessous. Inoffensif pour les
-             autres thèmes (fond déjà sombre), pas de logique conditionnelle
-             nécessaire — un même layout partagé par tous les thèmes. -->
+        <!-- Halo (pas une ombre portée directionnelle) : shadowDx/Dy à 0
+             et un rayon plus large donne un contour sombre SYMÉTRIQUE
+             autour du texte plutôt qu'un décalage d'un côté — la même
+             technique que les sous-titres de film, plus robuste qu'une
+             ombre classique contre une photo non uniforme (clair d'un
+             côté, sombre de l'autre). Remplace le fond translucide
+             derrière le bloc de texte (retiré à la demande, 2026-09-06) :
+             un même layout partagé par tous les thèmes, inoffensif pour
+             les thèmes déjà lisibles (Halloween/Néon/défaut). -->
         <TextView
             android:id="@+id/widgetTripName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#CFE0F0"
+            android:textColor="#F5F8FB"
             android:textSize="11sp"
             android:textStyle="bold"
             android:textAllCaps="true"
             android:letterSpacing="0.04"
             android:maxLines="1"
             android:ellipsize="end"
-            android:shadowColor="#B0000000"
-            android:shadowRadius="4"
-            android:shadowDy="1"
+            android:shadowColor="#D0000000"
+            android:shadowRadius="6"
+            android:shadowDx="0"
+            android:shadowDy="0"
             tools:text="Japon" />
 
         <!-- Barre lumineuse (mockup "N2"), thème Néon uniquement — voir
@@ -120,6 +118,11 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
+        <!-- Halo renforcé (#FF, opaque) et plus large que le reste du
+             texte : le nombre est l'élément le plus gros/le plus au centre
+             de la carte, donc le plus exposé à un objet clair de la photo
+             pile dans sa zone (ex. boule de Noël argentée) — verif
+             lisibilité 2026-09-06. -->
         <TextView
             android:id="@+id/widgetBigNumber"
             android:layout_width="wrap_content"
@@ -128,24 +131,26 @@
             android:textSize="34sp"
             android:textStyle="bold"
             android:maxLines="1"
-            android:shadowColor="#C0000000"
-            android:shadowRadius="5"
-            android:shadowDy="1"
+            android:shadowColor="#FF000000"
+            android:shadowRadius="9"
+            android:shadowDx="0"
+            android:shadowDy="0"
             tools:text="9" />
 
         <TextView
             android:id="@+id/widgetCaption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#B9C8D6"
+            android:textColor="#F5F8FB"
             android:textSize="10sp"
             android:textAllCaps="true"
             android:letterSpacing="0.06"
             android:maxLines="1"
             android:ellipsize="end"
-            android:shadowColor="#B0000000"
-            android:shadowRadius="4"
-            android:shadowDy="1"
+            android:shadowColor="#D0000000"
+            android:shadowRadius="6"
+            android:shadowDx="0"
+            android:shadowDy="0"
             tools:text="jours avant le départ" />
 
         <TextView
@@ -153,14 +158,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textColor="#E4ECF3"
+            android:textColor="#F5F8FB"
             android:textSize="10.5sp"
             android:gravity="center_horizontal"
             android:maxLines="1"
             android:ellipsize="end"
-            android:shadowColor="#B0000000"
-            android:shadowRadius="4"
-            android:shadowDy="1"
+            android:shadowColor="#D0000000"
+            android:shadowRadius="6"
+            android:shadowDx="0"
+            android:shadowDy="0"
             tools:text="09:00 · Visite du musée" />
 
     </LinearLayout>
