@@ -69,6 +69,11 @@ public class TripWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.widgetLeafBand, leafBand);
         }
 
+        // Barre lumineuse (mockup "N2") : Néon uniquement, sous le nom du
+        // voyage — voir res/drawable/widget_neon_glow.xml.
+        views.setViewVisibility(R.id.widgetNeonGlow,
+            "neon".equals(theme) ? android.view.View.VISIBLE : android.view.View.GONE);
+
         if (TextUtils.isEmpty(tripName)) {
             views.setTextViewText(R.id.widgetTripName, context.getString(R.string.widget_default_title));
             views.setTextViewText(R.id.widgetBigNumber, "✈");
