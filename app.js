@@ -6928,7 +6928,18 @@ function loadNearbyResultsCache(){
 }
 
 function saveNearbyResultsCache(cache){
-    localStorage.setItem(NEARBY_RESULTS_CACHE_KEY,JSON.stringify(cache));
+    // Purge les entrées déjà périmées à chaque écriture (verif 2026-09-06) :
+    // sans ça, une entrée par catégorie×position visitée s'accumulait pour
+    // toujours dans localStorage, jamais retirée puisque hasFreshCache se
+    // contente de les ignorer sans les supprimer.
+    const now = Date.now();
+    const pruned = {};
+    Object.keys(cache).forEach(key=>{
+        if(cache[key] && (now-cache[key].timestamp) < NEARBY_RESULTS_TTL_MS){
+            pruned[key] = cache[key];
+        }
+    });
+    localStorage.setItem(NEARBY_RESULTS_CACHE_KEY,JSON.stringify(pruned));
 }
 
 // Arrondi à 2 décimales (~1km) : une requête GPS suivante à quelques dizaines
@@ -6952,15 +6963,29 @@ const nearbyStatusEl = document.getElementById("nearbyStatus");
 const nearbyListEl = document.getElementById("nearbyList");
 const nearbyMapContainerEl = document.getElementById("nearbyMapContainer");
 
+// aria-pressed posé en même temps que .active (verif 2026-09-06) : ces
+// chips sont construites en JS, contrairement à mapCountryToggle/
+// mapPoiToggle qui ont déjà aria-pressed en dur dans le HTML — sans ça,
+// un lecteur d'écran ne peut pas percevoir laquelle est sélectionnée.
+function setChipsActive(chips,predicate){
+    chips.forEach(c=>{
+        const isActive = predicate(c);
+        c.classList.toggle("active",isActive);
+        c.setAttribute("aria-pressed",String(isActive));
+    });
+}
+
 NEARBY_CATEGORIES.forEach(cat=>{
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.className = "nearby-chip"+(cat.key===nearbyActiveCategory ? " active" : "");
+    const isActive = cat.key===nearbyActiveCategory;
+    chip.className = "nearby-chip"+(isActive ? " active" : "");
+    chip.setAttribute("aria-pressed",String(isActive));
     chip.textContent = `${cat.icon} ${cat.label}`;
     chip.dataset.category = cat.key;
     chip.addEventListener("click",()=>{
         nearbyActiveCategory = cat.key;
-        document.querySelectorAll("#nearbyCategoryChips .nearby-chip").forEach(c=>c.classList.toggle("active",c===chip));
+        setChipsActive(document.querySelectorAll("#nearbyCategoryChips .nearby-chip"),c=>c===chip);
         loadNearbyPlaces();
     });
     nearbyCategoryChipsEl.appendChild(chip);
@@ -7193,7 +7218,7 @@ nearbyToiletsBtn.addEventListener("click",(e)=>{
     e.stopPropagation();
     closeAllFullscreenViews();
     nearbyActiveCategory = "toilets";
-    document.querySelectorAll("#nearbyCategoryChips .nearby-chip").forEach(c=>c.classList.toggle("active",c.dataset.category==="toilets"));
+    setChipsActive(document.querySelectorAll("#nearbyCategoryChips .nearby-chip"),c=>c.dataset.category==="toilets");
     document.getElementById("nearbyPlacesView").hidden = false;
     localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"nearbyPlacesView");
     loadNearbyPlaces();
@@ -13092,7 +13117,7 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         }
         if(row.dataset.profileView==="nearbyPlacesView"){
             nearbyActiveCategory = "toilets";
-            document.querySelectorAll("#nearbyCategoryChips .nearby-chip").forEach(c=>c.classList.toggle("active",c.dataset.category==="toilets"));
+            setChipsActive(document.querySelectorAll("#nearbyCategoryChips .nearby-chip"),c=>c.dataset.category==="toilets");
             loadNearbyPlaces();
         }
         updateCountdownBanner();
@@ -13187,29 +13212,37 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
    invisible pour l'utilisateur (avant le premier rendu à l'écran). */
 (function restoreLastMainView(){
     setTimeout(()=>{
+        // try/finally (verif 2026-09-06) : sans ça, une exception dans
+        // setActiveMainTab()/trigger.click() empêchait la ligne de
+        // réaffichage plus bas de s'exécuter, et la page restait masquée
+        // jusqu'au filet de sécurité de 1.5s (voir Planning_v1.0.html) —
+        // exactement le cas que ce filet est censé couvrir "en dernier
+        // recours", pas en usage normal.
+        try{
+            const savedTab = localStorage.getItem(LAST_MAIN_TAB_KEY);
+            if(savedTab && savedTab!=="planning"){
+                setActiveMainTab(savedTab);
+            }
 
-        const savedTab = localStorage.getItem(LAST_MAIN_TAB_KEY);
-        if(savedTab && savedTab!=="planning"){
-            setActiveMainTab(savedTab);
+            /* reservationsView/albumView exclues ici sur mobile : gérées par
+               LAST_MAIN_TAB_KEY ci-dessus maintenant, comme budget/profile — ce
+               bloc ne doit plus les rouvrir en vue plein écran par-dessus. Sur
+               desktop, où LAST_MAIN_TAB_KEY ne pilote pas ces deux vues, ce
+               chemin reste le seul mécanisme de restauration et doit continuer à
+               fonctionner tel quel. */
+            const savedView = localStorage.getItem(LAST_FULLSCREEN_VIEW_KEY);
+            if(savedView && (isDesktopContext() || (savedView!=="reservationsView" && savedView!=="albumView"))){
+                const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
+                if(trigger) trigger.click();
+            }
+        }catch(err){
+            console.error("Restauration de la dernière vue impossible :",err);
+        }finally{
+            // Révèle la page maintenant (bon état ou pas) — voir le script
+            // anti-flash tout en haut de <body> dans Planning_v1.0.html, qui
+            // masque tout jusqu'ici.
+            document.body.style.visibility = "";
         }
-
-        /* reservationsView/albumView exclues ici sur mobile : gérées par
-           LAST_MAIN_TAB_KEY ci-dessus maintenant, comme budget/profile — ce
-           bloc ne doit plus les rouvrir en vue plein écran par-dessus. Sur
-           desktop, où LAST_MAIN_TAB_KEY ne pilote pas ces deux vues, ce
-           chemin reste le seul mécanisme de restauration et doit continuer à
-           fonctionner tel quel. */
-        const savedView = localStorage.getItem(LAST_FULLSCREEN_VIEW_KEY);
-        if(savedView && (isDesktopContext() || (savedView!=="reservationsView" && savedView!=="albumView"))){
-            const trigger = document.querySelector(`[data-profile-view="${savedView}"]`);
-            if(trigger) trigger.click();
-        }
-
-        // Révèle la page maintenant que le bon onglet/la bonne vue est en
-        // place — voir le script anti-flash tout en haut de <body> dans
-        // Planning_v1.0.html, qui masque tout jusqu'ici (avec un filet de
-        // sécurité à 1.5s si jamais cette ligne n'était pas atteinte).
-        document.body.style.visibility = "";
     },0);
 })();
 
@@ -14811,11 +14844,19 @@ let liveLocationPeersRef = null;
 let liveLocationWatchId = null;
 let liveLocationExpireTimer = null;
 let liveLocationSharing = false;
+// Verrou synchrone contre le double-tap (verif 2026-09-06) : liveLocationSharing
+// ne passe à true qu'APRÈS le premier "await" de startLiveLocationSharing() —
+// un second clic pendant cette fenêtre relançait la fonction en entier,
+// écrasant liveLocationWatchId du premier appel avec celui du second, rendant
+// le premier watchPosition (GPS) impossible à arrêter (fuite jusqu'au
+// rechargement de l'appli).
+let liveLocationStarting = false;
 let liveLocationDurationMinutes = 60;
 
 document.querySelectorAll("#liveLocationDurations .live-duration-chip").forEach(chip=>{
+    chip.setAttribute("aria-pressed",String(chip.classList.contains("active")));
     chip.addEventListener("click",()=>{
-        document.querySelectorAll("#liveLocationDurations .live-duration-chip").forEach(c=>c.classList.toggle("active",c===chip));
+        setChipsActive(document.querySelectorAll("#liveLocationDurations .live-duration-chip"),c=>c===chip);
         liveLocationDurationMinutes = parseInt(chip.dataset.minutes,10);
     });
 });
@@ -14835,54 +14876,64 @@ function updateLiveLocationShareBtn(){
 
 async function startLiveLocationSharing(){
 
-    if(!syncCode || !syncDb){
-        showToast("Synchronise d'abord cet appareil avec un autre pour partager ta position.",{type:"error"});
-        return;
-    }
-    if(!navigator.geolocation && !nativeGeolocationAvailable()){
-        showToast("Géolocalisation indisponible sur cet appareil.",{type:"error"});
-        return;
-    }
-
-    await syncAuthReady;
-    liveLocationRef = syncDb.ref("trips/"+syncCode+"/liveLocation/"+syncDeviceId);
-    liveLocationRef.onDisconnect().remove();
-
-    const writePosition = (pos)=>{
-        if(!liveLocationRef) return;
-        liveLocationRef.set({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-            name: syncDeviceName,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-        });
-    };
+    // Synchrone, avant le moindre "await" : un second appel pendant que le
+    // premier attend encore sa position initiale ressort immédiatement ici
+    // plutôt que de créer un deuxième watchPosition concurrent.
+    if(liveLocationStarting || liveLocationSharing) return;
+    liveLocationStarting = true;
 
     try{
-        const first = await getCurrentPositionAsync({enableHighAccuracy:true,timeout:10000});
-        writePosition(first);
-    }catch(err){
-        console.error("Position initiale indisponible :",err);
-        showToast("Position indisponible — vérifie que la localisation est activée.",{type:"error"});
-        liveLocationRef = null;
-        return;
-    }
+        if(!syncCode || !syncDb){
+            showToast("Synchronise d'abord cet appareil avec un autre pour partager ta position.",{type:"error"});
+            return;
+        }
+        if(!navigator.geolocation && !nativeGeolocationAvailable()){
+            showToast("Géolocalisation indisponible sur cet appareil.",{type:"error"});
+            return;
+        }
 
-    liveLocationSharing = true;
-    updateLiveLocationShareBtn();
+        await syncAuthReady;
+        liveLocationRef = syncDb.ref("trips/"+syncCode+"/liveLocation/"+syncDeviceId);
+        liveLocationRef.onDisconnect().remove();
 
-    if(nativeGeolocationAvailable()){
-        liveLocationWatchId = await window.Capacitor.Plugins.Geolocation.watchPosition(
-            {enableHighAccuracy:true},
-            (pos,err)=>{ if(pos) writePosition(pos); }
-        );
-    }else if(navigator.geolocation){
-        liveLocationWatchId = navigator.geolocation.watchPosition(writePosition,()=>{},{enableHighAccuracy:true});
-    }
+        const writePosition = (pos)=>{
+            if(!liveLocationRef) return;
+            liveLocationRef.set({
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                name: syncDeviceName,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        };
 
-    clearTimeout(liveLocationExpireTimer);
-    if(liveLocationDurationMinutes>0){
-        liveLocationExpireTimer = setTimeout(stopLiveLocationSharing,liveLocationDurationMinutes*60000);
+        try{
+            const first = await getCurrentPositionAsync({enableHighAccuracy:true,timeout:10000});
+            writePosition(first);
+        }catch(err){
+            console.error("Position initiale indisponible :",err);
+            showToast("Position indisponible — vérifie que la localisation est activée.",{type:"error"});
+            liveLocationRef = null;
+            return;
+        }
+
+        liveLocationSharing = true;
+        updateLiveLocationShareBtn();
+
+        if(nativeGeolocationAvailable()){
+            liveLocationWatchId = await window.Capacitor.Plugins.Geolocation.watchPosition(
+                {enableHighAccuracy:true},
+                (pos,err)=>{ if(pos) writePosition(pos); }
+            );
+        }else if(navigator.geolocation){
+            liveLocationWatchId = navigator.geolocation.watchPosition(writePosition,()=>{},{enableHighAccuracy:true});
+        }
+
+        clearTimeout(liveLocationExpireTimer);
+        if(liveLocationDurationMinutes>0){
+            liveLocationExpireTimer = setTimeout(stopLiveLocationSharing,liveLocationDurationMinutes*60000);
+        }
+    }finally{
+        liveLocationStarting = false;
     }
 }
 
@@ -16359,6 +16410,17 @@ syncRegenerateBtn.addEventListener("click",()=>{
                 detachPlanningListener();
                 removeOwnPresence(oldCode);
 
+                /* Trouvé lors du verif du 2026-09-06 : sans ça, un partage de
+                   position en cours continuait d'écrire les coordonnées GPS
+                   sur l'ANCIEN code (trips/{oldCode}/liveLocation/...) —
+                   fuite réelle, puisque ce code est justement "abandonné" ici
+                   mais pas supprimé, et qu'un appareil qui l'a encore pourrait
+                   continuer à le lire. Le listener d'écoute des positions des
+                   AUTRES (liveLocationPeersRef) pointait pareillement encore
+                   sur l'ancien code. */
+                if(liveLocationSharing) stopLiveLocationSharing();
+                detachLiveLocationPeersListener();
+
                 /* Marque l'ancien code comme abandonné SANS supprimer ses
                    données : un appareil encore relié avec ce code (qui n'a
                    pas encore vu ce message) continue de lire des données
@@ -16377,6 +16439,12 @@ syncRegenerateBtn.addEventListener("click",()=>{
 
                 startSyncListener();
                 updateSyncPanelView();
+
+                // Si la vue Carte est ouverte, réattache tout de suite sur le
+                // NOUVEAU code plutôt que de rester sans le moindre pin de
+                // présence jusqu'à la prochaine fermeture/réouverture de la vue.
+                const liveMapView = document.getElementById("mapView");
+                if(liveMapView && !liveMapView.hidden) attachLiveLocationPeersListener();
 
                 showToast("Nouveau code généré — les appareils précédemment liés ne sont plus synchronisés.",{type:"success",duration:5000});
             }).catch(()=>{
