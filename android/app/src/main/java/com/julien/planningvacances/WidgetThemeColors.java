@@ -43,11 +43,12 @@ public class WidgetThemeColors {
        assombrissement" choisi parmi la comparaison de mockups (photo
        pleine carte, pas de voile sombre — la lisibilité du texte vient de
        l'ombre portée posée sur chaque TextView, voir widget_trip.xml).
-       0 = pas de photo pour ce thème (Noël/default gardent leur propre
-       traitement pour l'instant). */
+       0 = pas de photo pour ce thème (default garde son propre
+       traitement, la scène "H3 nuit étoilée"). */
     public static int photoRes(String theme) {
         if (theme == null) return 0;
         switch (theme) {
+            case "noel": return R.drawable.widget_photo_noel;
             case "sakura": return R.drawable.widget_photo_sakura;
             case "momiji": return R.drawable.widget_photo_momiji;
             case "ghibli": return R.drawable.widget_photo_ghibli;
