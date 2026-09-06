@@ -1838,6 +1838,19 @@ body.dark .map-country-toggle.active{
     display:none;
 }
 
+/* #nearbyMapContainer (2026-09-06) réutilise .map-container mais vit dans
+   .fullscreen-body — un conteneur normal (padding+scroll), pas le
+   #mapView{display:flex;flex-direction:column} qui donne SA hauteur réelle
+   à .map-container via flex:1 pour la vraie carte du voyage. Sans ancêtre
+   flex ici, flex:1 ne fait rien et la mini-carte s'effondrait à 0px de
+   haut (Leaflet s'initialise dans une boîte de taille nulle : rien ne
+   s'affiche, même après invalidateSize()) — hauteur explicite en secours. */
+#nearbyMapContainer{
+    height:60vh;
+    border-radius:14px;
+    overflow:hidden;
+}
+
 /* --- Vue carte (mockup C) : bouton "⋯" dans l'en-tête, ouvre le panneau
    réutilisant .options-menu-panel/.menu-item déjà établis (menu options
    coin haut-droit) plutôt qu'un nouveau style de panneau. --- */
