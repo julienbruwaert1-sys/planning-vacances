@@ -44,6 +44,10 @@ public class HomeWidgetPlugin extends Plugin {
         editor.apply();
 
         TripWidgetProvider.updateAllWidgets(context);
+        // Le bouton Tricount ne montre que la couleur du thème (pas de
+        // donnée de voyage), mais doit quand même suivre un changement de
+        // thème fait pendant qu'il est déjà posé sur l'écran d'accueil.
+        TricountPillWidgetProvider.updateAllWidgets(context);
 
         call.resolve(new JSObject().put("value", true));
     }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget bouton Tricount, style "P3") : rond blanc
+     derrière l'icône — reste blanc quel que soit le thème (comme dans les
+     mockups), seul le fond de la pilule change de couleur. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#FFFFFF" />
+</shape>

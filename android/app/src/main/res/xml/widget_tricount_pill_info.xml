@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06) : métadonnées du widget bouton Tricount — voir
+     TricountPillWidgetProvider.java. Pas de logique périodique nécessaire
+     (contenu statique, icône + libellé + couleur du thème) : updatePeriodMillis
+     ne sert qu'à refléter un changement de thème fait pendant que le widget
+     est déjà posé, sans jamais rouvrir l'appli — même minimum de 30 min
+     qu'imposé par Android pour widget_info.xml. Non redimensionnable
+     (resizeMode absent) : un bouton n'a pas de contenu supplémentaire à
+     révéler en l'agrandissant, contrairement à la carte compte à rebours. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="130dp"
+    android:minHeight="56dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_tricount_pill"
+    android:previewImage="@mipmap/ic_launcher"
+    android:widgetCategory="home_screen" />

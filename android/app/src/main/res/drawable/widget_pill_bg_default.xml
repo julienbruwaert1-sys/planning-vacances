@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget bouton Tricount, style "P3") : même
+     dégradé que widget_bg_default.xml, radius surdimensionné pour un
+     rendu "pilule" (stade) quelle que soit la hauteur réelle du widget. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="#0E2038"
+        android:endColor="#152C4A" />
+    <corners android:radius="100dp" />
+</shape>

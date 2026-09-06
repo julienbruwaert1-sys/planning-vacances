@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-06, widget bouton Tricount, style "P3" de la
+     comparaison de mockups) : deuxième widget, distinct de la carte
+     compte à rebours (TripWidgetProvider) — un simple bouton pilule qui
+     ouvre directement Tricount sur un tap. FrameLayout + LinearLayout
+     interne wrap_content, même schéma que widget_trip.xml (centre le
+     contenu quelle que soit la cellule accordée par le lanceur). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/pillRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_pill_bg_default">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="6dp"
+        android:paddingEnd="18dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <FrameLayout
+            android:layout_width="34dp"
+            android:layout_height="34dp">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_pill_badge" />
+            <TextView
+                android:id="@+id/pillIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textSize="16sp"
+                tools:text="🧾" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/pillLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:textColor="#F3F1EC"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Tricount" />
+
+    </LinearLayout>
+
+</FrameLayout>

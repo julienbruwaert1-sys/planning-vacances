@@ -58,8 +58,8 @@ public class TripWidgetProvider extends AppWidgetProvider {
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_trip);
 
-        views.setInt(R.id.widgetRoot, "setBackgroundResource", themeBackgroundRes(theme));
-        views.setTextColor(R.id.widgetBigNumber, themeAccentColor(theme));
+        views.setInt(R.id.widgetRoot, "setBackgroundResource", WidgetThemeColors.backgroundRes(theme));
+        views.setTextColor(R.id.widgetBigNumber, WidgetThemeColors.accentColor(theme));
 
         String leafBand = themeLeafBand(theme);
         if (leafBand == null) {
@@ -117,35 +117,6 @@ public class TripWidgetProvider extends AppWidgetProvider {
         // widget reflète toujours le layout réellement empaqueté.
         appWidgetManager.updateAppWidget(appWidgetId, null);
         appWidgetManager.updateAppWidget(appWidgetId, views);
-    }
-
-    /* Couleurs reprises telles quelles des cartes sombres de chaque thème
-       dans style.css (body.dark.theme-X .day-content) — voir les fichiers
-       res/drawable/widget_bg_*.xml pour le détail des dégradés. */
-    private static int themeBackgroundRes(String theme) {
-        if (theme == null) return R.drawable.widget_bg_default;
-        switch (theme) {
-            case "noel": return R.drawable.widget_bg_noel;
-            case "ghibli": return R.drawable.widget_bg_ghibli;
-            case "halloween": return R.drawable.widget_bg_halloween;
-            case "sakura": return R.drawable.widget_bg_sakura;
-            case "momiji": return R.drawable.widget_bg_momiji;
-            case "neon": return R.drawable.widget_bg_neon;
-            default: return R.drawable.widget_bg_default;
-        }
-    }
-
-    private static int themeAccentColor(String theme) {
-        if (theme == null) return Color.parseColor("#F0935A");
-        switch (theme) {
-            case "noel": return Color.parseColor("#E8C468");
-            case "ghibli": return Color.parseColor("#D8B25C");
-            case "halloween": return Color.parseColor("#F2954B");
-            case "sakura": return Color.parseColor("#F5A9C6");
-            case "momiji": return Color.parseColor("#E8834A");
-            case "neon": return Color.parseColor("#4DE8FF");
-            default: return Color.parseColor("#F0935A");
-        }
     }
 
     /* Bordure décorative "M4" (voir la comparaison de mockups) — choisie
