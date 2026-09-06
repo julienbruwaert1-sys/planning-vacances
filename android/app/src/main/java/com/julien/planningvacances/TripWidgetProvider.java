@@ -90,12 +90,14 @@ public class TripWidgetProvider extends AppWidgetProvider {
         views.setViewVisibility(R.id.widgetNeonGlow,
             ("neon".equals(theme) && !hasPhoto) ? android.view.View.VISIBLE : android.view.View.GONE);
 
-        // Scène "H3 nuit étoilée" (mockup équivalent choisi) : uniquement
-        // quand aucun thème saisonnier n'est actif — ces 6 thèmes ont déjà
-        // leur propre décor (bordure "M4"/barre néon) sur leur propre
-        // dégradé de fond.
+        // Scène "H3 nuit étoilée" : affichée pour tout thème SANS photo
+        // dédiée, dérivé de hasPhoto plutôt qu'un test littéral
+        // "default".equals(theme) — verif 2026-09-06, repéré comme
+        // fragile : un futur thème ajouté côté appli mais oublié dans
+        // WidgetThemeColors.photoRes() (donc hasPhoto=false) retombe ainsi
+        // proprement sur cette scène de secours au lieu d'un fond nu.
         views.setViewVisibility(R.id.widgetScene,
-            (theme == null || "default".equals(theme)) ? android.view.View.VISIBLE : android.view.View.GONE);
+            hasPhoto ? android.view.View.GONE : android.view.View.VISIBLE);
 
         if (TextUtils.isEmpty(tripName)) {
             views.setTextViewText(R.id.widgetTripName, context.getString(R.string.widget_default_title));
