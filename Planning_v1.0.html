@@ -348,6 +348,7 @@
 </select>
 </div>
 <button id="hapticToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Retour haptique" aria-label="Activer/désactiver les vibrations de retour"><span class="menu-item-icon">📳</span><span class="menu-item-label">Retour haptique</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+<button id="unitConverterToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Convertisseur d'unités" aria-label="Activer/désactiver le convertisseur d'unités"><span class="menu-item-icon">📐</span><span class="menu-item-label">Convertisseur d'unités</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
 </div>
 <div class="settings-tab-group">
 <div class="menu-section-label">Vue Planning</div>
@@ -463,6 +464,8 @@
 <button class="menu-item" type="button" role="menuitem" data-profile-view="tripStatsView"><span class="menu-item-icon">📊</span><span class="menu-item-label">Statistiques du voyage</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="reservationsView"><span class="menu-item-icon">🔗</span><span class="menu-item-label">Réservations</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="mapView"><span class="menu-item-icon">🗺️</span><span class="menu-item-label">Carte du voyage</span></button>
+<button class="menu-item" type="button" role="menuitem" data-profile-view="emergencyView"><span class="menu-item-icon">🚨</span><span class="menu-item-label">Urgence</span></button>
+<button class="menu-item" type="button" role="menuitem" data-profile-view="nearbyPlacesView"><span class="menu-item-icon">📍</span><span class="menu-item-label">À proximité</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="albumView"><span class="menu-item-icon">🖼️</span><span class="menu-item-label">Album photos</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="tripHistoryView"><span class="menu-item-icon">🗂️</span><span class="menu-item-label">Historique des voyages</span></button>
 <button class="menu-item" type="button" role="menuitem" data-profile-view="helpSupportView"><span class="menu-item-icon">🆘</span><span class="menu-item-label">Aide et support</span></button>
@@ -528,6 +531,32 @@
 </select>
 </div>
 <p class="profile-hint">Utilisé pour le compte à rebours, le calendrier et la météo — utile si le téléphone reste à l'heure de la maison pendant le voyage.</p>
+<div class="profile-field" id="timezoneComparatorField" hidden>
+<label>Décalage horaire</label>
+<div class="tz-compare-row">
+<div class="tz-compare-card">
+<div class="tz-compare-place">Chez toi</div>
+<div class="tz-compare-time" id="tzCompareHome"></div>
+</div>
+<div class="tz-compare-card">
+<div class="tz-compare-place" id="tzCompareDestLabel">Destination</div>
+<div class="tz-compare-time" id="tzCompareDest"></div>
+</div>
+</div>
+<div class="tz-compare-offset" id="tzCompareOffset"></div>
+</div>
+<button id="weatherReminderToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="false" title="Rappel météo avant le départ" aria-label="Activer/désactiver le rappel météo la veille du départ" hidden><span class="menu-item-icon">⛅</span><span class="menu-item-label">Rappel météo avant le départ</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+<div class="menu-item menu-item-static" id="weatherReminderHourRow" hidden>
+<span class="menu-item-icon">🕗</span>
+<span class="menu-item-label">Heure du rappel</span>
+<select id="weatherReminderHourSelect" class="menu-item-inline-select" aria-label="Heure du rappel météo">
+<option value="18">18:00</option>
+<option value="19">19:00</option>
+<option value="20">20:00</option>
+<option value="21">21:00</option>
+</select>
+</div>
+<p class="profile-hint" id="weatherReminderHint" hidden>Prévision récupérée à chaque ouverture de l'appli avant le départ — rouvre l'appli une dernière fois la veille pour une prévision bien à jour.</p>
 <div class="profile-field">
 <label for="countdownThresholdSelect">Afficher le compte à rebours</label>
 <select id="countdownThresholdSelect" aria-label="Seuil d'affichage du compte à rebours">
@@ -744,6 +773,29 @@ Ajouter
 </div>
 </div>
 
+<div class="tricount-card" id="unitConverterCard" hidden>
+<h3 class="tricount-heading">📐 Convertisseur d'unités</h3>
+<div class="tricount-payer-row">
+<label for="unitCategorySelect">Catégorie</label>
+<select id="unitCategorySelect" aria-label="Catégorie d'unité">
+<option value="length">Distance</option>
+<option value="weight">Poids</option>
+<option value="temperature">Température</option>
+</select>
+</div>
+<div class="converter-row">
+<div class="converter-field">
+<select id="unitFromSelect" class="converter-currency-select" aria-label="Unité de départ"></select>
+<input type="number" id="unitFromInput" placeholder="0" step="any">
+</div>
+<span class="converter-eq">⇄</span>
+<div class="converter-field">
+<select id="unitToSelect" class="converter-currency-select" aria-label="Unité d'arrivée"></select>
+<input type="number" id="unitToInput" placeholder="0" step="any">
+</div>
+</div>
+</div>
+
 <div class="tricount-card" id="tricountSection">
 <h3 class="tricount-heading">🧾 Tricount</h3>
 
@@ -869,6 +921,8 @@ Masquer les éléments cochés
 <button class="profile-row" type="button" data-profile-view="dateSettingsView"><span class="profile-row-icon">🗓️</span><span class="profile-row-label">Dates &amp; devise</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="checklistView"><span class="profile-row-icon">🎒</span><span class="profile-row-label">Checklist de voyage</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="mapView"><span class="profile-row-icon">🗺️</span><span class="profile-row-label">Carte du voyage</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="emergencyView"><span class="profile-row-icon">🚨</span><span class="profile-row-label">Urgence</span><span class="profile-row-chevron">›</span></button>
+<button class="profile-row" type="button" data-profile-view="nearbyPlacesView"><span class="profile-row-icon">📍</span><span class="profile-row-label">À proximité</span><span class="profile-row-chevron">›</span></button>
 <button class="profile-row" type="button" data-profile-view="tripStatsView"><span class="profile-row-icon">📊</span><span class="profile-row-label">Statistiques du voyage</span><span class="profile-row-chevron">›</span></button>
 </div>
 </div>
@@ -950,6 +1004,7 @@ Masquer les éléments cochés
 <button type="button" id="mapPoiToggle" class="menu-item" role="menuitem" aria-pressed="false">🔍 Rechercher sur la carte</button>
 <button type="button" id="mapDownloadAreaBtn" class="menu-item" role="menuitem" data-keep-menu-open>⬇️ Télécharger cette zone hors-ligne</button>
 <button type="button" id="mapWakeLockToggle" class="menu-item" role="menuitem" aria-pressed="false" hidden>🔆 Garder l'écran allumé</button>
+<button type="button" id="mapLiveLocationToggle" class="menu-item" role="menuitem" hidden>📍 Partager ma position</button>
 </div>
 </div>
 </div>
@@ -968,6 +1023,55 @@ Masquer les éléments cochés
 <span class="map-day-sheet-chevron" aria-hidden="true">⌃</span>
 </div>
 <div class="map-day-sheet-list" id="mapDaySheetList"></div>
+</div>
+<div id="liveLocationPanel" class="live-location-panel" hidden>
+<div class="live-location-head">
+<span>📍 Partage de position</span>
+<button type="button" id="liveLocationCloseBtn" class="icon-btn" aria-label="Fermer">✕</button>
+</div>
+<div id="liveLocationPeers" class="live-location-peers"></div>
+<div class="live-location-durations" id="liveLocationDurations">
+<button type="button" class="live-duration-chip" data-minutes="15">15 min</button>
+<button type="button" class="live-duration-chip active" data-minutes="60">1 h</button>
+<button type="button" class="live-duration-chip" data-minutes="0">Jusqu'à annulation</button>
+</div>
+<button type="button" id="liveLocationShareBtn" class="add">Partager ma position</button>
+<p class="profile-hint">🔒 Visible seulement par les appareils déjà synchronisés à ce voyage, jamais stocké une fois le partage arrêté.</p>
+</div>
+</div>
+
+<div id="emergencyView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>🚨 Urgence</h2>
+</div>
+<div class="fullscreen-body">
+<div class="tricount-payer-row">
+<label for="emergencyCountrySelect">Pays</label>
+<select id="emergencyCountrySelect" aria-label="Choisir le pays"></select>
+</div>
+<div id="emergencyNumbersList" class="emergency-list"></div>
+<p id="emergencyEuroNote" class="profile-hint" hidden>🇪🇺 Le 112 fonctionne aussi comme numéro d'urgence dans la plupart des pays d'Europe.</p>
+<p class="profile-hint">Numéros stockés dans l'appli, disponibles hors-ligne. Vérifie-les localement en cas de doute — ils peuvent changer.</p>
+</div>
+</div>
+
+<div id="nearbyPlacesView" class="fullscreen-view profile-sub-view" hidden>
+<div class="fullscreen-header">
+<button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
+<h2>📍 À proximité</h2>
+</div>
+<div class="map-toolbar" id="nearbyCategoryChips"></div>
+<div class="date-tabs" id="nearbyViewTabs">
+<div class="date-tabs-group">
+<button class="date-tab active" type="button" data-nearby-view="list">Liste</button>
+<button class="date-tab" type="button" data-nearby-view="map">Carte</button>
+</div>
+</div>
+<div class="fullscreen-body">
+<p id="nearbyStatus" class="profile-hint"></p>
+<div id="nearbyList" class="profile-list"></div>
+<div id="nearbyMapContainer" class="map-container" hidden></div>
 </div>
 </div>
 

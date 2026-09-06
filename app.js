@@ -271,8 +271,8 @@ function isNativeApp(){
    contrairement à navigator.geolocation dont la boîte de dialogue est
    connue pour être peu fiable dans une WebView. getCurrentPositionAsync()
    retourne une Promise dans les deux cas avec EXACTEMENT la même forme
-   (result.coords.latitude/longitude) — les 3 appelants (openNearbyToilets,
-   requestUserLocationForWeather, showUserLocationOnMap) n'ont donc besoin
+   (result.coords.latitude/longitude) — les appelants (loadNearbyPlaces,
+   requestUserLocationForWeather, showUserLocationOnMap...) n'ont donc besoin
    que de passer du style callback (success, error) au style .then()/
    .catch(), rien d'autre à adapter. */
 function nativeGeolocationAvailable(){
@@ -3615,6 +3615,49 @@ function nativeNotificationsAvailable(){
     return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications);
 }
 
+/* --- Rappel météo la veille du départ (2026-09-06, mockup approuvé) ---
+   Recombine 2 briques déjà là : les notifications locales ci-dessus et la
+   météo (fetchWithTimeout/weatherInfoFor, déclarées plus bas dans le
+   fichier — safe à appeler depuis syncScheduledNotifications() PLUS BAS
+   dans cette fonction, jamais depuis le tout premier appel synchrone au
+   boot, voir le commentaire à l'intérieur de la fonction). Contenu (temp/
+   pluie) figé au moment de CETTE synchro, pas au moment où la notification
+   part réellement — syncScheduledNotifications() étant rejouée à chaque
+   ouverture de l'appli, la prévision reste fraîche tant que l'utilisateur
+   rouvre l'appli au moins une fois avant le départ. */
+const WEATHER_REMINDER_ENABLED_KEY = "weatherReminderEnabled";
+const WEATHER_REMINDER_HOUR_KEY = "weatherReminderHour";
+const WEATHER_REMINDER_NOTIFICATION_ID = 999999002;
+
+const weatherReminderToggle = document.getElementById("weatherReminderToggle");
+const weatherReminderHourRow = document.getElementById("weatherReminderHourRow");
+const weatherReminderHourSelect = document.getElementById("weatherReminderHourSelect");
+const weatherReminderHint = document.getElementById("weatherReminderHint");
+
+let weatherReminderEnabled = localStorage.getItem(WEATHER_REMINDER_ENABLED_KEY)==="1";
+weatherReminderHourSelect.value = localStorage.getItem(WEATHER_REMINDER_HOUR_KEY) || "20";
+
+function updateWeatherReminderUI(){
+    weatherReminderToggle.setAttribute("aria-pressed",String(weatherReminderEnabled));
+    weatherReminderHourRow.hidden = !weatherReminderEnabled;
+    weatherReminderHint.hidden = !weatherReminderEnabled;
+}
+
+if(nativeNotificationsAvailable()){
+    weatherReminderToggle.hidden = false;
+    updateWeatherReminderUI();
+    weatherReminderToggle.addEventListener("click",()=>{
+        weatherReminderEnabled = !weatherReminderEnabled;
+        localStorage.setItem(WEATHER_REMINDER_ENABLED_KEY,weatherReminderEnabled ? "1" : "0");
+        updateWeatherReminderUI();
+        scheduleNotificationsSyncDebounced();
+    });
+    weatherReminderHourSelect.addEventListener("change",()=>{
+        localStorage.setItem(WEATHER_REMINDER_HOUR_KEY,weatherReminderHourSelect.value);
+        scheduleNotificationsSyncDebounced();
+    });
+}
+
 // Identifiant 32 bits stable requis par le plugin (int Android) — dérivé
 // de n'importe quelle chaîne (id d'activité, ou repli titre+horodatage
 // pour les rares activités sans id stable).
@@ -3664,6 +3707,58 @@ async function syncScheduledNotifications(){
                     body: `${tripName || "Ton voyage"} commence aujourd'hui.`,
                     schedule: { at:departureAt, allowWhileIdle:true }
                 });
+            }
+        }
+
+        // Rappel météo (voir le commentaire complet près de nativeNotificationsAvailable()) :
+        // appelé ici, APRÈS le premier "await" de cette fonction — jamais depuis
+        // le tout premier appel synchrone au boot, pour ne jamais toucher
+        // geocodeAddress()/APP_ICONS/COUNTRY_ISO_CODES (déclarées bien plus bas,
+        // en TDZ tant que le script n'a pas fini de s'exécuter une première fois).
+        if(startDate && weatherReminderEnabled && tripCountry){
+            const departureDate = new Date(startDate+"T00:00:00");
+            const reminderAt = new Date(departureDate);
+            reminderAt.setDate(reminderAt.getDate()-1);
+            reminderAt.setHours(parseInt(weatherReminderHourSelect.value,10) || 20,0,0,0);
+
+            if(reminderAt.getTime()>now){
+                try{
+                    const countryLabel = APP_ICONS[tripCountry] ? APP_ICONS[tripCountry].label : "";
+                    const countryName = countryLabel.split(" ").slice(1).join(" ");
+
+                    if(countryName){
+                        const coords = await geocodeAddress(countryName);
+                        const dateStr = toISODateLocal(departureDate);
+                        const url =
+                            "https://api.open-meteo.com/v1/forecast?latitude="+coords.lat
+                            + "&longitude="+coords.lon
+                            + "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+                            + "&timezone=auto&start_date="+dateStr+"&end_date="+dateStr;
+
+                        const response = await fetchWithTimeout(url,8000);
+                        if(response.ok){
+                            const data = await response.json();
+                            if(data.daily && data.daily.time && data.daily.time.length){
+                                const info = weatherInfoFor(data.daily.weathercode[0]);
+                                const max = Math.round(data.daily.temperature_2m_max[0]);
+                                const min = Math.round(data.daily.temperature_2m_min[0]);
+                                const precip = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[0] : 0;
+                                const umbrella = precip>=50 ? " — pense à prendre un parapluie !" : "";
+                                toSchedule.push({
+                                    id: WEATHER_REMINDER_NOTIFICATION_ID,
+                                    title: `${info.icon} Demain, direction ${countryName}`,
+                                    body: `${info.label}, ${max}°/${min}°${umbrella}`,
+                                    schedule: { at:reminderAt, allowWhileIdle:true }
+                                });
+                            }
+                        }
+                    }
+                }catch(err){
+                    // Pas grave : réessayé automatiquement à la prochaine synchro
+                    // (boot/retour au premier plan suivant), voir le commentaire
+                    // en tête de cette section.
+                    console.error("Rappel météo : prévision indisponible :",err);
+                }
             }
         }
 
@@ -4663,6 +4758,120 @@ tripCountrySelect.addEventListener("change",()=>{
     pushToSync();
 });
 
+/* --- Urgence : numéros par pays (2026-09-06, mockup approuvé) ---
+   Volontairement SANS numéro d'ambassade : aucune source statique fiable
+   et à jour pour ~33 pays à la fois — mieux vaut ne rien afficher qu'un
+   numéro potentiellement faux/périmé dans une situation d'urgence.
+   Uniquement police/pompiers/ambulance, vérifiables et stables. */
+const EMERGENCY_NUMBERS = {
+    germany:[{icon:"🚓",label:"Police",number:"110"},{icon:"🚑",label:"Pompiers / Ambulance",number:"112"}],
+    australia:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"000"}],
+    austria:[{icon:"🚓",label:"Police",number:"133"},{icon:"🚒",label:"Pompiers",number:"122"},{icon:"🚑",label:"Ambulance",number:"144"}],
+    belgium:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    brazil:[{icon:"🚓",label:"Police",number:"190"},{icon:"🚒",label:"Pompiers",number:"193"},{icon:"🚑",label:"Ambulance (SAMU)",number:"192"}],
+    canada:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"911"}],
+    chile:[{icon:"🚓",label:"Police (Carabineros)",number:"133"},{icon:"🚒",label:"Pompiers",number:"132"},{icon:"🚑",label:"Ambulance",number:"131"}],
+    china:[{icon:"🚓",label:"Police",number:"110"},{icon:"🚒",label:"Pompiers",number:"119"},{icon:"🚑",label:"Ambulance",number:"120"}],
+    southkorea:[{icon:"🚓",label:"Police",number:"112"},{icon:"🚑",label:"Pompiers / Ambulance",number:"119"}],
+    croatia:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    denmark:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    egypt:[{icon:"🚓",label:"Police",number:"122"},{icon:"🚑",label:"Ambulance",number:"123"},{icon:"🚒",label:"Pompiers",number:"180"}],
+    spain:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    usa:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"911"}],
+    finland:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    france:[{icon:"🚓",label:"Police",number:"17"},{icon:"🚒",label:"Pompiers",number:"18"},{icon:"🚑",label:"SAMU (Ambulance)",number:"15"}],
+    greece:[{icon:"🚓",label:"Police",number:"100"},{icon:"🚒",label:"Pompiers",number:"199"},{icon:"🚑",label:"Ambulance",number:"166"}],
+    hungary:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    india:[{icon:"🚨",label:"Urgences (unifié)",number:"112"},{icon:"🚑",label:"Ambulance",number:"102"}],
+    iceland:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    italy:[{icon:"🚓",label:"Police",number:"113"},{icon:"🚒",label:"Pompiers",number:"115"},{icon:"🚑",label:"Ambulance",number:"118"}],
+    japan:[{icon:"🚓",label:"Police",number:"110"},{icon:"🚑",label:"Pompiers / Ambulance",number:"119"}],
+    nepal:[{icon:"🚓",label:"Police",number:"100"},{icon:"🚒",label:"Pompiers",number:"101"},{icon:"🚑",label:"Ambulance",number:"102"}],
+    norway:[{icon:"🚓",label:"Police",number:"112"},{icon:"🚒",label:"Pompiers",number:"110"},{icon:"🚑",label:"Ambulance",number:"113"}],
+    netherlands:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    portugal:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    czechrepublic:[{icon:"🚓",label:"Police",number:"158"},{icon:"🚒",label:"Pompiers",number:"150"},{icon:"🚑",label:"Ambulance",number:"155"}],
+    romania:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    singapore:[{icon:"🚓",label:"Police",number:"999"},{icon:"🚑",label:"Pompiers / Ambulance",number:"995"}],
+    sweden:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    switzerland:[{icon:"🚓",label:"Police",number:"117"},{icon:"🚒",label:"Pompiers",number:"118"},{icon:"🚑",label:"Ambulance",number:"144"}],
+    thailand:[{icon:"🚓",label:"Police touristique",number:"1155"},{icon:"🚑",label:"Ambulance",number:"1669"}],
+    turkey:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}]
+};
+
+const EUROPEAN_112_HINT_COUNTRIES = new Set([
+    "germany","austria","belgium","croatia","denmark","spain","finland","france",
+    "greece","hungary","iceland","italy","norway","netherlands","portugal",
+    "czechrepublic","romania","sweden","switzerland","turkey"
+]);
+
+const emergencyCountrySelect = document.getElementById("emergencyCountrySelect");
+const emergencyNumbersList = document.getElementById("emergencyNumbersList");
+const emergencyEuroNote = document.getElementById("emergencyEuroNote");
+
+Object.keys(APP_ICONS).forEach(key=>{
+    if(key==="default") return;
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = APP_ICONS[key].label;
+    emergencyCountrySelect.appendChild(opt);
+});
+
+function renderEmergencyNumbers(){
+
+    const key = emergencyCountrySelect.value;
+    const numbers = EMERGENCY_NUMBERS[key];
+    emergencyNumbersList.innerHTML = "";
+
+    if(!numbers){
+        const empty = document.createElement("p");
+        empty.className = "profile-hint";
+        empty.textContent = "Numéros pas encore disponibles pour ce pays.";
+        emergencyNumbersList.appendChild(empty);
+        emergencyEuroNote.hidden = true;
+        return;
+    }
+
+    numbers.forEach(entry=>{
+
+        const row = document.createElement("div");
+        row.className = "emergency-row";
+
+        const icon = document.createElement("div");
+        icon.className = "emergency-icon";
+        icon.textContent = entry.icon;
+
+        const info = document.createElement("div");
+        info.className = "emergency-info";
+
+        const label = document.createElement("div");
+        label.className = "emergency-label";
+        label.textContent = entry.label;
+
+        const number = document.createElement("div");
+        number.className = "emergency-number";
+        number.textContent = entry.number;
+
+        info.appendChild(label);
+        info.appendChild(number);
+
+        const callBtn = document.createElement("a");
+        callBtn.className = "emergency-call-btn";
+        callBtn.href = "tel:"+entry.number;
+        callBtn.textContent = "📞";
+        callBtn.setAttribute("aria-label","Appeler "+entry.label);
+
+        row.appendChild(icon);
+        row.appendChild(info);
+        row.appendChild(callBtn);
+        emergencyNumbersList.appendChild(row);
+    });
+
+    emergencyEuroNote.hidden = !EUROPEAN_112_HINT_COUNTRIES.has(key);
+}
+
+emergencyCountrySelect.addEventListener("change",renderEmergencyNumbers);
+
 let welcomeIconChoice = "default";
 
 let welcomeParticipants = [];
@@ -5284,6 +5493,32 @@ if(!hapticSupported){
     });
 }
 
+/* --- Convertisseur d'unités : activer/désactiver (2026-09-06) ---
+   Pure préférence d'affichage, comme hapticToggle juste au-dessus — jamais
+   synchronisée (voir collectSyncData()), et jamais masquée pour cause de
+   support manquant (contrairement à hapticToggle) puisque le convertisseur
+   lui-même est un calcul pur, toujours disponible. */
+const UNIT_CONVERTER_ENABLED_KEY = "unitConverterEnabled";
+const unitConverterToggle = document.getElementById("unitConverterToggle");
+const unitConverterCard = document.getElementById("unitConverterCard");
+
+let unitConverterEnabled = localStorage.getItem(UNIT_CONVERTER_ENABLED_KEY)!==null
+    ? localStorage.getItem(UNIT_CONVERTER_ENABLED_KEY)==="1"
+    : true;
+
+function updateUnitConverterVisibility(){
+    unitConverterToggle.setAttribute("aria-pressed",String(unitConverterEnabled));
+    unitConverterCard.hidden = !unitConverterEnabled;
+}
+
+updateUnitConverterVisibility();
+
+unitConverterToggle.addEventListener("click",()=>{
+    unitConverterEnabled = !unitConverterEnabled;
+    localStorage.setItem(UNIT_CONVERTER_ENABLED_KEY,unitConverterEnabled ? "1" : "0");
+    updateUnitConverterVisibility();
+});
+
 /* --- Verrou par voyage (mockup approuvé 2026-09-04) ---
    "Verrou simple" explicite, pas un vrai chiffrement : un seul code PIN
    PARTAGÉ (pas un par voyage) hashé en SHA-256 via Web Crypto, jamais
@@ -5892,7 +6127,61 @@ tripTimezoneSelect.addEventListener("change",()=>{
     localStorage.setItem(TRIP_TIMEZONE_KEY,tripTimezoneSelect.value);
     pushToSync();
     updateCountdownBanner();
+    updateTimezoneComparator();
 });
+
+/* --- Comparateur de fuseau horaire (2026-09-06, mockup approuvé) ---
+   Masqué quand tripTimezoneSelect vaut "" (fuseau automatique = celui de
+   l'appareil) : comparer deux fuseaux identiques n'aurait aucun sens à
+   afficher — état "non disponible" explicite plutôt qu'un décalage de 0h
+   trompeur (voir feedback_explicit_unavailable_state en mémoire). Calcul
+   par Intl.DateTimeFormat (pas un décalage codé en dur) pour rester correct
+   à travers les changements d'heure été/hiver de chaque côté. */
+const timezoneComparatorField = document.getElementById("timezoneComparatorField");
+const tzCompareHome = document.getElementById("tzCompareHome");
+const tzCompareDest = document.getElementById("tzCompareDest");
+const tzCompareDestLabel = document.getElementById("tzCompareDestLabel");
+const tzCompareOffset = document.getElementById("tzCompareOffset");
+
+function getUtcOffsetMinutes(timeZone,date){
+    const parts = new Intl.DateTimeFormat("en-US",{
+        timeZone, hourCycle:"h23",
+        year:"numeric",month:"2-digit",day:"2-digit",
+        hour:"2-digit",minute:"2-digit",second:"2-digit"
+    }).formatToParts(date).reduce((acc,p)=>{ acc[p.type]=p.value; return acc; },{});
+    const asUTC = Date.UTC(parts.year,parts.month-1,parts.day,parts.hour,parts.minute,parts.second);
+    return Math.round((asUTC-date.getTime())/60000);
+}
+
+function updateTimezoneComparator(){
+
+    const tz = tripTimezoneSelect.value;
+    if(!tz){
+        timezoneComparatorField.hidden = true;
+        return;
+    }
+
+    timezoneComparatorField.hidden = false;
+
+    const now = new Date();
+    const homeFormatter = new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    const destFormatter = new Intl.DateTimeFormat("fr-FR",{hour:"2-digit",minute:"2-digit",timeZone:tz});
+
+    tzCompareHome.textContent = homeFormatter.format(now);
+    tzCompareDest.textContent = destFormatter.format(now);
+
+    const destLabel = tz.split("/").pop().replace(/_/g," ");
+    tzCompareDestLabel.textContent = destLabel;
+
+    const diffMin = getUtcOffsetMinutes(tz,now) - (-now.getTimezoneOffset());
+    if(diffMin===0){
+        tzCompareOffset.textContent = "Même heure que chez toi";
+    }else{
+        const diffH = Math.round(Math.abs(diffMin)/6)/10;
+        const sign = diffMin>0 ? "avance" : "retard";
+        tzCompareOffset.textContent = `${destLabel} est en ${sign} de ${diffH} h`;
+    }
+}
 
 /* "Maintenant" dans le fuseau du voyage plutôt que celui, potentiellement
    différent, de l'appareil — cas concret : le téléphone reste à l'heure
@@ -6571,9 +6860,9 @@ searchToggleBtn.addEventListener("click",(e)=>{
    tout lien externe quand disponible — window.open() n'a pas de
    comportement garanti dans une WebView Capacitor (navigue parfois la
    WebView elle-même au lieu d'ouvrir un onglet/navigateur externe, ce qui
-   ferait perdre l'état de l'appli). Point d'entrée unique pour les 3
-   endroits qui ouvrent une URL externe (openAddressInMaps,
-   openReservationLink, openNearbyToilets juste en dessous). */
+   ferait perdre l'état de l'appli). Point d'entrée unique pour les endroits
+   qui ouvrent une URL externe (openAddressInMaps, openReservationLink, les
+   résultats de "À proximité" juste en dessous...). */
 function nativeBrowserAvailable(){
     return isNativeApp() && !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser);
 }
@@ -6591,60 +6880,206 @@ function openExternalUrl(url){
 
 const nearbyToiletsBtn = document.getElementById("nearbyToiletsBtn");
 
-// CAPACITOR : navigator.geolocation (permission Android peu fiable hors
-// plugin natif) — voir la note "Géolocalisation" en tête du fichier.
-function openNearbyToilets(){
+/* --- À proximité (2026-09-06, mockup approuvé) ---
+   Remplace l'ancien openNearbyToilets() (simple lien externe Google Maps) :
+   une vraie recherche en direct dans l'appli, plusieurs catégories,
+   utilisable en liste ou sur une mini-carte Leaflet. Overpass API
+   (OpenStreetMap) — même écosystème que Nominatim déjà utilisé pour le
+   géocodage, gratuit et sans clé. nearbyToiletsBtn (coin de l'écran) ouvre
+   maintenant cette vue avec "Toilettes" présélectionné plutôt que de sortir
+   vers Maps — plus utile, et évite un deuxième chemin de code qui fait
+   presque la même chose. */
+const NEARBY_CATEGORIES = [
+    {key:"toilets",icon:"🚻",label:"Toilettes",tag:"amenity",value:"toilets"},
+    {key:"pharmacy",icon:"💊",label:"Pharmacie",tag:"amenity",value:"pharmacy"},
+    {key:"atm",icon:"🏧",label:"Distributeur",tag:"amenity",value:"atm"},
+    {key:"supermarket",icon:"🛒",label:"Supermarché",tag:"shop",value:"supermarket"},
+    {key:"restaurant",icon:"🍽️",label:"Restaurant",tag:"amenity",value:"restaurant"}
+];
 
-    const fallbackUrl =
-    "https://www.google.com/maps/search/?api=1&query="
-    + encodeURIComponent("toilettes publiques");
+const NEARBY_RADIUS_METERS = 1500;
+const NEARBY_RESULT_LIMIT = 25;
 
-    if(!navigator.geolocation){
-        openExternalUrl(fallbackUrl);
+let nearbyActiveCategory = "toilets";
+let nearbyViewMode = "list";
+let nearbyMapInstance = null;
+let nearbyMapMarkers = null;
+let nearbyUserPos = null;
+let nearbyLastResults = [];
+let nearbyLastCategory = null;
+
+const nearbyCategoryChipsEl = document.getElementById("nearbyCategoryChips");
+const nearbyStatusEl = document.getElementById("nearbyStatus");
+const nearbyListEl = document.getElementById("nearbyList");
+const nearbyMapContainerEl = document.getElementById("nearbyMapContainer");
+
+NEARBY_CATEGORIES.forEach(cat=>{
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "nearby-chip"+(cat.key===nearbyActiveCategory ? " active" : "");
+    chip.textContent = `${cat.icon} ${cat.label}`;
+    chip.dataset.category = cat.key;
+    chip.addEventListener("click",()=>{
+        nearbyActiveCategory = cat.key;
+        document.querySelectorAll("#nearbyCategoryChips .nearby-chip").forEach(c=>c.classList.toggle("active",c===chip));
+        loadNearbyPlaces();
+    });
+    nearbyCategoryChipsEl.appendChild(chip);
+});
+
+document.querySelectorAll("#nearbyViewTabs .date-tab").forEach(tab=>{
+    tab.addEventListener("click",()=>{
+        document.querySelectorAll("#nearbyViewTabs .date-tab").forEach(t=>t.classList.toggle("active",t===tab));
+        nearbyViewMode = tab.dataset.nearbyView;
+        nearbyListEl.hidden = nearbyViewMode!=="list";
+        nearbyMapContainerEl.hidden = nearbyViewMode!=="map";
+        if(nearbyViewMode==="map") renderNearbyMapMarkers();
+    });
+});
+
+function haversineMeters(lat1,lon1,lat2,lon2){
+    const R = 6371000;
+    const toRad = d=>d*Math.PI/180;
+    const dLat = toRad(lat2-lat1);
+    const dLon = toRad(lon2-lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+async function loadNearbyPlaces(){
+
+    nearbyStatusEl.textContent = "Localisation…";
+    nearbyListEl.innerHTML = "";
+
+    if(!navigator.geolocation && !nativeGeolocationAvailable()){
+        nearbyStatusEl.textContent = "Géolocalisation indisponible sur cet appareil.";
         return;
     }
 
-    /* @capacitor/browser n'a pas de blocage de popup à contourner (contrairement
-       à window.open() sur le web) : pas besoin d'ouvrir un onglet vide à
-       l'avance puis de le rediriger une fois la position connue, on ouvre
-       directement une fois la géolocalisation résolue. Le repli web garde
-       lui l'ancienne technique (onglet ouvert dans le geste utilisateur
-       synchrone, puis .location.href une fois la position connue), toujours
-       nécessaire là où les popups peuvent être bloqués. */
-    if(nativeBrowserAvailable()){
-        getCurrentPositionAsync({timeout:8000})
-        .then(pos=>{
-            const { latitude, longitude } = pos.coords;
-            openExternalUrl(`https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`);
-        })
-        .catch(()=>openExternalUrl(fallbackUrl));
+    try{
+        const pos = await getCurrentPositionAsync({timeout:8000});
+        nearbyUserPos = {lat:pos.coords.latitude,lon:pos.coords.longitude};
+    }catch(err){
+        nearbyStatusEl.textContent = "Localisation impossible — active le GPS et réessaie.";
         return;
     }
 
-    // Ouvre l'onglet tout de suite (dans le geste utilisateur synchrone) pour
-    // éviter le blocage de popup : le callback de géolocalisation arrive de
-    // façon asynchrone, trop tard pour qu'un window.open() y passe encore.
-    const newTab = window.open("","_blank");
-    if(newTab) newTab.opener = null;
+    nearbyStatusEl.textContent = "Recherche en cours…";
 
-    navigator.geolocation.getCurrentPosition(
-        pos=>{
-            const { latitude, longitude } = pos.coords;
-            const url = `https://www.google.com/maps/search/toilettes+publiques/@${latitude},${longitude},16z`;
-            if(newTab && !newTab.closed) newTab.location.href = url;
-            else window.open(url,"_blank","noopener,noreferrer");
-        },
-        ()=>{
-            if(newTab && !newTab.closed) newTab.location.href = fallbackUrl;
-            else window.open(fallbackUrl,"_blank","noopener,noreferrer");
-        },
-        { timeout:8000 }
-    );
+    const category = NEARBY_CATEGORIES.find(c=>c.key===nearbyActiveCategory);
+    const around = `around:${NEARBY_RADIUS_METERS},${nearbyUserPos.lat},${nearbyUserPos.lon}`;
+    const overpassQuery =
+        `[out:json][timeout:15];(node["${category.tag}"="${category.value}"](${around});`
+        + `way["${category.tag}"="${category.value}"](${around}););out center ${NEARBY_RESULT_LIMIT};`;
+
+    try{
+        const response = await fetchWithTimeout(
+            "https://overpass-api.de/api/interpreter?data="+encodeURIComponent(overpassQuery),
+            15000
+        );
+        if(!response.ok) throw new Error("Overpass: réponse HTTP "+response.status);
+        const data = await response.json();
+
+        const results = (data.elements||[]).map(el=>{
+            const lat = el.lat!=null ? el.lat : (el.center && el.center.lat);
+            const lon = el.lon!=null ? el.lon : (el.center && el.center.lon);
+            if(lat==null || lon==null) return null;
+            return {
+                name: (el.tags && el.tags.name) || category.label,
+                lat, lon,
+                distance: haversineMeters(nearbyUserPos.lat,nearbyUserPos.lon,lat,lon)
+            };
+        }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
+
+        renderNearbyList(results,category);
+        if(nearbyViewMode==="map") renderNearbyMapMarkers();
+
+    }catch(err){
+        console.error("Recherche à proximité impossible :",err);
+        nearbyStatusEl.textContent = "Résultats indisponibles pour l'instant (pas de connexion, ou service surchargé) — réessaie dans un instant.";
+    }
+}
+
+function renderNearbyList(results,category){
+
+    nearbyLastResults = results;
+    nearbyLastCategory = category;
+    nearbyListEl.innerHTML = "";
+
+    if(!results.length){
+        nearbyStatusEl.textContent = `Aucun résultat "${category.label}" dans un rayon de ${NEARBY_RADIUS_METERS} m.`;
+        return;
+    }
+
+    nearbyStatusEl.textContent = `${results.length} résultat(s) — ${category.label}`;
+
+    results.forEach(place=>{
+
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "profile-row";
+
+        const icon = document.createElement("span");
+        icon.className = "profile-row-icon";
+        icon.textContent = category.icon;
+
+        const label = document.createElement("span");
+        label.className = "profile-row-label";
+        label.textContent = place.name;
+
+        const dist = document.createElement("span");
+        dist.className = "nearby-distance";
+        dist.textContent = place.distance<1000 ? `${Math.round(place.distance)} m` : `${(place.distance/1000).toFixed(1)} km`;
+
+        row.appendChild(icon);
+        row.appendChild(label);
+        row.appendChild(dist);
+
+        row.addEventListener("click",()=>{
+            openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`);
+        });
+
+        nearbyListEl.appendChild(row);
+    });
+}
+
+function renderNearbyMapMarkers(){
+
+    if(!nearbyUserPos) return;
+
+    if(!nearbyMapInstance){
+        nearbyMapInstance = L.map(nearbyMapContainerEl).setView([nearbyUserPos.lat,nearbyUserPos.lon],15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+            maxZoom:19,
+            attribution:"© OpenStreetMap"
+        }).addTo(nearbyMapInstance);
+        nearbyMapMarkers = L.layerGroup().addTo(nearbyMapInstance);
+    }
+    setTimeout(()=>nearbyMapInstance.invalidateSize(),0);
+
+    nearbyMapMarkers.clearLayers();
+
+    const youIcon = L.divIcon({className:"map-you-icon",html:"",iconSize:[22,22],iconAnchor:[11,11]});
+    L.marker([nearbyUserPos.lat,nearbyUserPos.lon],{icon:youIcon,zIndexOffset:1000}).addTo(nearbyMapMarkers).bindPopup("Tu es ici");
+
+    const points = [[nearbyUserPos.lat,nearbyUserPos.lon]];
+    nearbyLastResults.forEach(place=>{
+        const icon = L.divIcon({className:"map-pin-icon",html:(nearbyLastCategory && nearbyLastCategory.icon) || "📍",iconSize:[18,18],iconAnchor:[9,18]});
+        L.marker([place.lat,place.lon],{icon}).addTo(nearbyMapMarkers).bindPopup(place.name);
+        points.push([place.lat,place.lon]);
+    });
+
+    if(points.length>1) nearbyMapInstance.fitBounds(points,{padding:[30,30]});
 }
 
 nearbyToiletsBtn.addEventListener("click",(e)=>{
     e.stopPropagation();
-    openNearbyToilets();
+    closeAllFullscreenViews();
+    nearbyActiveCategory = "toilets";
+    document.querySelectorAll("#nearbyCategoryChips .nearby-chip").forEach(c=>c.classList.toggle("active",c.dataset.category==="toilets"));
+    document.getElementById("nearbyPlacesView").hidden = false;
+    localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"nearbyPlacesView");
+    loadNearbyPlaces();
 });
 
 document.addEventListener("click",(e)=>{
@@ -7294,6 +7729,7 @@ function closeAllFullscreenViews(){
     if(!translateView.hidden) closeTranslateView();
     if(wakeLockWanted) releaseMapWakeLock();
     detachDevicesPresenceListener();
+    detachLiveLocationPeersListener();
     localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
 }
 
@@ -11950,6 +12386,7 @@ let mapMarkersLayer = null;
 let mapUserLocationLayer = null;
 let mapPoiLayer = null;
 let mapRouteLayer = null;
+let mapLiveLocationLayer = null;
 
 // CAPACITOR : navigator.geolocation — voir "Géolocalisation" en haut du
 // fichier (@capacitor/geolocation pour une permission Android fiable).
@@ -12007,6 +12444,7 @@ async function renderMapView(){
         mapUserLocationLayer = L.layerGroup().addTo(mapInstance);
         mapRouteLayer = L.layerGroup().addTo(mapInstance);
         mapPoiLayer = L.markerClusterGroup({maxClusterRadius:50,disableClusteringAtZoom:17}).addTo(mapInstance);
+        mapLiveLocationLayer = L.layerGroup().addTo(mapInstance);
 
         setTimeout(()=>mapInstance.invalidateSize(),0);
 
@@ -12521,12 +12959,25 @@ document.querySelectorAll("[data-profile-view]").forEach(row=>{
         localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,row.dataset.profileView);
         if(row.dataset.profileView==="reservationsView") renderReservations();
         if(row.dataset.profileView==="tripStatsView") renderProfileStats();
-        if(row.dataset.profileView==="mapView") renderMapView();
+        if(row.dataset.profileView==="mapView"){
+            renderMapView();
+            attachLiveLocationPeersListener();
+        }
         if(row.dataset.profileView==="albumView") renderAlbumView();
         if(row.dataset.profileView==="tripHistoryView") renderTripHistoryView();
         if(row.dataset.profileView==="weatherForecastView") renderWeatherForecast();
         if(row.dataset.profileView==="monthCalendarView") renderMonthCalendarView();
         if(row.dataset.profileView==="devicesView") attachDevicesPresenceListener();
+        if(row.dataset.profileView==="dateSettingsView") updateTimezoneComparator();
+        if(row.dataset.profileView==="emergencyView"){
+            emergencyCountrySelect.value = EMERGENCY_NUMBERS[tripCountry] ? tripCountry : "france";
+            renderEmergencyNumbers();
+        }
+        if(row.dataset.profileView==="nearbyPlacesView"){
+            nearbyActiveCategory = "toilets";
+            document.querySelectorAll("#nearbyCategoryChips .nearby-chip").forEach(c=>c.classList.toggle("active",c.dataset.category==="toilets"));
+            loadNearbyPlaces();
+        }
         updateCountdownBanner();
     });
 });
@@ -12584,7 +13035,10 @@ document.querySelectorAll(".profile-back").forEach(btn=>{
             return;
         }
         view.hidden = true;
-        if(view.id==="mapView" && wakeLockWanted) releaseMapWakeLock();
+        if(view.id==="mapView"){
+            if(wakeLockWanted) releaseMapWakeLock();
+            detachLiveLocationPeersListener();
+        }
         if(view.id==="devicesView") detachDevicesPresenceListener();
         localStorage.removeItem(LAST_FULLSCREEN_VIEW_KEY);
         updateCountdownBanner();
@@ -12652,6 +13106,101 @@ document.addEventListener("keydown",(e)=>{
     });
     updateCountdownBanner();
 });
+
+/* --- Convertisseur d'unités (2026-09-06, mockup approuvé) ---
+   Calcul pur, aucune API — contrairement au convertisseur de devises juste
+   en dessous, aucun taux à aller chercher. Chaque catégorie convertit via
+   une unité "pivot" (mètre/kilogramme) sauf la température, qui n'est pas
+   un facteur multiplicatif pur (formules dédiées). Carte visible/masquée
+   selon unitConverterToggle (voir plus haut, près de hapticToggle). */
+const UNIT_CATEGORIES = {
+    length:{
+        units:{
+            m:{label:"Mètres (m)",toPivot:v=>v,fromPivot:v=>v},
+            km:{label:"Kilomètres (km)",toPivot:v=>v*1000,fromPivot:v=>v/1000},
+            mi:{label:"Miles (mi)",toPivot:v=>v*1609.344,fromPivot:v=>v/1609.344},
+            ft:{label:"Pieds (ft)",toPivot:v=>v*0.3048,fromPivot:v=>v/0.3048}
+        },
+        defaultFrom:"km",defaultTo:"mi"
+    },
+    weight:{
+        units:{
+            kg:{label:"Kilogrammes (kg)",toPivot:v=>v,fromPivot:v=>v},
+            g:{label:"Grammes (g)",toPivot:v=>v/1000,fromPivot:v=>v*1000},
+            lb:{label:"Livres (lb)",toPivot:v=>v*0.453592,fromPivot:v=>v/0.453592}
+        },
+        defaultFrom:"kg",defaultTo:"lb"
+    },
+    temperature:{
+        units:{
+            c:{label:"Celsius (°C)"},
+            f:{label:"Fahrenheit (°F)"}
+        },
+        defaultFrom:"c",defaultTo:"f"
+    }
+};
+
+const unitCategorySelect = document.getElementById("unitCategorySelect");
+const unitFromSelect = document.getElementById("unitFromSelect");
+const unitToSelect = document.getElementById("unitToSelect");
+const unitFromInput = document.getElementById("unitFromInput");
+const unitToInput = document.getElementById("unitToInput");
+
+function populateUnitSelects(){
+    const cat = UNIT_CATEGORIES[unitCategorySelect.value];
+    [unitFromSelect,unitToSelect].forEach(select=>{
+        select.innerHTML = "";
+        Object.keys(cat.units).forEach(key=>{
+            const opt = document.createElement("option");
+            opt.value = key;
+            opt.textContent = cat.units[key].label;
+            select.appendChild(opt);
+        });
+    });
+    unitFromSelect.value = cat.defaultFrom;
+    unitToSelect.value = cat.defaultTo;
+}
+
+function roundUnitResult(value){
+    return Math.round(value*1000)/1000;
+}
+
+function convertUnitValue(category,fromKey,toKey,value){
+    if(category==="temperature"){
+        const celsius = fromKey==="f" ? (value-32)*5/9 : value;
+        return toKey==="f" ? celsius*9/5+32 : celsius;
+    }
+    const cat = UNIT_CATEGORIES[category];
+    return cat.units[toKey].fromPivot(cat.units[fromKey].toPivot(value));
+}
+
+function runUnitConversion(sourceInput){
+    const category = unitCategorySelect.value;
+    const fromKey = unitFromSelect.value;
+    const toKey = unitToSelect.value;
+
+    if(sourceInput===unitToInput){
+        const value = parseFloat(unitToInput.value);
+        if(isNaN(value)){ unitFromInput.value = ""; return; }
+        unitFromInput.value = roundUnitResult(convertUnitValue(category,toKey,fromKey,value));
+    }else{
+        const value = parseFloat(unitFromInput.value);
+        if(isNaN(value)){ unitToInput.value = ""; return; }
+        unitToInput.value = roundUnitResult(convertUnitValue(category,fromKey,toKey,value));
+    }
+}
+
+unitCategorySelect.addEventListener("change",()=>{
+    populateUnitSelects();
+    unitFromInput.value = "";
+    unitToInput.value = "";
+});
+unitFromSelect.addEventListener("change",()=>runUnitConversion(unitFromInput));
+unitToSelect.addEventListener("change",()=>runUnitConversion(unitFromInput));
+unitFromInput.addEventListener("input",()=>runUnitConversion(unitFromInput));
+unitToInput.addEventListener("input",()=>runUnitConversion(unitToInput));
+
+populateUnitSelects();
 
 /* --- Convertisseur de devises GBP ↔ (JPY / EUR) ---
    CURRENCIES/baseCurrency/targetCurrency/currentRate sont déclarées tout en
@@ -14118,6 +14667,180 @@ function detachDevicesPresenceListener(){
     }
 }
 
+/* --- Partage de position en direct entre voyageurs (2026-09-06, mockup
+   approuvé) ---
+   trips/{code}/liveLocation/{deviceId} = {lat,lon,name,updatedAt} — nœud
+   séparé de presence/ (qui ne porte pas de coordonnées), même famille de
+   patron (onDisconnect(), écrit par CHAQUE appareil pour lui-même). Partage
+   à durée limitée par défaut (15 min / 1h), jamais permanent sans choix
+   explicite ("Jusqu'à annulation") — dans l'esprit "rien de silencieux" du
+   reste de l'appli. Rien n'est stocké après la fin du partage : le noeud
+   Firebase est supprimé (remove(), pas juste marqué inactif). */
+
+const mapLiveLocationToggle = document.getElementById("mapLiveLocationToggle");
+const liveLocationPanel = document.getElementById("liveLocationPanel");
+const liveLocationCloseBtn = document.getElementById("liveLocationCloseBtn");
+const liveLocationPeersEl = document.getElementById("liveLocationPeers");
+const liveLocationShareBtn = document.getElementById("liveLocationShareBtn");
+
+let liveLocationRef = null;
+let liveLocationPeersRef = null;
+let liveLocationWatchId = null;
+let liveLocationExpireTimer = null;
+let liveLocationSharing = false;
+let liveLocationDurationMinutes = 60;
+
+document.querySelectorAll("#liveLocationDurations .live-duration-chip").forEach(chip=>{
+    chip.addEventListener("click",()=>{
+        document.querySelectorAll("#liveLocationDurations .live-duration-chip").forEach(c=>c.classList.toggle("active",c===chip));
+        liveLocationDurationMinutes = parseInt(chip.dataset.minutes,10);
+    });
+});
+
+mapLiveLocationToggle.addEventListener("click",()=>{
+    liveLocationPanel.hidden = false;
+});
+
+liveLocationCloseBtn.addEventListener("click",()=>{
+    liveLocationPanel.hidden = true;
+});
+
+function updateLiveLocationShareBtn(){
+    liveLocationShareBtn.textContent = liveLocationSharing ? "Arrêter le partage" : "Partager ma position";
+    liveLocationShareBtn.classList.toggle("stop",liveLocationSharing);
+}
+
+async function startLiveLocationSharing(){
+
+    if(!syncCode || !syncDb){
+        showToast("Synchronise d'abord cet appareil avec un autre pour partager ta position.",{type:"error"});
+        return;
+    }
+    if(!navigator.geolocation && !nativeGeolocationAvailable()){
+        showToast("Géolocalisation indisponible sur cet appareil.",{type:"error"});
+        return;
+    }
+
+    await syncAuthReady;
+    liveLocationRef = syncDb.ref("trips/"+syncCode+"/liveLocation/"+syncDeviceId);
+    liveLocationRef.onDisconnect().remove();
+
+    const writePosition = (pos)=>{
+        if(!liveLocationRef) return;
+        liveLocationRef.set({
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            name: syncDeviceName,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+    };
+
+    try{
+        const first = await getCurrentPositionAsync({enableHighAccuracy:true,timeout:10000});
+        writePosition(first);
+    }catch(err){
+        console.error("Position initiale indisponible :",err);
+        showToast("Position indisponible — vérifie que la localisation est activée.",{type:"error"});
+        liveLocationRef = null;
+        return;
+    }
+
+    liveLocationSharing = true;
+    updateLiveLocationShareBtn();
+
+    if(nativeGeolocationAvailable()){
+        liveLocationWatchId = await window.Capacitor.Plugins.Geolocation.watchPosition(
+            {enableHighAccuracy:true},
+            (pos,err)=>{ if(pos) writePosition(pos); }
+        );
+    }else if(navigator.geolocation){
+        liveLocationWatchId = navigator.geolocation.watchPosition(writePosition,()=>{},{enableHighAccuracy:true});
+    }
+
+    clearTimeout(liveLocationExpireTimer);
+    if(liveLocationDurationMinutes>0){
+        liveLocationExpireTimer = setTimeout(stopLiveLocationSharing,liveLocationDurationMinutes*60000);
+    }
+}
+
+function stopLiveLocationSharing(){
+
+    if(liveLocationWatchId!=null){
+        if(nativeGeolocationAvailable()){
+            window.Capacitor.Plugins.Geolocation.clearWatch({id:liveLocationWatchId}).catch(()=>{});
+        }else if(navigator.geolocation){
+            navigator.geolocation.clearWatch(liveLocationWatchId);
+        }
+        liveLocationWatchId = null;
+    }
+
+    clearTimeout(liveLocationExpireTimer);
+
+    if(liveLocationRef){
+        liveLocationRef.remove();
+        liveLocationRef = null;
+    }
+
+    liveLocationSharing = false;
+    updateLiveLocationShareBtn();
+}
+
+liveLocationShareBtn.addEventListener("click",()=>{
+    if(liveLocationSharing) stopLiveLocationSharing();
+    else startLiveLocationSharing();
+});
+
+function renderLiveLocationPeers(data){
+
+    liveLocationPeersEl.innerHTML = "";
+
+    Object.keys(data||{}).forEach(id=>{
+        if(id===syncDeviceId) return;
+        const entry = data[id];
+        const row = document.createElement("div");
+        row.className = "live-location-peer-row";
+        const dot = document.createElement("span");
+        dot.className = "live-location-peer-dot";
+        const name = document.createElement("span");
+        name.textContent = entry.name || "Appareil";
+        row.appendChild(dot);
+        row.appendChild(name);
+        liveLocationPeersEl.appendChild(row);
+    });
+
+    // Pins sur la vraie carte Leaflet du voyage (mapLiveLocationLayer créé
+    // dans renderMapView(), voir plus haut) — pas une mini-carte séparée.
+    if(mapInstance && mapLiveLocationLayer){
+        mapLiveLocationLayer.clearLayers();
+        Object.keys(data||{}).forEach(id=>{
+            if(id===syncDeviceId) return;
+            const entry = data[id];
+            if(entry.lat==null || entry.lon==null) return;
+            const icon = L.divIcon({
+                className:"map-you-icon",
+                html:(entry.name||"?").slice(0,1).toUpperCase(),
+                iconSize:[24,24],
+                iconAnchor:[12,12]
+            });
+            L.marker([entry.lat,entry.lon],{icon}).addTo(mapLiveLocationLayer).bindPopup(entry.name || "Un voyageur");
+        });
+    }
+}
+
+function attachLiveLocationPeersListener(){
+    if(!syncCode || !syncDb) return;
+    detachLiveLocationPeersListener();
+    liveLocationPeersRef = syncDb.ref("trips/"+syncCode+"/liveLocation");
+    liveLocationPeersRef.on("value",snap=>renderLiveLocationPeers(snap.val()));
+}
+
+function detachLiveLocationPeersListener(){
+    if(liveLocationPeersRef){
+        liveLocationPeersRef.off();
+        liveLocationPeersRef = null;
+    }
+}
+
 /* Ferme le panneau de sync (desktop) quand on ouvre les appareils par-dessus
    — sinon il reste ouvert sous la nouvelle vue plein écran. Sans effet sur
    mobile (syncPanel y est déjà vide/masqué, voir updateProfileConsolidation). */
@@ -14356,6 +15079,7 @@ syncConflictDismissBtn.addEventListener("click",()=>{
 });
 
 function updateSyncPanelView(){
+    mapLiveLocationToggle.hidden = !syncCode;
     if(syncCode){
         syncUnpaired.hidden = true;
         syncPaired.hidden = false;
@@ -15472,6 +16196,8 @@ function clearSyncState(){
     detachPlanningListener();
     removeOwnPresence(syncCode);
     detachDevicesPresenceListener();
+    if(liveLocationSharing) stopLiveLocationSharing();
+    detachLiveLocationPeersListener();
     detachTripHistoryListener();
     detachTripAttachmentsListener();
     remoteAttachmentsIndex = {};
