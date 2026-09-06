@@ -5795,6 +5795,11 @@ welcomeThemeSelect.addEventListener("change",()=>{
     appThemeSelect.value = choice;
     applySelectedTheme(choice);
     refreshThemeIcons();
+    // Manquait ici (verif 2026-09-06) : appThemeSelect appelle déjà
+    // updateHomeWidgetData() pour le même changement — sans ça, le widget
+    // garde l'ancien thème jusqu'au prochain boot/sauvegarde/retour au
+    // premier plan si le thème est changé depuis cet écran-ci.
+    updateHomeWidgetData();
 });
 
 /* Le nombre de jours n'a plus de champ de saisie dédié — il se déduit de
