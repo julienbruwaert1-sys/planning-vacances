@@ -52,7 +52,6 @@
         android:src="@drawable/widget_scene_default" />
 
     <LinearLayout
-        android:id="@+id/widgetContentBlock"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
