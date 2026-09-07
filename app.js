@@ -6967,12 +6967,28 @@ const nearbyToiletsBtn = document.getElementById("nearbyToiletsBtn");
    vers Maps — plus utile, et évite un deuxième chemin de code qui fait
    presque la même chose. */
 const NEARBY_CATEGORIES = [
-    {key:"toilets",icon:"🚻",label:"Toilettes",tag:"amenity",value:"toilets"},
-    {key:"pharmacy",icon:"💊",label:"Pharmacie",tag:"amenity",value:"pharmacy"},
-    {key:"atm",icon:"🏧",label:"Distributeur",tag:"amenity",value:"atm"},
-    {key:"supermarket",icon:"🛒",label:"Supermarché",tag:"shop",value:"supermarket"},
-    {key:"restaurant",icon:"🍽️",label:"Restaurant",tag:"amenity",value:"restaurant"}
+    {key:"toilets",icon:"🚻",label:"Toilettes",tag:"amenity",value:"toilets",source:"overpass"},
+    {key:"pharmacy",icon:"💊",label:"Pharmacie",tag:"amenity",value:"pharmacy",source:"overpass"},
+    {key:"atm",icon:"🏧",label:"Distributeur",tag:"amenity",value:"atm",source:"overpass"},
+    {key:"supermarket",icon:"🛒",label:"Supermarché",tag:"shop",value:"supermarket",source:"overpass"},
+    {key:"restaurant",icon:"🍽️",label:"Restaurant",tag:"amenity",value:"restaurant",source:"overpass"},
+    {key:"attractions",icon:"🏛️",label:"Sites touristiques",source:"opentripmap"}
 ];
+
+/* Sites touristiques (2026-09-07) : seule catégorie qui ne vient pas
+   d'Overpass — OpenTripMap (OSM + Wikipedia/Wikidata) fournit en plus une
+   courte description et une photo par lieu, via /places/xid/{xid} (voir
+   openPoiDetail()). Contrairement à Overpass/Nominatim, OpenTripMap exige
+   une clé API — gratuite, sans carte bancaire, sur https://dev.opentripmap.org
+   (plan gratuit : 5000 requêtes/jour, 10/s). Vérifié : l'API répond bien
+   Access-Control-Allow-Origin pour l'origine de cette appli, donc appelable
+   directement depuis le navigateur/webview sans backend, comme Overpass.
+   Tant que OPENTRIPMAP_API_KEY est vide, la catégorie affiche un message
+   plutôt que d'envoyer des requêtes vouées à échouer (même patron que
+   GOOGLE_WEB_CLIENT_ID pour Google Drive). */
+const OPENTRIPMAP_API_KEY = "";
+const OPENTRIPMAP_ENDPOINT = "https://api.opentripmap.com/0.1/en/places";
+const OPENTRIPMAP_MIN_RATE = 2;
 
 const NEARBY_RADIUS_METERS = 1500;
 const NEARBY_RESULT_LIMIT = 25;
@@ -7128,6 +7144,38 @@ async function queryOverpass(query){
     throw lastError || new Error("Overpass : échec après plusieurs essais");
 }
 
+// Extrait de loadNearbyPlaces() (2026-09-07) pour que la catégorie
+// "Sites touristiques" (OpenTripMap) puisse partager le même bloc
+// try/catch/cache sans dupliquer la construction de la requête.
+async function queryOverpassCategory(category,pos){
+    const around = `around:${NEARBY_RADIUS_METERS},${pos.lat},${pos.lon}`;
+    const overpassQuery =
+        `[out:json][timeout:15];(node["${category.tag}"="${category.value}"](${around});`
+        + `way["${category.tag}"="${category.value}"](${around}););out center ${NEARBY_RESULT_LIMIT};`;
+    const data = await queryOverpass(overpassQuery);
+    return (data.elements||[]).map(el=>{
+        const lat = el.lat!=null ? el.lat : (el.center && el.center.lat);
+        const lon = el.lon!=null ? el.lon : (el.center && el.center.lon);
+        if(lat==null || lon==null) return null;
+        return { name:(el.tags && el.tags.name) || category.label, lat, lon };
+    }).filter(Boolean);
+}
+
+// rate (1-3, parfois suffixé "h" pour les sites culturels/historiques,
+// ex. "2h") : indice de notoriété calculé par OpenTripMap à partir de
+// Wikipedia — PAS des avis/notes de voyageurs (voir la discussion avant
+// implémentation). OPENTRIPMAP_MIN_RATE=2 filtre les points OSM mineurs
+// (bancs, bornes...) qu'OpenTripMap classe aussi comme "attraction".
+async function queryOpenTripMapRadius(lat,lon){
+    const url = `${OPENTRIPMAP_ENDPOINT}/radius?radius=${NEARBY_RADIUS_METERS}&lon=${lon}&lat=${lat}&rate=${OPENTRIPMAP_MIN_RATE}&limit=${NEARBY_RESULT_LIMIT}&format=json&apikey=${encodeURIComponent(OPENTRIPMAP_API_KEY)}`;
+    const response = await fetchWithTimeout(url,12000);
+    if(!response.ok) throw new Error("OpenTripMap : réponse HTTP "+response.status);
+    const data = await response.json();
+    return (data||[])
+        .filter(p=>p.name && p.point)
+        .map(p=>({ name:p.name, lat:p.point.lat, lon:p.point.lon, xid:p.xid, rate:p.rate }));
+}
+
 async function loadNearbyPlaces(){
 
     // Jeton de session (même patron que translateSessionId) : si l'utilisateur
@@ -7139,6 +7187,13 @@ async function loadNearbyPlaces(){
     const mySession = nearbySessionId;
 
     nearbyListEl.innerHTML = "";
+
+    const category = NEARBY_CATEGORIES.find(c=>c.key===nearbyActiveCategory);
+
+    if(category.source==="opentripmap" && !OPENTRIPMAP_API_KEY){
+        nearbyStatusEl.textContent = "Sites touristiques : fonctionnalité non configurée (clé OpenTripMap manquante).";
+        return;
+    }
 
     if(!navigator.geolocation && !nativeGeolocationAvailable()){
         nearbyStatusEl.textContent = "Géolocalisation indisponible sur cet appareil.";
@@ -7161,7 +7216,6 @@ async function loadNearbyPlaces(){
         }
     }
 
-    const category = NEARBY_CATEGORIES.find(c=>c.key===nearbyActiveCategory);
     const cacheKey = nearbyResultsCacheKey(category.key,nearbyUserPos.lat,nearbyUserPos.lon);
     const resultsCache = loadNearbyResultsCache();
     const cachedEntry = resultsCache[cacheKey];
@@ -7180,21 +7234,11 @@ async function loadNearbyPlaces(){
 
     nearbyStatusEl.textContent = "Recherche en cours…";
 
-    const around = `around:${NEARBY_RADIUS_METERS},${nearbyUserPos.lat},${nearbyUserPos.lon}`;
-    const overpassQuery =
-        `[out:json][timeout:15];(node["${category.tag}"="${category.value}"](${around});`
-        + `way["${category.tag}"="${category.value}"](${around}););out center ${NEARBY_RESULT_LIMIT};`;
-
     try{
-        const data = await queryOverpass(overpassQuery);
+        const rawResults = category.source==="opentripmap"
+            ? await queryOpenTripMapRadius(nearbyUserPos.lat,nearbyUserPos.lon)
+            : await queryOverpassCategory(category,nearbyUserPos);
         if(mySession!==nearbySessionId) return;
-
-        const rawResults = (data.elements||[]).map(el=>{
-            const lat = el.lat!=null ? el.lat : (el.center && el.center.lat);
-            const lon = el.lon!=null ? el.lon : (el.center && el.center.lon);
-            if(lat==null || lon==null) return null;
-            return { name:(el.tags && el.tags.name) || category.label, lat, lon };
-        }).filter(Boolean);
 
         resultsCache[cacheKey] = {results:rawResults,timestamp:Date.now()};
         saveNearbyResultsCache(resultsCache);
@@ -7252,10 +7296,25 @@ function renderNearbyList(results,category){
 
         row.appendChild(icon);
         row.appendChild(label);
+
+        // rate OpenTripMap (voir queryOpenTripMapRadius) : indice de
+        // notoriété Wikipedia, affiché ici en un coup d'œil avant même
+        // d'ouvrir le détail.
+        if(category.source==="opentripmap" && place.rate){
+            const rateBadge = document.createElement("span");
+            rateBadge.className = "poi-rate-badge";
+            rateBadge.textContent = "★".repeat(Math.min(3,parseInt(place.rate)||1));
+            row.appendChild(rateBadge);
+        }
+
         row.appendChild(dist);
 
         row.addEventListener("click",()=>{
-            openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`);
+            if(category.source==="opentripmap"){
+                openPoiDetail(place);
+            }else{
+                openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`);
+            }
         });
 
         nearbyListEl.appendChild(row);
@@ -7300,6 +7359,72 @@ nearbyToiletsBtn.addEventListener("click",(e)=>{
     localStorage.setItem(LAST_FULLSCREEN_VIEW_KEY,"nearbyPlacesView");
     loadNearbyPlaces();
 });
+
+// Détail d'un site touristique (2026-09-07, OpenTripMap uniquement) : un
+// deuxième appel vers /places/xid/{xid} pour la description Wikipedia et la
+// photo — volontairement PAS fait pour chaque résultat de la liste (ça
+// épuiserait vite le quota gratuit de 5000 req/jour), seulement au tap sur
+// un résultat précis, comme un "en savoir plus" à la demande.
+const poiDetailModal = document.getElementById("poiDetailModal");
+const poiDetailImage = document.getElementById("poiDetailImage");
+const poiDetailTitleEl = document.getElementById("poiDetailTitle");
+const poiDetailRateEl = document.getElementById("poiDetailRate");
+const poiDetailExtractEl = document.getElementById("poiDetailExtract");
+const poiDetailCloseBtn = document.getElementById("poiDetailCloseBtn");
+const poiDetailMapsBtn = document.getElementById("poiDetailMapsBtn");
+let poiDetailSessionId = 0;
+
+function closePoiDetail(){
+    poiDetailModal.hidden = true;
+}
+
+async function openPoiDetail(place){
+    // Même jeton de session que loadNearbyPlaces()/nearbySessionId : si
+    // l'utilisateur tape un deuxième résultat pendant que le premier détail
+    // est encore en vol, la réponse tardive du premier ne doit plus écraser
+    // le contenu du second déjà affiché.
+    poiDetailSessionId++;
+    const mySession = poiDetailSessionId;
+
+    poiDetailModal.hidden = false;
+    poiDetailTitleEl.textContent = place.name;
+    poiDetailImage.hidden = true;
+    poiDetailImage.src = "";
+    poiDetailRateEl.hidden = true;
+    poiDetailExtractEl.textContent = "Chargement des informations…";
+    poiDetailMapsBtn.onclick = ()=>openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`);
+
+    if(!place.xid){
+        poiDetailExtractEl.textContent = "";
+        return;
+    }
+
+    try{
+        const url = `${OPENTRIPMAP_ENDPOINT}/xid/${place.xid}?apikey=${encodeURIComponent(OPENTRIPMAP_API_KEY)}`;
+        const response = await fetchWithTimeout(url,10000);
+        if(mySession!==poiDetailSessionId) return;
+        if(!response.ok) throw new Error("OpenTripMap détail : réponse HTTP "+response.status);
+        const data = await response.json();
+        if(mySession!==poiDetailSessionId) return;
+
+        if(data.preview && data.preview.source){
+            poiDetailImage.src = data.preview.source;
+            poiDetailImage.hidden = false;
+        }
+        if(place.rate){
+            poiDetailRateEl.textContent = "★".repeat(Math.min(3,parseInt(place.rate)||1))+" — popularité (Wikipedia), pas un avis de voyageur";
+            poiDetailRateEl.hidden = false;
+        }
+        const extract = data.wikipedia_extracts && data.wikipedia_extracts.text;
+        poiDetailExtractEl.textContent = extract || "Aucune description disponible pour ce lieu.";
+    }catch(err){
+        if(mySession!==poiDetailSessionId) return;
+        console.error("Détail OpenTripMap impossible :",err);
+        poiDetailExtractEl.textContent = "Impossible de charger les informations pour ce lieu.";
+    }
+}
+
+poiDetailCloseBtn.addEventListener("click",closePoiDetail);
 
 document.addEventListener("click",(e)=>{
     if(!searchPanel.hidden && !e.target.closest(".corner-menu-item, .planning-search-wrap")){
@@ -8082,6 +8207,7 @@ function handleBackNavigation(){
     if(!attachmentLightbox.hidden){ closeAttachmentLightbox(); return true; }
     if(!photoLightbox.hidden){ closePhotoLightbox(); return true; }
     if(!attachmentsModal.hidden){ closeAttachmentsModal(); return true; }
+    if(!poiDetailModal.hidden){ closePoiDetail(); return true; }
 
     if(
         isAnyFullscreenViewOpen() ||

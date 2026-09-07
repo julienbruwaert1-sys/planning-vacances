@@ -9354,6 +9354,26 @@ body.dark .emergency-number{
     flex-shrink:0;
 }
 
+.poi-rate-badge{
+    font-size:12px;
+    letter-spacing:1px;
+    opacity:.75;
+    flex-shrink:0;
+}
+
+.poi-detail-image{
+    width:100%;
+    max-height:200px;
+    object-fit:cover;
+    border-radius:12px;
+    margin-bottom:10px;
+}
+
+.poi-detail-rate{
+    font-weight:600;
+    margin:0 0 6px;
+}
+
 body.dark .nearby-chip{
     background:#182238;
     color:#EAF0FB;
