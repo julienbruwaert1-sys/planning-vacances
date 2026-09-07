@@ -5775,7 +5775,7 @@ unitConverterToggle.addEventListener("click",()=>{
    OPENTRIPMAP_API_KEY : tant qu'elle est vide, la bannière reste masquée
    plutôt que d'envoyer des requêtes vouées à échouer. Attribution Pexels
    (photographe + Pexels) affichée en permanence sur la bannière. */
-const PEXELS_API_KEY = "";
+const PEXELS_API_KEY = "1049UcqQ1cc6OQO8dyVOAHIx39bbzcyBU1XzGQEUukSsAs1wYXLhmE8L";
 const PEXELS_ENDPOINT = "https://api.pexels.com/v1/search";
 const PEXELS_PHOTO_CACHE_KEY = "destinationPhotoCache";
 const PEXELS_PHOTO_TTL_MS = 7*24*60*60*1000;
