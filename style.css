@@ -1020,6 +1020,57 @@ body.dark .device-dot.off{
     font-size:14px;
 }
 
+/* --- Photo de destination (Pexels, 2026-09-07) ---
+   Volontairement PAS dans les groupes de couverture par thème saisonnier :
+   c'est une vraie photo avec son propre dégradé sombre pour la lisibilité
+   du texte, indépendante du thème actif — contrairement aux cartes opaques
+   (.emergency-list, .advisory-card...) posées sur le fond de vue. */
+.destination-photo-banner{
+    position:relative;
+    height:150px;
+    border-radius:16px;
+    overflow:hidden;
+    margin-bottom:12px;
+    background:#DDD;
+}
+
+.destination-photo-banner img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+
+.destination-photo-banner::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(0deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 60%);
+}
+
+.destination-photo-label{
+    position:absolute;
+    left:14px;
+    bottom:10px;
+    z-index:2;
+    color:#FFFFFF;
+    font-weight:700;
+    font-size:15px;
+    text-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+
+.destination-photo-credit{
+    position:absolute;
+    right:10px;
+    bottom:8px;
+    z-index:2;
+    font-size:9.5px;
+    color:rgba(255,255,255,.85);
+    background:rgba(0,0,0,.3);
+    padding:2px 8px;
+    border-radius:999px;
+}
+
 /* Recherche globale */
 
 .search-results{
@@ -6768,6 +6819,7 @@ body.theme-noel .day-content,
 body.theme-noel .converter-card,
 body.theme-noel .profile-list,
 body.theme-noel .emergency-list,
+body.theme-noel .advisory-card,
 body.theme-noel .live-location-panel,
 body.theme-noel .tz-compare-card,
 body.theme-noel .map-day-sheet,
@@ -6783,6 +6835,7 @@ body.dark.theme-noel .day-content,
 body.dark.theme-noel .converter-card,
 body.dark.theme-noel .profile-list,
 body.dark.theme-noel .emergency-list,
+body.dark.theme-noel .advisory-card,
 body.dark.theme-noel .live-location-panel,
 body.dark.theme-noel .tz-compare-card,
 body.dark.theme-noel .map-day-sheet,
@@ -7142,6 +7195,7 @@ body.theme-ghibli .day-content,
 body.theme-ghibli .converter-card,
 body.theme-ghibli .profile-list,
 body.theme-ghibli .emergency-list,
+body.theme-ghibli .advisory-card,
 body.theme-ghibli .live-location-panel,
 body.theme-ghibli .tz-compare-card,
 body.theme-ghibli .map-day-sheet,
@@ -7157,6 +7211,7 @@ body.dark.theme-ghibli .day-content,
 body.dark.theme-ghibli .converter-card,
 body.dark.theme-ghibli .profile-list,
 body.dark.theme-ghibli .emergency-list,
+body.dark.theme-ghibli .advisory-card,
 body.dark.theme-ghibli .live-location-panel,
 body.dark.theme-ghibli .tz-compare-card,
 body.dark.theme-ghibli .map-day-sheet,
@@ -7656,6 +7711,7 @@ body.theme-halloween .day-content,
 body.theme-halloween .converter-card,
 body.theme-halloween .profile-list,
 body.theme-halloween .emergency-list,
+body.theme-halloween .advisory-card,
 body.theme-halloween .live-location-panel,
 body.theme-halloween .tz-compare-card,
 body.theme-halloween .map-day-sheet,
@@ -7671,6 +7727,7 @@ body.dark.theme-halloween .day-content,
 body.dark.theme-halloween .converter-card,
 body.dark.theme-halloween .profile-list,
 body.dark.theme-halloween .emergency-list,
+body.dark.theme-halloween .advisory-card,
 body.dark.theme-halloween .live-location-panel,
 body.dark.theme-halloween .tz-compare-card,
 body.dark.theme-halloween .map-day-sheet,
@@ -8098,6 +8155,7 @@ body.theme-sakura .day-content,
 body.theme-sakura .converter-card,
 body.theme-sakura .profile-list,
 body.theme-sakura .emergency-list,
+body.theme-sakura .advisory-card,
 body.theme-sakura .live-location-panel,
 body.theme-sakura .tz-compare-card,
 body.theme-sakura .map-day-sheet,
@@ -8113,6 +8171,7 @@ body.dark.theme-sakura .day-content,
 body.dark.theme-sakura .converter-card,
 body.dark.theme-sakura .profile-list,
 body.dark.theme-sakura .emergency-list,
+body.dark.theme-sakura .advisory-card,
 body.dark.theme-sakura .live-location-panel,
 body.dark.theme-sakura .tz-compare-card,
 body.dark.theme-sakura .map-day-sheet,
@@ -8374,6 +8433,7 @@ body.theme-momiji .day-content,
 body.theme-momiji .converter-card,
 body.theme-momiji .profile-list,
 body.theme-momiji .emergency-list,
+body.theme-momiji .advisory-card,
 body.theme-momiji .live-location-panel,
 body.theme-momiji .tz-compare-card,
 body.theme-momiji .map-day-sheet,
@@ -8389,6 +8449,7 @@ body.dark.theme-momiji .day-content,
 body.dark.theme-momiji .converter-card,
 body.dark.theme-momiji .profile-list,
 body.dark.theme-momiji .emergency-list,
+body.dark.theme-momiji .advisory-card,
 body.dark.theme-momiji .live-location-panel,
 body.dark.theme-momiji .tz-compare-card,
 body.dark.theme-momiji .map-day-sheet,
@@ -8649,6 +8710,7 @@ body.theme-neon .day-content,
 body.theme-neon .converter-card,
 body.theme-neon .profile-list,
 body.theme-neon .emergency-list,
+body.theme-neon .advisory-card,
 body.theme-neon .live-location-panel,
 body.theme-neon .tz-compare-card,
 body.theme-neon .map-day-sheet,
@@ -8661,6 +8723,7 @@ body.dark.theme-neon .day-content,
 body.dark.theme-neon .converter-card,
 body.dark.theme-neon .profile-list,
 body.dark.theme-neon .emergency-list,
+body.dark.theme-neon .advisory-card,
 body.dark.theme-neon .live-location-panel,
 body.dark.theme-neon .tz-compare-card,
 body.dark.theme-neon .map-day-sheet,
@@ -9326,6 +9389,85 @@ body.dark .emergency-number{
     color:#7C8BAE;
 }
 
+/* --- Sécurité du pays (GOV.UK, 2026-09-07) --- */
+.advisory-card{
+    max-width:900px;
+    margin:0 auto 12px;
+    background:#FFFFFF;
+    border-radius:16px;
+    box-shadow:0 2px 8px rgba(51,64,74,.07);
+    padding:14px 16px;
+}
+
+.advisory-top{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+}
+
+.advisory-flag{font-size:20px;}
+
+.advisory-country{
+    font-weight:600;
+    font-size:13.5px;
+    color:#33404A;
+    flex:1;
+}
+
+.advisory-level{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:11.5px;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:999px;
+    margin-bottom:8px;
+}
+
+.advisory-level.ok{background:#E4F3E9; color:#1e7e34;}
+.advisory-level.warn{background:#FBE7E1; color:#D2503B;}
+.advisory-level.danger{background:#FBE2E2; color:#C13B3B;}
+.advisory-level.severe{background:#E7E7E9; color:#33404A;}
+
+.advisory-text{
+    font-size:12.5px;
+    line-height:1.5;
+    color:#33404A;
+    margin:0 0 8px;
+}
+
+.advisory-meta{
+    font-size:10.5px;
+    color:#9AAAB4;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+}
+
+.advisory-link{
+    color:#D2503B;
+    font-weight:600;
+    text-decoration:none;
+    flex-shrink:0;
+}
+
+body.dark .advisory-card{
+    background:#121A2E;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+body.dark .advisory-country{color:#EAF0FB;}
+body.dark .advisory-text{color:#EAF0FB;}
+body.dark .advisory-meta{color:#7C8BAE;}
+body.dark .advisory-level.ok{background:#1D3327; color:#4FB975;}
+body.dark .advisory-level.warn{background:#1F2E4D; color:#3D7CFF;}
+body.dark .advisory-level.danger{background:#3B2323; color:#E0605E;}
+body.dark .advisory-level.severe{background:#2B2F36; color:#C7CCD4;}
+body.dark .advisory-link{color:#3D7CFF;}
+
 /* --- À proximité (commerces via Overpass, 2026-09-06) --- */
 .nearby-chip{
     flex:none;
@@ -9372,6 +9514,38 @@ body.dark .emergency-number{
 .poi-detail-rate{
     font-weight:600;
     margin:0 0 6px;
+}
+
+.transit-steps{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin:14px 0;
+}
+
+.transit-step{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    font-size:13px;
+}
+
+.transit-icon{
+    font-size:17px;
+    width:22px;
+    text-align:center;
+    flex-shrink:0;
+}
+
+.transit-main{font-weight:600;}
+.transit-sub{font-size:11.5px; opacity:.7;}
+
+.transit-departures{
+    font-size:12px;
+    opacity:.75;
+    border-top:1px dashed currentColor;
+    padding-top:10px;
+    margin:0 0 4px;
 }
 
 body.dark .nearby-chip{

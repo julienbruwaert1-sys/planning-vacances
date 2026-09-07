@@ -388,6 +388,8 @@
 </div>
 <button id="hapticToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Retour haptique" aria-label="Activer/désactiver les vibrations de retour"><span class="menu-item-icon">📳</span><span class="menu-item-label">Retour haptique</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
 <button id="unitConverterToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Convertisseur d'unités" aria-label="Activer/désactiver le convertisseur d'unités"><span class="menu-item-icon">📐</span><span class="menu-item-label">Convertisseur d'unités</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+<button id="pexelsPhotoToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Photo de destination" aria-label="Activer/désactiver la photo de destination en haut du Planning"><span class="menu-item-icon">🖼️</span><span class="menu-item-label">Photo de destination</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
+<button id="navitiaTransitToggle" class="menu-item menu-item-switch" type="button" role="menuitem" aria-pressed="true" title="Transport en commun" aria-label="Activer/désactiver l'itinéraire en transport en commun sur les activités"><span class="menu-item-icon">🚌</span><span class="menu-item-label">Transport en commun</span><span class="menu-item-switch-track" aria-hidden="true"></span></button>
 </div>
 <div class="settings-tab-group">
 <div class="menu-section-label">Vue Planning</div>
@@ -521,6 +523,12 @@
 <button class="desktop-sidebar-item" type="button" data-main-tab="album"><span class="dsi-icon">🖼️</span><span>Album</span></button>
 <button class="desktop-sidebar-item" type="button" data-main-tab="profile"><span class="dsi-icon">👤</span><span>Profil</span></button>
 <div id="desktopSidebarBottom" class="desktop-sidebar-bottom"></div>
+</div>
+
+<div id="destinationPhotoBanner" class="destination-photo-banner" hidden>
+<img id="destinationPhotoImg" alt="">
+<span id="destinationPhotoLabel" class="destination-photo-label"></span>
+<span id="destinationPhotoCredit" class="destination-photo-credit"></span>
 </div>
 
 <div class="app-title-row">
@@ -1090,6 +1098,18 @@ Masquer les éléments cochés
 <label for="emergencyCountrySelect">Pays</label>
 <select id="emergencyCountrySelect" aria-label="Choisir le pays"></select>
 </div>
+<div id="countryAdvisoryCard" class="advisory-card" hidden>
+<div class="advisory-top">
+<span id="countryAdvisoryFlag" class="advisory-flag"></span>
+<span id="countryAdvisoryCountry" class="advisory-country"></span>
+</div>
+<span id="countryAdvisoryLevel" class="advisory-level"></span>
+<p id="countryAdvisoryText" class="advisory-text"></p>
+<div class="advisory-meta">
+<span id="countryAdvisoryDate"></span>
+<a id="countryAdvisoryLink" class="advisory-link" href="#" target="_blank" rel="noopener">Détail complet →</a>
+</div>
+</div>
 <div id="emergencyNumbersList" class="emergency-list"></div>
 <p id="emergencyEuroNote" class="profile-hint" hidden>🇪🇺 Le 112 fonctionne aussi comme numéro d'urgence dans la plupart des pays d'Europe.</p>
 <p class="profile-hint">Numéros stockés dans l'appli, disponibles hors-ligne. Vérifie-les localement en cas de doute — ils peuvent changer.</p>
@@ -1124,6 +1144,18 @@ Masquer les éléments cochés
 <div class="modal-actions">
 <button id="poiDetailCloseBtn" class="modal-btn modal-btn-cancel" type="button">Fermer</button>
 <button id="poiDetailMapsBtn" class="modal-btn modal-btn-confirm" type="button">🗺️ Ouvrir dans Maps</button>
+</div>
+</div>
+</div>
+
+<div id="transitModal" class="modal-overlay" hidden>
+<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="transitTitle">
+<h3 id="transitTitle" class="paste-import-title">🚌 Itinéraire</h3>
+<p id="transitStatus" class="profile-hint" hidden></p>
+<div id="transitSteps" class="transit-steps"></div>
+<p id="transitDepartures" class="transit-departures" hidden></p>
+<div class="modal-actions">
+<button id="transitCloseBtn" class="modal-btn modal-btn-cancel" type="button">Fermer</button>
 </div>
 </div>
 </div>

@@ -2191,6 +2191,22 @@ function renderActivities(){
                     openAddressInMaps(activity.address);
                 });
                 popover.appendChild(mapItem);
+
+                // Réglage Affichage (navitiaTransitEnabled, voir plus bas
+                // près de pexelsPhotoToggle) : cette action disparaît
+                // entièrement du popover quand désactivée, plutôt que
+                // d'exister mais échouer silencieusement.
+                if(navitiaTransitEnabled){
+                    const transitItem = document.createElement("button");
+                    transitItem.type = "button";
+                    transitItem.className = "activity-popover-item";
+                    transitItem.textContent = "🚌 Itinéraire en transport";
+                    transitItem.addEventListener("click",()=>{
+                        closeActivityMenus();
+                        openTransitDirections(activity);
+                    });
+                    popover.appendChild(transitItem);
+                }
             }
 
             if(activity.reservationLink){
@@ -4900,6 +4916,8 @@ function renderEmergencyNumbers(){
     const numbers = EMERGENCY_NUMBERS[key];
     emergencyNumbersList.innerHTML = "";
 
+    renderCountryAdvisory(key);
+
     if(!numbers){
         const empty = document.createElement("p");
         empty.className = "profile-hint";
@@ -4948,6 +4966,160 @@ function renderEmergencyNumbers(){
 }
 
 emergencyCountrySelect.addEventListener("change",renderEmergencyNumbers);
+
+/* --- Sécurité du pays (2026-09-07) ---
+   Remplace l'idée de départ "Travel Advisory API" (travel-advisory.info,
+   constaté hors service — certificat HTTPS invalide, endpoint en 404) par
+   GOV.UK (Foreign, Commonwealth & Development Office britannique) :
+   officielle, gratuite, sans clé, CORS ouvert (vérifié en direct). Se
+   greffe sur le même sélecteur de pays que les numéros d'urgence
+   ci-dessus. Limite assumée et affichée à l'utilisateur : point de vue
+   britannique uniquement, texte en anglais (traduire changerait le sens
+   d'une consigne officielle). */
+const GOVUK_ADVISORY_ENDPOINT = "https://www.gov.uk/api/content/foreign-travel-advice";
+const GOVUK_SLUG_OVERRIDES = { southkorea:"south-korea", czechrepublic:"czech-republic" };
+const GOVUK_ADVISORY_CACHE_KEY = "countryAdvisoryCache";
+const GOVUK_ADVISORY_TTL_MS = 24*60*60*1000;
+
+const countryAdvisoryCard = document.getElementById("countryAdvisoryCard");
+const countryAdvisoryFlag = document.getElementById("countryAdvisoryFlag");
+const countryAdvisoryCountry = document.getElementById("countryAdvisoryCountry");
+const countryAdvisoryLevel = document.getElementById("countryAdvisoryLevel");
+const countryAdvisoryText = document.getElementById("countryAdvisoryText");
+const countryAdvisoryDate = document.getElementById("countryAdvisoryDate");
+const countryAdvisoryLink = document.getElementById("countryAdvisoryLink");
+let countryAdvisorySessionId = 0;
+
+function govUkSlug(countryKey){
+    return GOVUK_SLUG_OVERRIDES[countryKey] || countryKey;
+}
+
+// Le pire niveau l'emporte quand plusieurs statuts sont actifs à la fois
+// (ex. Ukraine : à la fois "avoid_all_travel_to_parts" ET
+// "avoid_all_but_essential_travel_to_parts").
+function levelFromAlertStatus(statuses){
+    if(!statuses || !statuses.length){
+        return {level:"ok",badge:"🟢 Aucune alerte particulière"};
+    }
+    if(statuses.includes("avoid_all_travel_to_whole_country")){
+        return {level:"severe",badge:"⚫ Déconseillé formellement (tout le pays)"};
+    }
+    if(statuses.includes("avoid_all_but_essential_travel_to_whole_country")){
+        return {level:"danger",badge:"🔴 Déconseillé sauf raison impérative (tout le pays)"};
+    }
+    if(statuses.includes("avoid_all_travel_to_parts")){
+        return {level:"danger",badge:"🔴 Déconseillé dans certaines zones"};
+    }
+    if(statuses.includes("avoid_all_but_essential_travel_to_parts")){
+        return {level:"warn",badge:"🟠 Prudence dans certaines zones"};
+    }
+    return {level:"ok",badge:"🟢 Aucune alerte particulière"};
+}
+
+// Utilisé UNIQUEMENT pour dépouiller des balises/entités HTML avant de
+// poser le résultat en textContent plus loin (jamais réinjecté en
+// innerHTML ailleurs) — div jamais attaché au document, donc aucun script
+// éventuellement présent dans le HTML source ne s'exécute.
+function stripHtmlTags(html){
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || "";
+}
+
+function extractAdvisoryExcerpt(data){
+    const parts = (data.details && data.details.parts) || [];
+    const warnings = parts.find(p=>p.slug==="warnings-and-insurance");
+    if(!warnings || !warnings.body) return null;
+    const text = stripHtmlTags(warnings.body).replace(/\s+/g," ").trim();
+    const match = text.match(/[^.]*\bFCDO\b[^.]*advises?[^.]*\./i);
+    const excerpt = match ? match[0].trim() : text.slice(0,220).trim();
+    return excerpt.length>240 ? excerpt.slice(0,237).trim()+"…" : excerpt;
+}
+
+function loadAdvisoryCache(){
+    return JSON.parse(localStorage.getItem(GOVUK_ADVISORY_CACHE_KEY) || "{}");
+}
+
+function saveAdvisoryCache(cache){
+    const now = Date.now();
+    const pruned = {};
+    Object.keys(cache).forEach(k=>{
+        if(cache[k] && (now-cache[k].timestamp) < GOVUK_ADVISORY_TTL_MS) pruned[k] = cache[k];
+    });
+    localStorage.setItem(GOVUK_ADVISORY_CACHE_KEY,JSON.stringify(pruned));
+}
+
+async function loadCountryAdvisory(countryKey){
+    const slug = govUkSlug(countryKey);
+    const cache = loadAdvisoryCache();
+    const cached = cache[slug];
+    if(cached && (Date.now()-cached.timestamp) < GOVUK_ADVISORY_TTL_MS){
+        return cached.data;
+    }
+
+    const response = await fetchWithTimeout(GOVUK_ADVISORY_ENDPOINT+"/"+slug,10000);
+    if(!response.ok) throw new Error("GOV.UK : réponse HTTP "+response.status);
+    const data = await response.json();
+
+    const statuses = (data.details && data.details.alert_status) || [];
+    const { level, badge } = levelFromAlertStatus(statuses);
+    const result = {
+        level, badge,
+        text: level!=="ok" ? extractAdvisoryExcerpt(data) : null,
+        updatedAt: data.public_updated_at || null,
+        url: "https://www.gov.uk/foreign-travel-advice/"+slug
+    };
+
+    cache[slug] = {data:result,timestamp:Date.now()};
+    saveAdvisoryCache(cache);
+    return result;
+}
+
+async function renderCountryAdvisory(countryKey){
+    countryAdvisorySessionId++;
+    const mySession = countryAdvisorySessionId;
+
+    if(!APP_ICONS[countryKey]){
+        countryAdvisoryCard.hidden = true;
+        return;
+    }
+
+    countryAdvisoryFlag.textContent = APP_ICONS[countryKey].label.split(" ")[0];
+    countryAdvisoryCountry.textContent = COUNTRIES[countryKey] ? COUNTRIES[countryKey].fr : countryKey;
+    countryAdvisoryLevel.className = "advisory-level";
+    countryAdvisoryLevel.textContent = "Chargement…";
+    countryAdvisoryText.textContent = "";
+    countryAdvisoryDate.textContent = "";
+    countryAdvisoryCard.hidden = false;
+
+    try{
+        const advisory = await loadCountryAdvisory(countryKey);
+        if(mySession!==countryAdvisorySessionId) return;
+
+        countryAdvisoryLevel.classList.add(advisory.level);
+        countryAdvisoryLevel.textContent = advisory.badge;
+        countryAdvisoryText.textContent = advisory.text
+            ? advisory.text+" (texte officiel en anglais, non traduit)"
+            : "";
+        countryAdvisoryText.hidden = !advisory.text;
+        countryAdvisoryDate.textContent = advisory.updatedAt
+            ? "Màj "+new Date(advisory.updatedAt).toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"})+" · gov.uk"
+            : "Source : gov.uk";
+        countryAdvisoryLink.href = advisory.url;
+    }catch(err){
+        if(mySession!==countryAdvisorySessionId) return;
+        console.error("Sécurité du pays indisponible :",err);
+        countryAdvisoryCard.hidden = true;
+    }
+}
+
+// openExternalUrl() (Capacitor Browser si dispo, sinon window.open) plutôt
+// que de laisser le lien naviguer dans la webview elle-même — même
+// raisonnement que openAddressInMaps() plus loin dans le fichier.
+countryAdvisoryLink.addEventListener("click",(e)=>{
+    e.preventDefault();
+    openExternalUrl(countryAdvisoryLink.href);
+});
 
 let welcomeIconChoice = "default";
 
@@ -5595,6 +5767,282 @@ unitConverterToggle.addEventListener("click",()=>{
     localStorage.setItem(UNIT_CONVERTER_ENABLED_KEY,unitConverterEnabled ? "1" : "0");
     updateUnitConverterVisibility();
 });
+
+/* --- Photo de destination (Pexels, 2026-09-07) ---
+   Bannière photo en haut du Planning, recherchée par pays et mise en
+   cache longue durée (une photo de pays ne "périme" pas comme la météo).
+   Clé API gratuite requise — même patron que GOOGLE_WEB_CLIENT_ID/
+   OPENTRIPMAP_API_KEY : tant qu'elle est vide, la bannière reste masquée
+   plutôt que d'envoyer des requêtes vouées à échouer. Attribution Pexels
+   (photographe + Pexels) affichée en permanence sur la bannière. */
+const PEXELS_API_KEY = "";
+const PEXELS_ENDPOINT = "https://api.pexels.com/v1/search";
+const PEXELS_PHOTO_CACHE_KEY = "destinationPhotoCache";
+const PEXELS_PHOTO_TTL_MS = 7*24*60*60*1000;
+const PEXELS_PHOTO_ENABLED_KEY = "pexelsPhotoEnabled";
+
+const pexelsPhotoToggle = document.getElementById("pexelsPhotoToggle");
+const destinationPhotoBanner = document.getElementById("destinationPhotoBanner");
+const destinationPhotoImg = document.getElementById("destinationPhotoImg");
+const destinationPhotoLabel = document.getElementById("destinationPhotoLabel");
+const destinationPhotoCredit = document.getElementById("destinationPhotoCredit");
+
+let pexelsPhotoEnabled = localStorage.getItem(PEXELS_PHOTO_ENABLED_KEY)!==null
+    ? localStorage.getItem(PEXELS_PHOTO_ENABLED_KEY)==="1"
+    : true;
+let destinationPhotoLoadedFor = null;
+let destinationPhotoSessionId = 0;
+
+function applyDestinationPhoto(data){
+    destinationPhotoImg.src = data.src;
+    destinationPhotoCredit.textContent = "Photo : "+data.photographer+" / Pexels";
+}
+
+async function loadDestinationPhoto(countryKey){
+    const mySession = ++destinationPhotoSessionId;
+    const cache = JSON.parse(localStorage.getItem(PEXELS_PHOTO_CACHE_KEY) || "{}");
+    const cached = cache[countryKey];
+
+    if(cached && (Date.now()-cached.timestamp) < PEXELS_PHOTO_TTL_MS){
+        applyDestinationPhoto(cached.data);
+        return;
+    }
+
+    try{
+        const query = (COUNTRIES[countryKey] ? COUNTRIES[countryKey].en : countryKey)+" landscape";
+        const url = `${PEXELS_ENDPOINT}?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
+        const response = await fetchWithTimeout(url,10000,{headers:{Authorization:PEXELS_API_KEY}});
+        if(!response.ok) throw new Error("Pexels : réponse HTTP "+response.status);
+        const data = await response.json();
+        if(mySession!==destinationPhotoSessionId) return;
+
+        const photo = data.photos && data.photos[0];
+        if(!photo){ destinationPhotoBanner.hidden = true; return; }
+
+        const result = { src:photo.src.large, photographer:photo.photographer };
+        cache[countryKey] = {data:result,timestamp:Date.now()};
+        localStorage.setItem(PEXELS_PHOTO_CACHE_KEY,JSON.stringify(cache));
+        applyDestinationPhoto(result);
+    }catch(err){
+        if(mySession!==destinationPhotoSessionId) return;
+        console.error("Photo de destination indisponible :",err);
+        destinationPhotoBanner.hidden = true;
+    }
+}
+
+// Appelée depuis updateCountdownBanner() (tout en haut, avant ses "return"
+// anticipés) pour rester synchronisée avec les mêmes conditions de
+// visibilité que le reste de l'en-tête Planning (onglet actif, vue
+// plein écran ouverte...), sans dupliquer cette logique ici.
+function updateDestinationPhoto(){
+    const visible =
+        activeMainTab==="planning" && !isAnyFullscreenViewOpen() &&
+        pexelsPhotoEnabled && !!PEXELS_API_KEY &&
+        tripCountry && tripCountry!=="default" && APP_ICONS[tripCountry];
+
+    if(!visible){
+        destinationPhotoBanner.hidden = true;
+        return;
+    }
+
+    destinationPhotoBanner.hidden = false;
+    destinationPhotoLabel.textContent = APP_ICONS[tripCountry].label;
+
+    if(destinationPhotoLoadedFor===tripCountry) return;
+    destinationPhotoLoadedFor = tripCountry;
+    loadDestinationPhoto(tripCountry);
+}
+
+pexelsPhotoToggle.addEventListener("click",()=>{
+    pexelsPhotoEnabled = !pexelsPhotoEnabled;
+    localStorage.setItem(PEXELS_PHOTO_ENABLED_KEY,pexelsPhotoEnabled ? "1" : "0");
+    pexelsPhotoToggle.setAttribute("aria-pressed",String(pexelsPhotoEnabled));
+    if(!pexelsPhotoEnabled) destinationPhotoLoadedFor = null;
+    updateDestinationPhoto();
+});
+pexelsPhotoToggle.setAttribute("aria-pressed",String(pexelsPhotoEnabled));
+
+/* --- Transport en commun (Navitia, 2026-09-07) ---
+   Bouton "🚌 Itinéraire en transport" dans le popover ⋮ de chaque activité
+   ayant une adresse (voir renderActivities(), à côté de "📍 Ouvrir dans
+   Maps"). Origine = position GPS actuelle (comme "À proximité") : cette
+   fonctionnalité a du sens au moment où l'utilisateur est réellement sur
+   place, pas depuis chez lui en préparant le voyage. Destination = adresse
+   de l'activité, géocodée via geocodeAddress() déjà existant.
+   Clé API gratuite requise — même patron que les autres (voir
+   OPENTRIPMAP_API_KEY). Couverture Navitia surtout France/Europe : hors
+   zone, l'appli l'affiche clairement plutôt que d'échouer en silence. */
+const NAVITIA_API_KEY = "";
+const NAVITIA_ENDPOINT = "https://api.navitia.io/v1";
+const NAVITIA_TRANSIT_ENABLED_KEY = "navitiaTransitEnabled";
+
+const navitiaTransitToggle = document.getElementById("navitiaTransitToggle");
+let navitiaTransitEnabled = localStorage.getItem(NAVITIA_TRANSIT_ENABLED_KEY)!==null
+    ? localStorage.getItem(NAVITIA_TRANSIT_ENABLED_KEY)==="1"
+    : true;
+
+navitiaTransitToggle.setAttribute("aria-pressed",String(navitiaTransitEnabled));
+navitiaTransitToggle.addEventListener("click",()=>{
+    navitiaTransitEnabled = !navitiaTransitEnabled;
+    localStorage.setItem(NAVITIA_TRANSIT_ENABLED_KEY,navitiaTransitEnabled ? "1" : "0");
+    navitiaTransitToggle.setAttribute("aria-pressed",String(navitiaTransitEnabled));
+    // Regénère le popover ⋮ déjà ouvert/fermé pour refléter le changement
+    // immédiatement, sans attendre un prochain rendu déclenché ailleurs.
+    renderActivities();
+});
+
+const transitModal = document.getElementById("transitModal");
+const transitTitleEl = document.getElementById("transitTitle");
+const transitStatusEl = document.getElementById("transitStatus");
+const transitStepsEl = document.getElementById("transitSteps");
+const transitDeparturesEl = document.getElementById("transitDepartures");
+const transitCloseBtn = document.getElementById("transitCloseBtn");
+let transitSessionId = 0;
+
+function closeTransitModal(){
+    transitModal.hidden = true;
+}
+transitCloseBtn.addEventListener("click",closeTransitModal);
+
+function formatNavitiaDatetime(date){
+    const pad = n=>String(n).padStart(2,"0");
+    return date.getFullYear()+pad(date.getMonth()+1)+pad(date.getDate())
+        +"T"+pad(date.getHours())+pad(date.getMinutes())+pad(date.getSeconds());
+}
+
+function formatNavitiaTime(compact){
+    // "20260910T143200" -> "14:32"
+    const match = /T(\d{2})(\d{2})/.exec(compact||"");
+    return match ? `${match[1]}:${match[2]}` : "";
+}
+
+// Forme de la réponse Navitia d'après leur documentation publique — pas
+// vérifiable en direct sans clé réelle (page d'inscription bloquée par
+// leur pare-feu anti-robots depuis ici). Défensif exprès : une section au
+// format inattendu est simplement ignorée plutôt que de faire planter tout
+// l'affichage de l'itinéraire.
+function transitIconForMode(displayInfo){
+    const mode = ((displayInfo && (displayInfo.commercial_mode || displayInfo.physical_mode)) || "").toLowerCase();
+    if(mode.includes("métro") || mode.includes("metro")) return "🚇";
+    if(mode.includes("tram")) return "🚊";
+    if(mode.includes("train") || mode.includes("rer") || mode.includes("tgv")) return "🚆";
+    if(mode.includes("bus") || mode.includes("car")) return "🚌";
+    return "🚌";
+}
+
+function parseNavitiaJourneySteps(journey){
+    const steps = [];
+    (journey.sections || []).forEach(section=>{
+        const minutes = Math.round((section.duration||0)/60);
+        if(section.type==="street_network" || section.type==="crow_fly"){
+            if(minutes<=0) return;
+            steps.push({
+                icon:"🚶",
+                main:`${minutes} min à pied`,
+                sub: section.to && section.to.name ? `jusqu'à ${section.to.name}` : ""
+            });
+        }else if(section.type==="public_transit"){
+            const info = section.display_informations || {};
+            const line = [info.commercial_mode,info.code].filter(Boolean).join(" ");
+            steps.push({
+                icon:transitIconForMode(info),
+                main: line + (info.direction ? ` · dir. ${info.direction}` : ""),
+                sub: `${minutes} min`
+            });
+        }
+    });
+    return steps;
+}
+
+async function queryNavitiaJourney(from,to){
+    const url = `${NAVITIA_ENDPOINT}/journeys?from=${from.lon};${from.lat}&to=${to.lon};${to.lat}`
+        + `&datetime=${formatNavitiaDatetime(new Date())}&count=3`;
+    const response = await fetchWithTimeout(url,12000,{headers:{Authorization:NAVITIA_API_KEY}});
+    if(!response.ok) return null;
+    const data = await response.json();
+    return (data.journeys && data.journeys.length) ? data.journeys : null;
+}
+
+function renderTransitJourneys(journeys){
+    transitStepsEl.innerHTML = "";
+    parseNavitiaJourneySteps(journeys[0]).forEach(step=>{
+        const row = document.createElement("div");
+        row.className = "transit-step";
+        const icon = document.createElement("span");
+        icon.className = "transit-icon";
+        icon.textContent = step.icon;
+        const text = document.createElement("div");
+        const main = document.createElement("div");
+        main.className = "transit-main";
+        main.textContent = step.main;
+        text.appendChild(main);
+        if(step.sub){
+            const sub = document.createElement("div");
+            sub.className = "transit-sub";
+            sub.textContent = step.sub;
+            text.appendChild(sub);
+        }
+        row.appendChild(icon);
+        row.appendChild(text);
+        transitStepsEl.appendChild(row);
+    });
+
+    const departures = journeys.map(j=>formatNavitiaTime(j.departure_date_time)).filter(Boolean);
+    transitDeparturesEl.hidden = !departures.length;
+    if(departures.length){
+        transitDeparturesEl.innerHTML = "Prochains départs : <b>"+departures.join(" · ")+"</b>";
+    }
+}
+
+async function openTransitDirections(activity){
+
+    if(!NAVITIA_API_KEY){
+        showToast("Transport en commun : fonctionnalité non configurée (clé Navitia manquante).",{type:"error"});
+        return;
+    }
+
+    transitSessionId++;
+    const mySession = transitSessionId;
+
+    transitModal.hidden = false;
+    transitTitleEl.textContent = activity.name;
+    transitStepsEl.innerHTML = "";
+    transitDeparturesEl.hidden = true;
+    transitStatusEl.hidden = false;
+    transitStatusEl.textContent = "Localisation…";
+
+    if(!navigator.geolocation && !nativeGeolocationAvailable()){
+        transitStatusEl.textContent = "Géolocalisation indisponible sur cet appareil.";
+        return;
+    }
+
+    try{
+        const pos = await getCurrentPositionAsync({timeout:8000});
+        if(mySession!==transitSessionId) return;
+
+        transitStatusEl.textContent = "Calcul de l'itinéraire…";
+        const destCoords = await geocodeAddress(activity.address.trim());
+        if(mySession!==transitSessionId) return;
+
+        const journeys = await queryNavitiaJourney(
+            {lat:pos.coords.latitude,lon:pos.coords.longitude},
+            {lat:destCoords.lat,lon:destCoords.lon}
+        );
+        if(mySession!==transitSessionId) return;
+
+        if(!journeys){
+            transitStatusEl.textContent = "Itinéraire indisponible dans cette zone (hors couverture Navitia, généralement France/Europe).";
+            return;
+        }
+
+        transitStatusEl.hidden = true;
+        renderTransitJourneys(journeys);
+    }catch(err){
+        if(mySession!==transitSessionId) return;
+        console.error("Itinéraire transport impossible :",err);
+        transitStatusEl.textContent = "Itinéraire indisponible pour l'instant — réessaie plus tard.";
+    }
+}
 
 /* --- Verrou par voyage (mockup approuvé 2026-09-04) ---
    "Verrou simple" explicite, pas un vrai chiffrement : un seul code PIN
@@ -6667,6 +7115,7 @@ function updateBottomNavActiveState(){
 function updateCountdownBanner(){
 
     updateBottomNavActiveState();
+    updateDestinationPhoto();
 
     appTitleRow.hidden = activeMainTab!=="planning" || isAnyFullscreenViewOpen();
 
@@ -8208,6 +8657,7 @@ function handleBackNavigation(){
     if(!photoLightbox.hidden){ closePhotoLightbox(); return true; }
     if(!attachmentsModal.hidden){ closeAttachmentsModal(); return true; }
     if(!poiDetailModal.hidden){ closePoiDetail(); return true; }
+    if(!transitModal.hidden){ closeTransitModal(); return true; }
 
     if(
         isAnyFullscreenViewOpen() ||
@@ -13859,13 +14309,16 @@ function convertFromTarget(){
 baseInput.addEventListener("input",convertFromBase);
 targetInput.addEventListener("input",convertFromTarget);
 
-async function fetchWithTimeout(url,ms){
+// options (2026-09-07) : optionnel, pour les en-têtes d'authentification
+// (Pexels, Navitia) — tous les appels existants passaient jusqu'ici sans
+// 3e argument, donc rétrocompatible tel quel.
+async function fetchWithTimeout(url,ms,options={}){
 
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(),ms);
 
     try{
-        const response = await fetch(url,{signal:controller.signal});
+        const response = await fetch(url,{...options,signal:controller.signal});
         return response;
     }finally{
         clearTimeout(timer);
