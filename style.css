@@ -9516,37 +9516,6 @@ body.dark .advisory-link{color:#3D7CFF;}
     margin:0 0 6px;
 }
 
-.transit-steps{
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    margin:14px 0;
-}
-
-.transit-step{
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    font-size:13px;
-}
-
-.transit-icon{
-    font-size:17px;
-    width:22px;
-    text-align:center;
-    flex-shrink:0;
-}
-
-.transit-main{font-weight:600;}
-.transit-sub{font-size:11.5px; opacity:.7;}
-
-.transit-departures{
-    font-size:12px;
-    opacity:.75;
-    border-top:1px dashed currentColor;
-    padding-top:10px;
-    margin:0 0 4px;
-}
 
 body.dark .nearby-chip{
     background:#182238;

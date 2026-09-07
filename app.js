@@ -5862,18 +5862,22 @@ pexelsPhotoToggle.addEventListener("click",()=>{
 });
 pexelsPhotoToggle.setAttribute("aria-pressed",String(pexelsPhotoEnabled));
 
-/* --- Transport en commun (Navitia, 2026-09-07) ---
+/* --- Transport en commun (2026-09-07, révisé) ---
    Bouton "🚌 Itinéraire en transport" dans le popover ⋮ de chaque activité
    ayant une adresse (voir renderActivities(), à côté de "📍 Ouvrir dans
-   Maps"). Origine = position GPS actuelle (comme "À proximité") : cette
-   fonctionnalité a du sens au moment où l'utilisateur est réellement sur
-   place, pas depuis chez lui en préparant le voyage. Destination = adresse
-   de l'activité, géocodée via geocodeAddress() déjà existant.
-   Clé API gratuite requise — même patron que les autres (voir
-   OPENTRIPMAP_API_KEY). Couverture Navitia surtout France/Europe : hors
-   zone, l'appli l'affiche clairement plutôt que d'échouer en silence. */
-const NAVITIA_API_KEY = "";
-const NAVITIA_ENDPOINT = "https://api.navitia.io/v1";
+   Maps"). Conçu au départ autour de Navitia (itinéraire affiché dans
+   l'appli), abandonné avant mise en prod : leur offre freemium n'est plus
+   disponible (confirmé par l'utilisateur à l'inscription), et HERE
+   (alternative envisagée) demande très probablement une carte bancaire.
+   Repli choisi : ouvrir directement Google Maps en mode transport en
+   commun, sans clé ni backend — Maps gère lui-même la géolocalisation de
+   départ (courante) et la destination (adresse en texte libre), donc plus
+   besoin ici de geocodeAddress()/getCurrentPositionAsync() ni de session
+   guard. Toggle conservé (navitiaTransitEnabled/navitiaTransitToggle,
+   noms historiques gardés tels quels pour ne pas réinitialiser la
+   préférence déjà enregistrée chez l'utilisateur) : ça reste un choix
+   légitime de ne pas vouloir cette action dans le menu, indépendamment de
+   la disponibilité d'une clé API. */
 const NAVITIA_TRANSIT_ENABLED_KEY = "navitiaTransitEnabled";
 
 const navitiaTransitToggle = document.getElementById("navitiaTransitToggle");
@@ -5891,157 +5895,12 @@ navitiaTransitToggle.addEventListener("click",()=>{
     renderActivities();
 });
 
-const transitModal = document.getElementById("transitModal");
-const transitTitleEl = document.getElementById("transitTitle");
-const transitStatusEl = document.getElementById("transitStatus");
-const transitStepsEl = document.getElementById("transitSteps");
-const transitDeparturesEl = document.getElementById("transitDepartures");
-const transitCloseBtn = document.getElementById("transitCloseBtn");
-let transitSessionId = 0;
-
-function closeTransitModal(){
-    transitModal.hidden = true;
-}
-transitCloseBtn.addEventListener("click",closeTransitModal);
-
-function formatNavitiaDatetime(date){
-    const pad = n=>String(n).padStart(2,"0");
-    return date.getFullYear()+pad(date.getMonth()+1)+pad(date.getDate())
-        +"T"+pad(date.getHours())+pad(date.getMinutes())+pad(date.getSeconds());
-}
-
-function formatNavitiaTime(compact){
-    // "20260910T143200" -> "14:32"
-    const match = /T(\d{2})(\d{2})/.exec(compact||"");
-    return match ? `${match[1]}:${match[2]}` : "";
-}
-
-// Forme de la réponse Navitia d'après leur documentation publique — pas
-// vérifiable en direct sans clé réelle (page d'inscription bloquée par
-// leur pare-feu anti-robots depuis ici). Défensif exprès : une section au
-// format inattendu est simplement ignorée plutôt que de faire planter tout
-// l'affichage de l'itinéraire.
-function transitIconForMode(displayInfo){
-    const mode = ((displayInfo && (displayInfo.commercial_mode || displayInfo.physical_mode)) || "").toLowerCase();
-    if(mode.includes("métro") || mode.includes("metro")) return "🚇";
-    if(mode.includes("tram")) return "🚊";
-    if(mode.includes("train") || mode.includes("rer") || mode.includes("tgv")) return "🚆";
-    if(mode.includes("bus") || mode.includes("car")) return "🚌";
-    return "🚌";
-}
-
-function parseNavitiaJourneySteps(journey){
-    const steps = [];
-    (journey.sections || []).forEach(section=>{
-        const minutes = Math.round((section.duration||0)/60);
-        if(section.type==="street_network" || section.type==="crow_fly"){
-            if(minutes<=0) return;
-            steps.push({
-                icon:"🚶",
-                main:`${minutes} min à pied`,
-                sub: section.to && section.to.name ? `jusqu'à ${section.to.name}` : ""
-            });
-        }else if(section.type==="public_transit"){
-            const info = section.display_informations || {};
-            const line = [info.commercial_mode,info.code].filter(Boolean).join(" ");
-            steps.push({
-                icon:transitIconForMode(info),
-                main: line + (info.direction ? ` · dir. ${info.direction}` : ""),
-                sub: `${minutes} min`
-            });
-        }
-    });
-    return steps;
-}
-
-async function queryNavitiaJourney(from,to){
-    const url = `${NAVITIA_ENDPOINT}/journeys?from=${from.lon};${from.lat}&to=${to.lon};${to.lat}`
-        + `&datetime=${formatNavitiaDatetime(new Date())}&count=3`;
-    const response = await fetchWithTimeout(url,12000,{headers:{Authorization:NAVITIA_API_KEY}});
-    if(!response.ok) return null;
-    const data = await response.json();
-    return (data.journeys && data.journeys.length) ? data.journeys : null;
-}
-
-function renderTransitJourneys(journeys){
-    transitStepsEl.innerHTML = "";
-    parseNavitiaJourneySteps(journeys[0]).forEach(step=>{
-        const row = document.createElement("div");
-        row.className = "transit-step";
-        const icon = document.createElement("span");
-        icon.className = "transit-icon";
-        icon.textContent = step.icon;
-        const text = document.createElement("div");
-        const main = document.createElement("div");
-        main.className = "transit-main";
-        main.textContent = step.main;
-        text.appendChild(main);
-        if(step.sub){
-            const sub = document.createElement("div");
-            sub.className = "transit-sub";
-            sub.textContent = step.sub;
-            text.appendChild(sub);
-        }
-        row.appendChild(icon);
-        row.appendChild(text);
-        transitStepsEl.appendChild(row);
-    });
-
-    const departures = journeys.map(j=>formatNavitiaTime(j.departure_date_time)).filter(Boolean);
-    transitDeparturesEl.hidden = !departures.length;
-    if(departures.length){
-        transitDeparturesEl.innerHTML = "Prochains départs : <b>"+departures.join(" · ")+"</b>";
-    }
-}
-
-async function openTransitDirections(activity){
-
-    if(!NAVITIA_API_KEY){
-        showToast("Transport en commun : fonctionnalité non configurée (clé Navitia manquante).",{type:"error"});
-        return;
-    }
-
-    transitSessionId++;
-    const mySession = transitSessionId;
-
-    transitModal.hidden = false;
-    transitTitleEl.textContent = activity.name;
-    transitStepsEl.innerHTML = "";
-    transitDeparturesEl.hidden = true;
-    transitStatusEl.hidden = false;
-    transitStatusEl.textContent = "Localisation…";
-
-    if(!navigator.geolocation && !nativeGeolocationAvailable()){
-        transitStatusEl.textContent = "Géolocalisation indisponible sur cet appareil.";
-        return;
-    }
-
-    try{
-        const pos = await getCurrentPositionAsync({timeout:8000});
-        if(mySession!==transitSessionId) return;
-
-        transitStatusEl.textContent = "Calcul de l'itinéraire…";
-        const destCoords = await geocodeAddress(activity.address.trim());
-        if(mySession!==transitSessionId) return;
-
-        const journeys = await queryNavitiaJourney(
-            {lat:pos.coords.latitude,lon:pos.coords.longitude},
-            {lat:destCoords.lat,lon:destCoords.lon}
-        );
-        if(mySession!==transitSessionId) return;
-
-        if(!journeys){
-            transitStatusEl.textContent = "Itinéraire indisponible dans cette zone (hors couverture Navitia, généralement France/Europe).";
-            return;
-        }
-
-        transitStatusEl.hidden = true;
-        renderTransitJourneys(journeys);
-    }catch(err){
-        if(mySession!==transitSessionId) return;
-        console.error("Itinéraire transport impossible :",err);
-        transitStatusEl.textContent = "Itinéraire indisponible pour l'instant — réessaie plus tard.";
-    }
+function openTransitDirections(activity){
+    openExternalUrl(
+        "https://www.google.com/maps/dir/?api=1"
+        + "&destination=" + encodeURIComponent(activity.address.trim())
+        + "&travelmode=transit"
+    );
 }
 
 /* --- Verrou par voyage (mockup approuvé 2026-09-04) ---
@@ -8657,7 +8516,6 @@ function handleBackNavigation(){
     if(!photoLightbox.hidden){ closePhotoLightbox(); return true; }
     if(!attachmentsModal.hidden){ closeAttachmentsModal(); return true; }
     if(!poiDetailModal.hidden){ closePoiDetail(); return true; }
-    if(!transitModal.hidden){ closeTransitModal(); return true; }
 
     if(
         isAnyFullscreenViewOpen() ||
