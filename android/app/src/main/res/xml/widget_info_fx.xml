@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-08) : métadonnées du widget "Taux de change rapide"
+     — voir FxWidgetProvider.java. Petit format 2x2, non redimensionnable
+     (contenu très court, rien à révéler en l'agrandissant). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="130dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_fx"
+    android:previewImage="@mipmap/ic_launcher"
+    android:widgetCategory="home_screen" />

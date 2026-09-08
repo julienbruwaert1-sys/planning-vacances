@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CAPACITOR (2026-09-08) : widget "Météo du jour" — reprend le dernier
+     relevé déjà affiché dans dayWeatherCard (showWeatherCard() dans
+     app.js), aucun appel réseau natif. Voir WeatherWidgetProvider.java. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/weatherRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_default">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <TextView
+            android:id="@+id/weatherIconBig"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="28sp"
+            tools:text="☀️" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <TextView
+                android:id="@+id/weatherTemp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#F0935A"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                tools:text="26°C" />
+
+            <TextView
+                android:id="@+id/weatherDesc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#F3F1EC"
+                android:textSize="10.5sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Ensoleillé · Kyoto" />
+
+            <TextView
+                android:id="@+id/weatherMinMax"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#D8DEE8"
+                android:textSize="9.5sp"
+                android:layout_marginTop="1dp"
+                tools:text="min 19° · max 26°" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

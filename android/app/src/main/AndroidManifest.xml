@@ -708,6 +708,43 @@
                 android:resource="@xml/widget_tricount_pill_info" />
         </receiver>
 
+        <!-- CAPACITOR (2026-09-08) : trois nouveaux widgets — Programme du
+             jour, Taux de change rapide, Météo du jour. Voir
+             ScheduleWidgetProvider.java/FxWidgetProvider.java/
+             WeatherWidgetProvider.java. -->
+        <receiver
+            android:name=".ScheduleWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_schedule" />
+        </receiver>
+
+        <receiver
+            android:name=".FxWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_fx" />
+        </receiver>
+
+        <receiver
+            android:name=".WeatherWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_weather" />
+        </receiver>
+
         <!-- CAPACITOR (2026-09-05, @capacitor-mlkit/barcode-scanning) :
              déclare le module ML Kit "barcode_ui" nécessaire à scan() —
              voir scanQrNative() dans app.js. Sans ça, isGoogleBarcodeScanner

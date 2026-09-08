@@ -500,6 +500,11 @@ let targetCurrency = localStorage.getItem("targetCurrency") || "JPY";
    valeur plus bas, une fois le taux de change récupéré (async). */
 let currentRate = null;
 
+// Snapshot pour le widget "Météo du jour" (2026-09-08, voir showWeatherCard()
+// plus bas) — même raison de déclaration précoce que currentRate ci-dessus :
+// lu par updateHomeWidgetData(), appelée dès le boot.
+let widgetWeatherData = null;
+
 function activityPriceSymbol(activity){
     const code = activity.priceCurrency;
     return (code && CURRENCIES[code]) ? CURRENCIES[code].symbol : CURRENCIES[baseCurrency].symbol;
@@ -3914,6 +3919,54 @@ function updateHomeWidgetData(){
             if(!isNaN(base.getTime())) daysRemaining = Math.round((base-today)/(1000*60*60*24));
         }
 
+        // Widget "Programme du jour" (2026-09-08) : jusqu'à 4 activités du
+        // jour de voyage EN COURS (pas juste la prochaine comme nextEvent
+        // ci-dessus) — vide si aucun voyage/en dehors de la plage du
+        // voyage, le widget natif affiche alors son propre état de repli.
+        let scheduleDayLabel = "";
+        let todaySchedule = [];
+        if(startDate && dayCount){
+            const todayStart = getTripNow();
+            todayStart.setHours(0,0,0,0);
+            const tripBase = new Date(startDate+"T00:00:00");
+            if(!isNaN(tripBase.getTime())){
+                const tripDay = Math.round((todayStart-tripBase)/(1000*60*60*24)) + 1;
+                if(tripDay>=1 && tripDay<=dayCount && planning[tripDay]){
+                    const dayTitle = planning[tripDay].title;
+                    scheduleDayLabel = "📅 Jour "+tripDay+(dayTitle ? " · "+dayTitle : "");
+                    const todayEnd = new Date(todayStart);
+                    todayEnd.setHours(23,59,59,999);
+                    todaySchedule = buildPlanningEventList()
+                        .filter(e=>e.start>=todayStart && e.start<=todayEnd)
+                        .sort((a,b)=>a.start-b.start)
+                        .slice(0,4)
+                        .map(e=>({time:e.start.toTimeString().slice(0,5), title:e.title}));
+                }
+            }
+        }
+
+        // Widget "Taux de change rapide" (2026-09-08) : reprend currentRate
+        // déjà calculé par le convertisseur existant (fetchExchangeRate()),
+        // jamais un nouveau calcul ici — vide tant qu'aucune conversion n'a
+        // été faite cette session.
+        let fxText = "";
+        let fxSub = "";
+        if(typeof currentRate==="number" && currentRate && CURRENCIES[baseCurrency] && CURRENCIES[targetCurrency]){
+            const baseSym = CURRENCIES[baseCurrency].symbol;
+            const targetSym = CURRENCIES[targetCurrency].symbol;
+            const rateDecimals = currentRate>=10 ? 0 : 2;
+            const fxOpts = {minimumFractionDigits:rateDecimals,maximumFractionDigits:rateDecimals};
+            fxText = `1 ${baseSym} = ${currentRate.toLocaleString("fr-FR",fxOpts)} ${targetSym}`;
+            fxSub = `50 ${baseSym} ≈ ${(currentRate*50).toLocaleString("fr-FR",fxOpts)} ${targetSym}`;
+        }
+
+        // Widget "Météo du jour" (2026-09-08) : widgetWeatherData posé par
+        // showWeatherCard() — déjà entièrement formaté, rien à recalculer.
+        const widgetWeatherIcon = widgetWeatherData ? widgetWeatherData.icon : "";
+        const widgetWeatherTemp = widgetWeatherData ? widgetWeatherData.temp : "";
+        const widgetWeatherDesc = widgetWeatherData ? widgetWeatherData.desc : "";
+        const widgetWeatherMinMax = widgetWeatherData ? widgetWeatherData.minMax : "";
+
         localStorage.setItem(HOME_WIDGET_DATA_KEY,JSON.stringify({
             tripName: tripName || "",
             daysRemaining,
@@ -3938,7 +3991,15 @@ function updateHomeWidgetData(){
                 // via une variable JS le référençant : APP_THEME_KEY est
                 // déclaré plus bas dans ce fichier (même famille de TDZ que
                 // startDate/tripName ci-dessus, déjà gérée par ce try/catch).
-                theme: localStorage.getItem(APP_THEME_KEY) || "default"
+                theme: localStorage.getItem(APP_THEME_KEY) || "default",
+                scheduleDayLabel,
+                scheduleJson: JSON.stringify(todaySchedule),
+                fxText,
+                fxSub,
+                weatherIcon: widgetWeatherIcon,
+                weatherTemp: widgetWeatherTemp,
+                weatherDesc: widgetWeatherDesc,
+                weatherMinMax: widgetWeatherMinMax
             }).catch(err=>{
                 console.error("Widget natif : mise à jour impossible :",err);
             });
@@ -9598,6 +9659,17 @@ function showWeatherCard(dayData,dateObj,label){
 
     weatherDayDate.textContent = capitalizeFrenchDate(dateObj.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}));
     weatherPlace.textContent = label || "";
+
+    // Widget "Météo du jour" (2026-09-08) : snapshot texte déjà formaté,
+    // repris tel quel par updateHomeWidgetData() plus haut dans le fichier
+    // — rien à recalculer côté natif (voir WeatherWidgetProvider.java).
+    widgetWeatherData = {
+        icon: info.icon,
+        temp: `${dayData.max}°C`,
+        desc: label ? `${info.label} · ${label}` : info.label,
+        minMax: `min ${dayData.min}° · max ${dayData.max}°`
+    };
+    updateHomeWidgetData();
 }
 
 function showWeatherOffline(){
@@ -14285,6 +14357,11 @@ async function fetchExchangeRate(){
     }
 
     renderTricount();
+
+    // Widget "Taux de change rapide" (2026-09-08) : rafraîchit dès qu'un
+    // taux vient d'être obtenu, sans attendre le prochain savePlanning()/
+    // visibilitychange naturel.
+    updateHomeWidgetData();
 }
 
 fetchExchangeRate();
@@ -17221,6 +17298,12 @@ refreshActivityAttachmentCounts().then(()=>{
         setActiveMainTab("planning");
         openFormDrawer();
         document.getElementById("activityName").focus();
+    }else if(shortcut==="convert"){
+        // Utilisé par FxWidgetProvider (widget "Taux de change rapide",
+        // 2026-09-08) : le convertisseur est déjà tout en haut de l'onglet
+        // budget (#budgetTabContent), pas besoin de switchTricountTab()
+        // comme pour "expense" qui vise la section Tricount en dessous.
+        setActiveMainTab("budget");
     }
 })();
 

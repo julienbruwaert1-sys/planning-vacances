@@ -13,4 +13,7 @@
     <string name="widget_days_remaining_caption">jours avant le départ</string>
     <string name="widget_today">C\'est aujourd\'hui !</string>
     <string name="widget_ongoing">Voyage en cours</string>
+    <string name="widget_schedule_empty">Aucune activité aujourd\'hui</string>
+    <string name="widget_fx_empty">Ouvre le convertisseur</string>
+    <string name="widget_weather_empty">Ouvre l\'appli pour charger la météo</string>
 </resources>
