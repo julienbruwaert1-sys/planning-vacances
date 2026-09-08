@@ -2265,7 +2265,16 @@ function renderActivities(){
                     popover.hidden = false;
                     kebabBtn.setAttribute("aria-expanded","true");
 
-                    if(popover.getBoundingClientRect().bottom > window.innerHeight){
+                    // window.innerHeight compte tout le viewport, y compris
+                    // la zone sous la barre de navigation du bas (position
+                    // fixed, opaque) — un popover qui "tient" selon ce seul
+                    // critère peut donc quand même finir visuellement coupé
+                    // par cette barre (signalé par l'utilisateur, capture
+                    // d'écran à l'appui). On retranche sa vraie hauteur
+                    // rendue plutôt qu'une valeur fixe, pour rester correct
+                    // même si sa hauteur change (safe-area, etc.).
+                    const navClearance = bottomNav.hidden ? 0 : bottomNav.getBoundingClientRect().height;
+                    if(popover.getBoundingClientRect().bottom > window.innerHeight - navClearance){
                         popover.classList.add("flip-up");
                     }
                 }
