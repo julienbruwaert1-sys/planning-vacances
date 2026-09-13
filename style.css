@@ -4832,18 +4832,42 @@ body.dark #activities::before{
    l'écran (screenshot sombre) avant d'être poussé, pas en relecture. */
 #activities .day-slot-head{
     position:relative;
-    background:none;
+    background:#F1F7FB;
     color:#33404A;
-    padding:0;
-    border-radius:0;
-    font-family:'Playfair Display',Georgia,serif;
-    font-size:15px;
+    padding:8px 14px 8px 10px;
+    border-radius:10px;
+    font-family:'Inter',-apple-system,sans-serif;
+    font-size:13px;
     font-weight:700;
     margin:18px 0 10px;
     display:flex;
     align-items:center;
     justify-content:space-between;
     cursor:pointer;
+}
+
+/* Bandeau dégradé par créneau (2026-09-13, mockup "3" approuvé) : une
+   couleur par moment de la journée (aube/soleil/ciel/nuit) plutôt qu'une
+   teinte unique — reprend le repère "aujourd'hui c'est confus, Matin et
+   Soir se ressemblent" signalé par l'utilisateur. Couleurs calculées à
+   26%/4% (18%/6% en sombre) de mélange avec le fond de page réel
+   (#FCFDFE clair / #0A1020 sombre), pas color-mix() : évite toute
+   dépendance à un support CSS récent dans la WebView Android. */
+#activities .day-slot-head[data-slot="matin"]{
+    background:linear-gradient(90deg,#F7E6CC 0%,#FBF9F6 100%);
+    color:#8A5A16;
+}
+#activities .day-slot-head[data-slot="midi"]{
+    background:linear-gradient(90deg,#F1D0CB 0%,#FAF6F6 100%);
+    color:#B23D2C;
+}
+#activities .day-slot-head[data-slot="apresMidi"]{
+    background:linear-gradient(90deg,#CADFED 0%,#F4F8FB 100%);
+    color:#2C6690;
+}
+#activities .day-slot-head[data-slot="soir"]{
+    background:linear-gradient(90deg,#D6D3E7 0%,#F6F7FA 100%);
+    color:#4F4479;
 }
 
 /* Repliage Matin/Midi/Après-midi/Soir (2026-09-02) */
@@ -4870,11 +4894,15 @@ body.dark .day-slot-toggle{
     color:#7C8BAE;
 }
 
+/* top:50% + transform (2026-09-13) plutôt qu'un top fixe : reste centré
+   verticalement quel que soit le padding du bandeau ci-dessus (avant :
+   calé pour un en-tête sans padding). */
 #activities .day-slot-head::before{
     content:"";
     position:absolute;
     left:-20px;
-    top:3px;
+    top:50%;
+    transform:translateY(-50%);
     width:14px;
     height:14px;
     border-radius:50%;
@@ -4882,14 +4910,45 @@ body.dark .day-slot-toggle{
     border:3px solid #FCFDFE;
 }
 
+/* Point coloré par créneau (thème par défaut uniquement — voir plus bas :
+   chaque thème saisonnier remplace déjà ce point par son propre symbole
+   (❆ Noël, ❧ Ghibli...), volontairement laissé tel quel plutôt que
+   d'y ajouter une 2e dimension de couleur par-dessus). */
+#activities .day-slot-head[data-slot="matin"]::before{ background:#E8A33D; }
+#activities .day-slot-head[data-slot="midi"]::before{ background:#D2503B; }
+#activities .day-slot-head[data-slot="apresMidi"]::before{ background:#3D8BBD; }
+#activities .day-slot-head[data-slot="soir"]::before{ background:#6B5CA5; }
+
 body.dark #activities .day-slot-head{
+    background:#182238;
     color:#EAF0FB;
+}
+
+body.dark #activities .day-slot-head[data-slot="matin"]{
+    background:linear-gradient(90deg,#4D3C29 0%,#171922 100%);
+    color:#F0B860;
+}
+body.dark #activities .day-slot-head[data-slot="midi"]{
+    background:linear-gradient(90deg,#462328 0%,#161422 100%);
+    color:#E8776A;
+}
+body.dark #activities .day-slot-head[data-slot="apresMidi"]{
+    background:linear-gradient(90deg,#19354F 0%,#0D1729 100%);
+    color:#6FB3DE;
+}
+body.dark #activities .day-slot-head[data-slot="soir"]{
+    background:linear-gradient(90deg,#272748 0%,#101528 100%);
+    color:#A99BD6;
 }
 
 body.dark #activities .day-slot-head::before{
     background:#3D7CFF;
     border-color:#0A1020;
 }
+body.dark #activities .day-slot-head[data-slot="matin"]::before{ background:#F0B860; border-color:#171922; }
+body.dark #activities .day-slot-head[data-slot="midi"]::before{ background:#E8776A; border-color:#161422; }
+body.dark #activities .day-slot-head[data-slot="apresMidi"]::before{ background:#6FB3DE; border-color:#0D1729; }
+body.dark #activities .day-slot-head[data-slot="soir"]::before{ background:#A99BD6; border-color:#101528; }
 
 #daySummary{
     display:flex;

@@ -1924,6 +1924,7 @@ function renderActivities(){
 
         const head = document.createElement("h3");
         head.className = "day-slot-head";
+        head.dataset.slot = section.key;
         head.setAttribute("role","button");
         head.tabIndex = 0;
         head.setAttribute("aria-expanded",String(!isCollapsed));
