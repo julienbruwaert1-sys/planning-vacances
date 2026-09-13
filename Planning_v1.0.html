@@ -372,7 +372,6 @@
 <span class="menu-item-label">Logo de l'application</span>
 <select id="appIconSelect" class="menu-item-inline-select" aria-label="Choisir le logo de l'application"></select>
 </div>
-<p class="menu-hint">S'applique à une nouvelle installation de l'app (désinstalle puis réinstalle pour voir le nouveau logo sur l'écran d'accueil).</p>
 <div class="menu-item menu-item-static">
 <span class="menu-item-icon">🎨</span>
 <span class="menu-item-label">Thème</span>
@@ -728,6 +727,7 @@ placeholder="Adresse (optionnelle)">
 <option>Randonnée</option>
 <option>Shopping</option>
 <option>Logement</option>
+<option>Transport</option>
 <option>Spectacle</option>
 <option>Incontournable</option>
 <option>Pépite locale</option>
@@ -767,13 +767,14 @@ type="time"
 id="activityTime">
 <span class="field-suffix-label">Heure conseillée</span>
 </div>
-<div class="field-suffix">
-<input
-type="text"
-id="activityDuration"
-placeholder="Durée (optionnelle, ex. 2h)">
-<span class="field-suffix-label" id="activityDurationSuffix">Durée</span>
+<div class="duration-field">
+<span class="duration-field-label">⏱️ Durée</span>
+<select id="activityDurationHours" aria-label="Durée : heures"></select>
+<span class="duration-field-unit">h</span>
+<select id="activityDurationMinutes" aria-label="Durée : minutes"></select>
+<span class="duration-field-unit">min</span>
 </div>
+<input type="hidden" id="activityDuration">
 <input
 type="text"
 id="activityNote"
@@ -1163,6 +1164,7 @@ Masquer les éléments cochés
 <option>Randonnée</option>
 <option>Shopping</option>
 <option>Logement</option>
+<option>Transport</option>
 <option>Spectacle</option>
 <option>Incontournable</option>
 <option>Pépite locale</option>

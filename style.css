@@ -3469,6 +3469,40 @@ input[type="number"]{
     -moz-appearance:textfield;
 }
 
+/* --- Durée d'activité : sélection heures/minutes (2026-09-13) ---
+   Remplace l'ancien champ texte libre ("2h", "45 min"...) — activity.duration
+   reste une chaîne (aucune migration de données), juste reconstruite à
+   partir de ces deux <select> plutôt que tapée à la main. Voir
+   updateActivityDurationHidden()/fillActivityForm() dans app.js. */
+.duration-field{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+}
+
+.duration-field-label{
+    font-size:11.5px;
+    color:#9AAAB4;
+    margin-right:2px;
+}
+
+.duration-field-unit{
+    font-size:12.5px;
+    color:#9AAAB4;
+}
+
+.duration-field select{
+    width:auto;
+    flex:1;
+    min-width:64px;
+}
+
+body.dark .duration-field-label,
+body.dark .duration-field-unit{
+    color:#B7C4D6;
+}
+
 input,
 select{
     padding:8px 10px;

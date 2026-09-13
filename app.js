@@ -882,6 +882,7 @@ const icons = {
     Randonnée:"🥾",
     Shopping:"🛍️",
     Logement:"🏨",
+    Transport:"🚗",
     Spectacle:"🎭",
     Incontournable:"⭐",
     "Pépite locale":"💎",
@@ -895,6 +896,7 @@ const typeColors = {
     Randonnée:"#66BB6A",
     Shopping:"#AB47BC",
     Logement:"#42A5F5",
+    Transport:"#5D4037",
     Spectacle:"#EF5350",
     Incontournable:"#FFB300",
     "Pépite locale":"#00ACC1",
@@ -1429,6 +1431,56 @@ function updateActivityTypePlaceholderStyle(){
 activityTypeSelect.addEventListener("change",updateActivityTypePlaceholderStyle);
 updateActivityTypePlaceholderStyle();
 
+/* --- Durée : sélecteurs heures/minutes (2026-09-13) ---
+   #activityDuration reste un champ caché portant la même chaîne qu'avant
+   ("2h30", "45 min"...) — addActivity() la lit telle quelle, aucun
+   changement là-bas. Les deux <select> ne font que la reconstruire à
+   chaque changement, via parseActivityDurationMinutes() déjà existant
+   (export .ics/calendrier) pour repartir d'une durée existante en édition. */
+const activityDurationHoursSelect = document.getElementById("activityDurationHours");
+const activityDurationMinutesSelect = document.getElementById("activityDurationMinutes");
+const activityDurationHidden = document.getElementById("activityDuration");
+
+for(let h=0;h<=23;h++){
+    const opt = document.createElement("option");
+    opt.value = h;
+    opt.textContent = h;
+    activityDurationHoursSelect.appendChild(opt);
+}
+[0,15,30,45].forEach(m=>{
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = String(m).padStart(2,"0");
+    activityDurationMinutesSelect.appendChild(opt);
+});
+
+function updateActivityDurationHidden(){
+    const h = parseInt(activityDurationHoursSelect.value,10) || 0;
+    const m = parseInt(activityDurationMinutesSelect.value,10) || 0;
+    let str = "";
+    if(h && m) str = `${h}h${String(m).padStart(2,"0")}`;
+    else if(h) str = `${h}h`;
+    else if(m) str = `${m} min`;
+    activityDurationHidden.value = str;
+}
+activityDurationHoursSelect.addEventListener("change",updateActivityDurationHidden);
+activityDurationMinutesSelect.addEventListener("change",updateActivityDurationHidden);
+
+// Repeuple les selects à partir d'une durée existante SANS toucher à la
+// chaîne d'origine tant que l'utilisateur ne les a pas lui-même changés
+// (ex. "1h20" ne devient pas silencieusement "1h15" juste en rouvrant
+// l'activité en édition — seuls les selects sont arrondis au quart
+// d'heure pour l'affichage, activityDuration.value garde le texte réel).
+function setDurationSelectsFromString(durationStr){
+    const totalMinutes = parseActivityDurationMinutes(durationStr) || 0;
+    let hours = Math.floor(totalMinutes/60);
+    let minutes = Math.round((totalMinutes%60)/15)*15;
+    if(minutes===60){ minutes = 0; hours += 1; }
+    activityDurationHoursSelect.value = Math.min(hours,23);
+    activityDurationMinutesSelect.value = minutes;
+    activityDurationHidden.value = durationStr || "";
+}
+
 function fillActivityForm(activity,section){
     document.getElementById("activityName").value = activity.name || "";
     document.getElementById("activityAddress").value = activity.address || "";
@@ -1444,7 +1496,7 @@ function fillActivityForm(activity,section){
         (activity.travelTime!==null && activity.travelTime!==undefined) ? activity.travelTime : "";
     document.getElementById("activityReservationLink").value = activity.reservationLink || "";
     document.getElementById("activityTime").value = activity.time || "";
-    document.getElementById("activityDuration").value = activity.duration || "";
+    setDurationSelectsFromString(activity.duration || "");
     document.getElementById("activityNote").value = activity.note || "";
     document.getElementById("activityTags").value = (activity.tags || []).join(", ");
 }
@@ -1460,7 +1512,7 @@ function clearActivityForm(){
     document.getElementById("activityTravelTime").value="";
     document.getElementById("activityReservationLink").value="";
     document.getElementById("activityTime").value="";
-    document.getElementById("activityDuration").value="";
+    setDurationSelectsFromString("");
     document.getElementById("activityNote").value="";
     document.getElementById("activityTags").value="";
 }
@@ -9062,7 +9114,9 @@ function renderReservations(){
         const dayHeading = document.createElement("div");
         dayHeading.className = "album-day-heading";
         const dateLabel = formatDayDate(day);
+        const dayTitle = planning[day] && planning[day].title;
         let heading = `Jour ${day}`;
+        if(dayTitle) heading += ` — ${dayTitle}`;
         if(dateLabel) heading += ` — ${dateLabel}`;
 
         const headingText = document.createElement("span");
