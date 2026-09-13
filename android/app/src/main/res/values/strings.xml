@@ -16,4 +16,13 @@
     <string name="widget_schedule_empty">Aucune activité aujourd\'hui</string>
     <string name="widget_fx_empty">Ouvre le convertisseur</string>
     <string name="widget_weather_empty">Ouvre l\'appli pour charger la météo</string>
+    <!-- Noms affichés dans le sélecteur de widgets (appui long sur l'écran
+         d'accueil -> Widgets -> Tabi Go), 2026-09-13 : les 5 widgets
+         partageaient tous le nom de l'appli par défaut, impossible de les
+         distinguer sans les ajouter un par un à l'aveugle. -->
+    <string name="widget_trip_label">Compte à rebours du voyage</string>
+    <string name="widget_tricount_pill_label">Tricount</string>
+    <string name="widget_schedule_label">Programme du jour</string>
+    <string name="widget_fx_label">Taux de change rapide</string>
+    <string name="widget_weather_label">Météo du jour</string>
 </resources>

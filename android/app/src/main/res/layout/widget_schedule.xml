@@ -32,6 +32,7 @@
             android:textColor="#F3F1EC"
             android:textSize="13sp"
             android:textStyle="bold"
+            android:text="📅 Jour 5 · Kyoto"
             tools:text="📅 Jour 5 · Kyoto" />
 
         <TextView
@@ -57,6 +58,7 @@
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:minWidth="40dp"
+                android:text="09:00"
                 tools:text="09:00" />
             <TextView
                 android:id="@+id/scheduleTitle1"
@@ -68,6 +70,7 @@
                 android:textSize="11.5sp"
                 android:maxLines="1"
                 android:ellipsize="end"
+                android:text="🏛️ Temple Kinkaku-ji"
                 tools:text="🏛️ Temple Kinkaku-ji" />
         </LinearLayout>
 
@@ -85,6 +88,7 @@
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:minWidth="40dp"
+                android:text="12:30"
                 tools:text="12:30" />
             <TextView
                 android:id="@+id/scheduleTitle2"
@@ -96,6 +100,7 @@
                 android:textSize="11.5sp"
                 android:maxLines="1"
                 android:ellipsize="end"
+                android:text="🍜 Déjeuner à Nishiki"
                 tools:text="🍜 Déjeuner à Nishiki" />
         </LinearLayout>
 
@@ -113,6 +118,7 @@
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:minWidth="40dp"
+                android:text="15:00"
                 tools:text="15:00" />
             <TextView
                 android:id="@+id/scheduleTitle3"
@@ -124,6 +130,7 @@
                 android:textSize="11.5sp"
                 android:maxLines="1"
                 android:ellipsize="end"
+                android:text="🎎 Marché de Nishiki"
                 tools:text="🎎 Marché de Nishiki" />
         </LinearLayout>
 
@@ -140,6 +147,7 @@
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:minWidth="40dp"
+                android:text="19:00"
                 tools:text="19:00" />
             <TextView
                 android:id="@+id/scheduleTitle4"
@@ -151,6 +159,7 @@
                 android:textSize="11.5sp"
                 android:maxLines="1"
                 android:ellipsize="end"
+                android:text="🍶 Izakaya du soir"
                 tools:text="🍶 Izakaya du soir" />
         </LinearLayout>
 

@@ -25,6 +25,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="28sp"
+            android:text="☀️"
             tools:text="☀️" />
 
         <LinearLayout
@@ -40,6 +41,7 @@
                 android:textColor="#F0935A"
                 android:textSize="17sp"
                 android:textStyle="bold"
+                android:text="26°C"
                 tools:text="26°C" />
 
             <TextView
@@ -50,6 +52,7 @@
                 android:textSize="10.5sp"
                 android:maxLines="1"
                 android:ellipsize="end"
+                android:text="Ensoleillé · Kyoto"
                 tools:text="Ensoleillé · Kyoto" />
 
             <TextView
@@ -59,6 +62,7 @@
                 android:textColor="#D8DEE8"
                 android:textSize="9.5sp"
                 android:layout_marginTop="1dp"
+                android:text="min 19° · max 26°"
                 tools:text="min 19° · max 26°" />
 
         </LinearLayout>

@@ -30,6 +30,7 @@
             android:textSize="10.5sp"
             android:textStyle="bold"
             android:layout_marginBottom="4dp"
+            android:text="💱 Taux de change"
             tools:text="💱 Taux de change" />
 
         <TextView
@@ -39,6 +40,7 @@
             android:textColor="#F0935A"
             android:textSize="17sp"
             android:textStyle="bold"
+            android:text="1 € = 168 ¥"
             tools:text="1 € = 168 ¥" />
 
         <TextView
@@ -48,6 +50,7 @@
             android:textColor="#D8DEE8"
             android:textSize="10.5sp"
             android:layout_marginTop="3dp"
+            android:text="50 € ≈ 8 400 ¥"
             tools:text="50 € ≈ 8 400 ¥" />
 
     </LinearLayout>

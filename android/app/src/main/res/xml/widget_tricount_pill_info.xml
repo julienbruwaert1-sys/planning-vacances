@@ -6,7 +6,10 @@
      est déjà posé, sans jamais rouvrir l'appli — même minimum de 30 min
      qu'imposé par Android pour widget_info.xml. Non redimensionnable
      (resizeMode absent) : un bouton n'a pas de contenu supplémentaire à
-     révéler en l'agrandissant, contrairement à la carte compte à rebours. -->
+     révéler en l'agrandissant, contrairement à la carte compte à rebours.
+
+     previewLayout (2026-09-13, API 31+) : voir le commentaire équivalent
+     dans widget_info.xml — même raisonnement pour les 5 widgets. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="130dp"
     android:minHeight="56dp"
@@ -14,5 +17,7 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_tricount_pill"
+    android:previewLayout="@layout/widget_tricount_pill"
     android:previewImage="@mipmap/ic_launcher"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_tricount_pill_label" />

@@ -14,7 +14,18 @@
      prochaine activité), pas le cas vide. Différent du souci inverse
      rencontré avec l'ancienne mise en page (3 lignes) : une valeur trop
      généreuse pour SON contenu laissait un grand vide — ici c'est la bonne
-     taille pour CE contenu-ci. -->
+     taille pour CE contenu-ci.
+
+     previewLayout (2026-09-13, API 31+) : l'écran "Widgets" du lanceur
+     rend désormais EN DIRECT ce layout (avec ses vraies valeurs
+     android:text, ajoutées à côté de chaque tools:text existant dans
+     widget_trip.xml pour cet usage précis — remplacées comme d'habitude
+     par RemoteViews.setTextViewText() une fois le widget réellement posé,
+     donc sans aucun effet une fois en place) au lieu d'une simple icône
+     d'appli identique pour les 5 widgets — signalé par l'utilisateur,
+     impossible de distinguer les widgets entre eux dans le sélecteur.
+     previewImage reste en repli pour les appareils encore en dessous
+     d'Android 12. -->
 
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
@@ -25,6 +36,8 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_trip"
+    android:previewLayout="@layout/widget_trip"
     android:previewImage="@mipmap/ic_launcher"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_trip_label" />

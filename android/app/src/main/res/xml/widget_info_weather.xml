@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- CAPACITOR (2026-09-08) : métadonnées du widget "Météo du jour" — voir
      WeatherWidgetProvider.java. Petit format 2x2, même raisonnement que
-     widget_info_fx.xml. -->
+     widget_info_fx.xml.
+
+     previewLayout (2026-09-13, API 31+) : voir le commentaire équivalent
+     dans widget_info.xml — même raisonnement pour les 5 widgets. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="130dp"
     android:minHeight="110dp"
@@ -9,5 +12,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_weather"
+    android:previewLayout="@layout/widget_weather"
     android:previewImage="@mipmap/ic_launcher"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_weather_label" />

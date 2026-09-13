@@ -2,7 +2,10 @@
 <!-- CAPACITOR (2026-09-08) : métadonnées du widget "Programme du jour" —
      voir ScheduleWidgetProvider.java. Taille 4x2 (large), redimensionnable
      verticalement seulement (le nombre de lignes reste fixe à 4, inutile
-     d'élargir/rétrécir horizontalement). -->
+     d'élargir/rétrécir horizontalement).
+
+     previewLayout (2026-09-13, API 31+) : voir le commentaire équivalent
+     dans widget_info.xml — même raisonnement pour les 5 widgets. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="140dp"
@@ -11,6 +14,8 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_schedule"
+    android:previewLayout="@layout/widget_schedule"
     android:previewImage="@mipmap/ic_launcher"
     android:resizeMode="vertical"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_schedule_label" />

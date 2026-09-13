@@ -700,6 +700,7 @@
              res/xml/widget_info.xml). -->
         <receiver
             android:name=".TripWidgetProvider"
+            android:label="@string/widget_trip_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -713,6 +714,7 @@
              voir TricountPillWidgetProvider.java. -->
         <receiver
             android:name=".TricountPillWidgetProvider"
+            android:label="@string/widget_tricount_pill_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -728,6 +730,7 @@
              WeatherWidgetProvider.java. -->
         <receiver
             android:name=".ScheduleWidgetProvider"
+            android:label="@string/widget_schedule_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -739,6 +742,7 @@
 
         <receiver
             android:name=".FxWidgetProvider"
+            android:label="@string/widget_fx_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -750,6 +754,7 @@
 
         <receiver
             android:name=".WeatherWidgetProvider"
+            android:label="@string/widget_weather_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

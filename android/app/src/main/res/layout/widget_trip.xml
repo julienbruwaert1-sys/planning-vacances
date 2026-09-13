@@ -101,6 +101,7 @@
             android:shadowRadius="6"
             android:shadowDx="0"
             android:shadowDy="0"
+            android:text="Japon"
             tools:text="Japon" />
 
         <!-- Barre lumineuse (mockup "N2"), thème Néon uniquement — voir
@@ -134,6 +135,7 @@
             android:shadowRadius="9"
             android:shadowDx="0"
             android:shadowDy="0"
+            android:text="9"
             tools:text="9" />
 
         <TextView
@@ -150,6 +152,7 @@
             android:shadowRadius="6"
             android:shadowDx="0"
             android:shadowDy="0"
+            android:text="jours avant le départ"
             tools:text="jours avant le départ" />
 
         <TextView
@@ -166,6 +169,7 @@
             android:shadowRadius="6"
             android:shadowDx="0"
             android:shadowDy="0"
+            android:text="09:00 · Visite du musée"
             tools:text="09:00 · Visite du musée" />
 
     </LinearLayout>
