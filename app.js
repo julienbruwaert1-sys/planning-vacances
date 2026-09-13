@@ -5903,7 +5903,11 @@ unitConverterToggle.addEventListener("click",()=>{
    (photographe + Pexels) affichée en permanence sur la bannière. */
 const PEXELS_API_KEY = "1049UcqQ1cc6OQO8dyVOAHIx39bbzcyBU1XzGQEUukSsAs1wYXLhmE8L";
 const PEXELS_ENDPOINT = "https://api.pexels.com/v1/search";
-const PEXELS_PHOTO_CACHE_KEY = "destinationPhotoCache";
+// V2 (2026-09-13) : nouvelle clé pour forcer un nouveau fetch après le
+// passage aux mots-clés par pays ci-dessous — sinon une photo déjà mise
+// en cache sous l'ancienne requête générique resterait affichée jusqu'à
+// 7 jours (PEXELS_PHOTO_TTL_MS) avant de se corriger toute seule.
+const PEXELS_PHOTO_CACHE_KEY = "destinationPhotoCacheV2";
 const PEXELS_PHOTO_TTL_MS = 7*24*60*60*1000;
 const PEXELS_PHOTO_ENABLED_KEY = "pexelsPhotoEnabled";
 
@@ -5918,6 +5922,50 @@ let pexelsPhotoEnabled = localStorage.getItem(PEXELS_PHOTO_ENABLED_KEY)!==null
     : true;
 let destinationPhotoLoadedFor = null;
 let destinationPhotoSessionId = 0;
+
+/* Mot-clé par pays (2026-09-13, mockup validé) : remplace l'ancienne
+   requête générique "[Pays] landscape", qui ratait souvent le monument le
+   plus reconnaissable (retombait sur un paysage/une ville quelconque) —
+   ou pire, tombait carrément sur le mauvais sujet ("Turkey landscape"
+   renvoyait des dindes sauvages, l'animal, pas le pays). Vérifié en
+   direct pour les 34 pays avant adoption (recherche réelle Pexels,
+   comparaison avant/après) plutôt que deviné. */
+const COUNTRY_PHOTO_QUERIES = {
+    france:"Eiffel Tower Paris",
+    usa:"Statue of Liberty New York",
+    uk:"Big Ben London",
+    egypt:"Pyramids Giza Egypt",
+    japan:"Mount Fuji Japan",
+    thailand:"Wat Arun Bangkok temple",
+    germany:"Brandenburg Gate Berlin",
+    australia:"Sydney Opera House",
+    austria:"Hallstatt Austria",
+    belgium:"Grand Place Brussels",
+    brazil:"Christ the Redeemer Rio",
+    canada:"Niagara Falls Canada",
+    chile:"Torres del Paine Chile",
+    china:"Great Wall of China",
+    southkorea:"Gyeongbokgung Palace Seoul",
+    croatia:"Dubrovnik old town",
+    denmark:"Nyhavn Copenhagen",
+    spain:"Sagrada Familia Barcelona",
+    finland:"Helsinki Cathedral",
+    greece:"Santorini Greece",
+    hungary:"Budapest Parliament",
+    india:"Taj Mahal India",
+    iceland:"Reynisfjara Iceland",
+    italy:"Colosseum Rome",
+    nepal:"Kathmandu temple Nepal",
+    norway:"Geirangerfjord Norway",
+    netherlands:"Amsterdam canals",
+    portugal:"Belem Tower Lisbon",
+    czechrepublic:"Charles Bridge Prague",
+    romania:"Bran Castle Romania",
+    singapore:"Marina Bay Sands Singapore",
+    sweden:"Gamla Stan Stockholm",
+    switzerland:"Matterhorn Switzerland",
+    turkey:"Hagia Sophia Istanbul"
+};
 
 function applyDestinationPhoto(data){
     destinationPhotoImg.src = data.src;
@@ -5935,7 +5983,8 @@ async function loadDestinationPhoto(countryKey){
     }
 
     try{
-        const query = (COUNTRIES[countryKey] ? COUNTRIES[countryKey].en : countryKey)+" landscape";
+        const query = COUNTRY_PHOTO_QUERIES[countryKey]
+            || (COUNTRIES[countryKey] ? COUNTRIES[countryKey].en : countryKey)+" landscape";
         const url = `${PEXELS_ENDPOINT}?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
         const response = await fetchWithTimeout(url,10000,{headers:{Authorization:PEXELS_API_KEY}});
         if(!response.ok) throw new Error("Pexels : réponse HTTP "+response.status);
