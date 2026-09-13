@@ -4805,6 +4805,7 @@ const COUNTRIES = {
     portugal:{fr:"Portugal",en:"Portugal"},
     czechrepublic:{fr:"République tchèque",en:"Czech Republic"},
     romania:{fr:"Roumanie",en:"Romania"},
+    uk:{fr:"Royaume-Uni",en:"United Kingdom"},
     singapore:{fr:"Singapour",en:"Singapore"},
     sweden:{fr:"Suède",en:"Sweden"},
     switzerland:{fr:"Suisse",en:"Switzerland"},
@@ -4844,6 +4845,7 @@ const APP_ICONS = {
     portugal:{label:"🇵🇹 Portugal",icon192:"icons/icon-192-portugal.png",icon512:"icons/icon-512-portugal.png"},
     czechrepublic:{label:"🇨🇿 République tchèque",icon192:"icons/icon-192-czechrepublic.png",icon512:"icons/icon-512-czechrepublic.png"},
     romania:{label:"🇷🇴 Roumanie",icon192:"icons/icon-192-romania.png",icon512:"icons/icon-512-romania.png"},
+    uk:{label:"🇬🇧 Royaume-Uni",icon192:"icons/icon-192-uk.png",icon512:"icons/icon-512-uk.png"},
     singapore:{label:"🇸🇬 Singapour",icon192:"icons/icon-192-singapore.png",icon512:"icons/icon-512-singapore.png"},
     sweden:{label:"🇸🇪 Suède",icon192:"icons/icon-192-sweden.png",icon512:"icons/icon-512-sweden.png"},
     switzerland:{label:"🇨🇭 Suisse",icon192:"icons/icon-192-switzerland.png",icon512:"icons/icon-512-switzerland.png"},
@@ -4859,7 +4861,7 @@ const COUNTRY_CURRENCIES = {
     egypt:"EGP", spain:"EUR", usa:"USD", finland:"EUR", france:"EUR",
     greece:"EUR", hungary:"HUF", india:"INR", iceland:"ISK", italy:"EUR",
     japan:"JPY", nepal:"NPR", norway:"NOK", netherlands:"EUR", portugal:"EUR",
-    czechrepublic:"CZK", romania:"RON", singapore:"SGD", sweden:"SEK",
+    czechrepublic:"CZK", romania:"RON", uk:"GBP", singapore:"SGD", sweden:"SEK",
     switzerland:"CHF", thailand:"THB", turkey:"TRY"
 };
 
@@ -4955,6 +4957,7 @@ const EMERGENCY_NUMBERS = {
     portugal:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
     czechrepublic:[{icon:"🚓",label:"Police",number:"158"},{icon:"🚒",label:"Pompiers",number:"150"},{icon:"🚑",label:"Ambulance",number:"155"}],
     romania:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
+    uk:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"999"}],
     singapore:[{icon:"🚓",label:"Police",number:"999"},{icon:"🚑",label:"Pompiers / Ambulance",number:"995"}],
     sweden:[{icon:"🚨",label:"Police / Pompiers / Ambulance",number:"112"}],
     switzerland:[{icon:"🚓",label:"Police",number:"117"},{icon:"🚒",label:"Pompiers",number:"118"},{icon:"🚑",label:"Ambulance",number:"144"}],
@@ -4965,7 +4968,7 @@ const EMERGENCY_NUMBERS = {
 const EUROPEAN_112_HINT_COUNTRIES = new Set([
     "germany","austria","belgium","croatia","denmark","spain","finland","france",
     "greece","hungary","iceland","italy","norway","netherlands","portugal",
-    "czechrepublic","romania","sweden","switzerland","turkey"
+    "czechrepublic","romania","sweden","switzerland","turkey","uk"
 ]);
 
 const emergencyCountrySelect = document.getElementById("emergencyCountrySelect");
@@ -9184,7 +9187,7 @@ const COUNTRY_ISO_CODES = {
     egypt:"eg", spain:"es", usa:"us", finland:"fi", france:"fr",
     greece:"gr", hungary:"hu", india:"in", iceland:"is", italy:"it",
     japan:"jp", nepal:"np", norway:"no", netherlands:"nl", portugal:"pt",
-    czechrepublic:"cz", romania:"ro", singapore:"sg", sweden:"se",
+    czechrepublic:"cz", romania:"ro", uk:"gb", singapore:"sg", sweden:"se",
     switzerland:"ch", thailand:"th", turkey:"tr"
 };
 
@@ -9492,6 +9495,7 @@ const COUNTRY_BBOXES = {
     portugal:{south:36.8,north:42.2,west:-9.6,east:-6.1},
     czechrepublic:{south:48.5,north:51.1,west:12.0,east:18.9},
     romania:{south:43.6,north:48.3,west:20.2,east:29.7},
+    uk:{south:49.8,north:60.9,west:-8.65,east:1.8},
     singapore:{south:1.15,north:1.48,west:103.6,east:104.1},
     sweden:{south:55.3,north:69.1,west:10.9,east:24.2},
     switzerland:{south:45.8,north:47.9,west:5.9,east:10.6},

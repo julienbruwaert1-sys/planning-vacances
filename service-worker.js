@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v357";
+const CACHE_NAME = "planning-v358";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -69,6 +69,8 @@ const APP_SHELL = [
     "./icons/icon-512-czechrepublic.png",
     "./icons/icon-192-romania.png",
     "./icons/icon-512-romania.png",
+    "./icons/icon-192-uk.png",
+    "./icons/icon-512-uk.png",
     "./icons/icon-192-sweden.png",
     "./icons/icon-512-sweden.png",
     "./icons/icon-192-singapore.png",
