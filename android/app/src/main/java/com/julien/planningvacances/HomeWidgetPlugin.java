@@ -42,6 +42,12 @@ public class HomeWidgetPlugin extends Plugin {
     public static final String KEY_SCHEDULE_JSON = "scheduleJson";
     public static final String KEY_FX_TEXT = "fxText";
     public static final String KEY_FX_SUB = "fxSub";
+    public static final String KEY_FX_RATE = "fxRate";          // 1 FROM = fxRate TO (texte, ex. "436.12")
+    public static final String KEY_FX_FROM = "fxFrom";          // symbole, ex. "£"
+    public static final String KEY_FX_TO = "fxTo";              // symbole, ex. "Ft"
+    public static final String KEY_FX_FROM_CODE = "fxFromCode"; // ex. "GBP"
+    public static final String KEY_FX_TO_CODE = "fxToCode";     // ex. "HUF"
+    public static final String KEY_FX_RATE_AT = "fxRateAt";     // date du taux (ms)
     public static final String KEY_WEATHER_ICON = "weatherIcon";
     public static final String KEY_WEATHER_TEMP = "weatherTemp";
     public static final String KEY_WEATHER_DESC = "weatherDesc";
@@ -64,6 +70,17 @@ public class HomeWidgetPlugin extends Plugin {
         editor.putString(KEY_SCHEDULE_JSON, call.getString(KEY_SCHEDULE_JSON, "[]"));
         editor.putString(KEY_FX_TEXT, call.getString(KEY_FX_TEXT, ""));
         editor.putString(KEY_FX_SUB, call.getString(KEY_FX_SUB, ""));
+        // Clavier du widget convertisseur (2026-11-08) : dernier taux connu GARDÉ si l'appli n'en a pas
+        // (pas encore de conversion cette session) — le widget affiche alors la date de ce taux.
+        String fxRate = call.getString(KEY_FX_RATE, "");
+        if (fxRate != null && !fxRate.isEmpty()) {
+            editor.putString(KEY_FX_RATE, fxRate);
+            editor.putString(KEY_FX_FROM, call.getString(KEY_FX_FROM, ""));
+            editor.putString(KEY_FX_TO, call.getString(KEY_FX_TO, ""));
+            editor.putString(KEY_FX_FROM_CODE, call.getString(KEY_FX_FROM_CODE, ""));
+            editor.putString(KEY_FX_TO_CODE, call.getString(KEY_FX_TO_CODE, ""));
+            editor.putLong(KEY_FX_RATE_AT, System.currentTimeMillis());
+        }
         editor.putString(KEY_WEATHER_ICON, call.getString(KEY_WEATHER_ICON, ""));
         editor.putString(KEY_WEATHER_TEMP, call.getString(KEY_WEATHER_TEMP, ""));
         editor.putString(KEY_WEATHER_DESC, call.getString(KEY_WEATHER_DESC, ""));

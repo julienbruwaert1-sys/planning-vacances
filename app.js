@@ -4013,9 +4013,14 @@ function updateHomeWidgetData(){
         // été faite cette session.
         let fxText = "";
         let fxSub = "";
+        /* 2026-11-08 : taux brut + devises pour le clavier du widget (calcul
+           natif de la saisie, sans ouvrir l'appli — FxWidgetProvider). */
+        let fxRate = "", fxFrom = "", fxTo = "", fxFromCode = "", fxToCode = "";
         if(typeof currentRate==="number" && currentRate && CURRENCIES[baseCurrency] && CURRENCIES[targetCurrency]){
             const baseSym = CURRENCIES[baseCurrency].symbol;
             const targetSym = CURRENCIES[targetCurrency].symbol;
+            fxRate = String(currentRate); fxFrom = baseSym; fxTo = targetSym;
+            fxFromCode = baseCurrency; fxToCode = targetCurrency;
             const rateDecimals = currentRate>=10 ? 0 : 2;
             const fxOpts = {minimumFractionDigits:rateDecimals,maximumFractionDigits:rateDecimals};
             fxText = `1 ${baseSym} = ${currentRate.toLocaleString("fr-FR",fxOpts)} ${targetSym}`;
@@ -4058,6 +4063,7 @@ function updateHomeWidgetData(){
                 scheduleJson: JSON.stringify(todaySchedule),
                 fxText,
                 fxSub,
+                fxRate, fxFrom, fxTo, fxFromCode, fxToCode,
                 weatherIcon: widgetWeatherIcon,
                 weatherTemp: widgetWeatherTemp,
                 weatherDesc: widgetWeatherDesc,

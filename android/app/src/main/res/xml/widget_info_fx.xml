@@ -5,14 +5,18 @@
 
      previewLayout (2026-09-13, API 31+) : voir le commentaire équivalent
      dans widget_info.xml — même raisonnement pour les 5 widgets. -->
+<!-- 2026-11-08 : redimensionnable ; 2x3 par défaut pour le clavier (widget_fx_keypad), petit = affichage seul (widget_fx). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="130dp"
     android:minHeight="110dp"
     android:targetCellWidth="2"
-    android:targetCellHeight="2"
+    android:targetCellHeight="3"
+    android:resizeMode="horizontal|vertical"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="90dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_fx"
-    android:previewLayout="@layout/widget_fx"
+    android:previewLayout="@layout/widget_fx_keypad"
     android:previewImage="@mipmap/ic_launcher"
     android:widgetCategory="home_screen"
     android:description="@string/widget_fx_label" />
