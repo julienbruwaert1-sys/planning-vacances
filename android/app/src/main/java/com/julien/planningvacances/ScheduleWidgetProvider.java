@@ -104,7 +104,6 @@ public class ScheduleWidgetProvider extends AppWidgetProvider {
 
         // Voir le commentaire équivalent dans TripWidgetProvider : force une
         // ré-inflation complète plutôt qu'un simple "reapply" en cache.
-        appWidgetManager.updateAppWidget(appWidgetId, null);
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        WidgetRefresh.push(appWidgetManager, appWidgetId, views);
     }
 }

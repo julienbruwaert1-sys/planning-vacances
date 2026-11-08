@@ -2,6 +2,7 @@ package com.julien.planningvacances;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -70,15 +71,32 @@ public class HomeWidgetPlugin extends Plugin {
 
         editor.apply();
 
-        TripWidgetProvider.updateAllWidgets(context);
+        // Garde-fou (2026-11-08) : chaque widget est rafraîchi isolément.
+        // Une exception non rattrapée ici (thread CapacitorPlugins) ferme
+        // TOUTE l'appli — c'est exactement ce qui s'est produit après la
+        // mise à jour Android 17 (voir WidgetRefresh.java). Un widget qui
+        // échoue ne doit jamais empêcher les autres ni l'appli de tourner ;
+        // les données sont de toute façon déjà enregistrées ci-dessus.
+        boolean allOk = true;
+        allOk &= refreshSafely("Trip", () -> TripWidgetProvider.updateAllWidgets(context));
         // Le bouton Tricount ne montre que la couleur du thème (pas de
         // donnée de voyage), mais doit quand même suivre un changement de
         // thème fait pendant qu'il est déjà posé sur l'écran d'accueil.
-        TricountPillWidgetProvider.updateAllWidgets(context);
-        ScheduleWidgetProvider.updateAllWidgets(context);
-        FxWidgetProvider.updateAllWidgets(context);
-        WeatherWidgetProvider.updateAllWidgets(context);
+        allOk &= refreshSafely("TricountPill", () -> TricountPillWidgetProvider.updateAllWidgets(context));
+        allOk &= refreshSafely("Schedule", () -> ScheduleWidgetProvider.updateAllWidgets(context));
+        allOk &= refreshSafely("Fx", () -> FxWidgetProvider.updateAllWidgets(context));
+        allOk &= refreshSafely("Weather", () -> WeatherWidgetProvider.updateAllWidgets(context));
 
-        call.resolve(new JSObject().put("value", true));
+        call.resolve(new JSObject().put("value", allOk));
+    }
+
+    private static boolean refreshSafely(String name, Runnable refresh) {
+        try {
+            refresh.run();
+            return true;
+        } catch (RuntimeException e) {
+            Log.e("TabiGoWidget", "Rafraîchissement du widget " + name + " impossible", e);
+            return false;
+        }
     }
 }

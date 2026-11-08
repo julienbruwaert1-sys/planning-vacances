@@ -140,8 +140,8 @@ public class TripWidgetProvider extends AppWidgetProvider {
         // d'appli. Passer par null casse ce cache et force une inflation
         // complète à chaque fois, seule façon fiable de garantir que le
         // widget reflète toujours le layout réellement empaqueté.
-        appWidgetManager.updateAppWidget(appWidgetId, null);
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        // Depuis Android 17 l'appel null plante : voir WidgetRefresh.java.
+        WidgetRefresh.push(appWidgetManager, appWidgetId, views);
     }
 
     /* Bordure décorative "M4" (voir la comparaison de mockups) — choisie

@@ -61,7 +61,6 @@ public class FxWidgetProvider extends AppWidgetProvider {
         );
         views.setOnClickPendingIntent(R.id.fxRoot, pendingIntent);
 
-        appWidgetManager.updateAppWidget(appWidgetId, null);
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        WidgetRefresh.push(appWidgetManager, appWidgetId, views);
     }
 }

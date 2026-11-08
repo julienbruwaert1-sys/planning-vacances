@@ -62,7 +62,6 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         );
         views.setOnClickPendingIntent(R.id.weatherRoot, pendingIntent);
 
-        appWidgetManager.updateAppWidget(appWidgetId, null);
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        WidgetRefresh.push(appWidgetManager, appWidgetId, views);
     }
 }
