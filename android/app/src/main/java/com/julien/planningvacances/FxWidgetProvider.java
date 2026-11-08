@@ -105,9 +105,10 @@ public class FxWidgetProvider extends AppWidgetProvider {
 
     private static String fmt(double v) {
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.FRANCE);
-        int dec = Math.abs(v) >= 100 ? 0 : 2;
-        nf.setMinimumFractionDigits(dec);
-        nf.setMaximumFractionDigits(dec);
+        double a = Math.abs(v);
+        // >= 100 : entier ; >= 1 : 2 décimales ; < 1 : jusqu'à 4 (1 Ft = 0,0023 £, pas 0,00 £)
+        nf.setMinimumFractionDigits(a >= 100 ? 0 : 2);
+        nf.setMaximumFractionDigits(a >= 100 ? 0 : a >= 1 || a == 0 ? 2 : 4);
         return nf.format(v);
     }
 
