@@ -24,6 +24,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(HomeWidgetPlugin.class);
+        registerPlugin(NasExportPlugin.class);   // 2026-11-08 : photos et documents du voyage -> NAS perso (voir NasExportPlugin)
         super.onCreate(savedInstanceState);
     }
 }

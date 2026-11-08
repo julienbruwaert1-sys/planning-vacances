@@ -10336,9 +10336,50 @@ async function addDayPhoto(day,activityId,blob){
     return new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
         tx.objectStore(PHOTO_STORE_NAME).add({day,activityId:activityId||null,tripId:currentTripId,blob,timestamp:Date.now()});
-        tx.oncomplete = ()=>resolve();
+        tx.oncomplete = ()=>{ resolve(); sendToNas(blob, `Jour ${day} - ${nasStamp()}${nasExt(blob)}`, "Photos"); };
         tx.onerror = ()=>reject(tx.error);
     });
+}
+
+/* ===== NAS perso de Julien (2026-11-08) =====
+   Chaque photo de journée, document d'activité (📎) et reçu Tricount est AUSSI
+   envoyé sur son NAS, dans Voyages/<nom du voyage>/<Photos|Documents|Reçus>,
+   via l'appli « NAS » (fr.julien.nas) du même téléphone : plugin natif
+   NasExport (android/.../NasExportPlugin.java). L'appli NAS met le fichier en
+   file d'attente et l'envoie dès que le NAS répond (Tailscale en voyage).
+   - Seulement dans l'appli Android ET si l'appli NAS est installée : sur un
+     autre téléphone (Darling) ou dans le navigateur, rien ne se passe.
+   - Toujours fire-and-forget et silencieux : la sauvegarde locale ne dépend
+     jamais du NAS ; un échec est seulement journalisé.
+   - Désactivable : localStorage "nasExport" = "off".
+   - Pas une donnée de voyage (ne concerne ni la synchro Firebase, ni
+     l'archive/restauration, ni la remise à zéro d'un nouveau voyage). */
+let nasExportAvailable = null;   // null = pas encore vérifié
+function nasStamp(){
+    const d = new Date(), p = n=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+}
+function nasExt(blob){
+    const t = (blob && blob.type) || "";
+    return t.includes("png") ? ".png" : t.includes("webp") ? ".webp" : t.includes("heic") ? ".heic"
+         : t.includes("pdf") ? ".pdf" : t.startsWith("video/") ? ".mp4" : ".jpg";
+}
+async function sendToNas(blob, fileName, sub){
+    try{
+        if(!isNativeApp() || !blob) return;
+        if(localStorage.getItem("nasExport")==="off") return;
+        const plugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NasExport;
+        if(!plugin) return;                                   // APK plus ancien que le plugin
+        if(nasExportAvailable===null){
+            nasExportAvailable = !!(await plugin.disponible()).disponible;
+        }
+        if(!nasExportAvailable) return;
+        const voyage = (tripName || "").trim() || "Mon voyage";
+        const data = await blobToDataUrl(blob);
+        await plugin.envoyer({data, nom:fileName, dossier:`Voyages/${voyage}/${sub}`});
+    }catch(err){
+        console.warn("Envoi au NAS impossible :", err);
+    }
 }
 
 async function getDayPhotos(day){
@@ -10435,7 +10476,7 @@ async function addExpensePhoto(expenseId,blob){
     return new Promise((resolve,reject)=>{
         const tx = db.transaction(PHOTO_STORE_NAME,"readwrite");
         tx.objectStore(PHOTO_STORE_NAME).add({day:null,activityId:null,expenseId,tripId:currentTripId,blob,timestamp:Date.now()});
-        tx.oncomplete = ()=>resolve();
+        tx.oncomplete = ()=>{ resolve(); sendToNas(blob, `Reçu - ${nasStamp()}${nasExt(blob)}`, "Reçus"); };
         tx.onerror = ()=>reject(tx.error);
     });
 }
@@ -10526,6 +10567,10 @@ async function addActivityAttachment(day,activityId,file){
         tx.onerror = ()=>reject(tx.error);
     });
     record.id = localId;
+
+    /* NAS perso (2026-11-08) : AVANT le contrôle de taille du cloud — le NAS
+       n'a pas la limite de 20 Mo de Firebase. Fire-and-forget, silencieux. */
+    sendToNas(file, file.name || "document", "Documents");
 
     if(file.size > ATTACHMENT_MAX_UPLOAD_BYTES){
         showToast(
