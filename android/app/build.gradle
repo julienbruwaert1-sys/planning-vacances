@@ -10,6 +10,8 @@ android {
         versionCode 5
         versionName "1.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Galaxy S24 = arm64 seulement : pas de code natif x86 / armeabi-v7a (ML Kit pesait ~90 Mo pour rien)
+        ndk { abiFilters 'arm64-v8a' }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -17,9 +19,13 @@ android {
         }
     }
     buildTypes {
+        // Version publiee = release optimisee (R8 + ressources inutiles retirees), signee avec la meme cle debug
+        // que les versions deja installees (sinon pas de mise a jour possible).
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
 }

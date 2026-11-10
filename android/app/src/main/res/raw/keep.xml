@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ressources chargees par leur nom (depuis le JavaScript ou getIdentifier) : ne pas les retirer en release -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/*,@mipmap/*,@raw/*,@layout/*,@xml/*" />
