@@ -3717,7 +3717,11 @@ function buildPlanningEventList(){
                     end,
                     location: activity.address || "",
                     url: activity.reservationLink || "",
-                    description: activity.note || ""
+                    description: activity.note || "",
+                    // 2026-11-13 : pour la montre (buildWatchPayload) — nom sans icône, type, jour
+                    name: activity.name || "",
+                    type: activity.type || "",
+                    day
                 });
             });
         });
@@ -4067,13 +4071,49 @@ function updateHomeWidgetData(){
                 weatherIcon: widgetWeatherIcon,
                 weatherTemp: widgetWeatherTemp,
                 weatherDesc: widgetWeatherDesc,
-                weatherMinMax: widgetWeatherMinMax
+                weatherMinMax: widgetWeatherMinMax,
+                // 2026-11-13 : programme complet pour l'appli Tabi Go de la montre (Galaxy Watch),
+                // relayé par HomeWidgetPlugin -> WearSync (Data Layer Wear OS). Ignoré par un APK plus ancien.
+                watchJson: buildWatchPayload()
             }).catch(err=>{
                 console.error("Widget natif : mise à jour impossible :",err);
             });
         }
     }catch(err){
         console.error("Mise à jour des données du widget impossible :",err);
+    }
+}
+
+/* --- Montre Galaxy Watch (2026-11-13) ---
+   Tout le programme du voyage (pas seulement aujourd'hui comme les widgets),
+   pour que la montre affiche le prochain rendez-vous, le programme du jour,
+   la boussole "Retour à l'hôtel" (activités de type Logement) et vibre
+   15 min avant chaque départ — même sans réseau. Les coordonnées viennent du
+   cache de géocodage déjà rempli par la carte (rien de nouveau à télécharger).
+   Le taux de change est ajouté côté natif (dernier taux gardé par le widget). */
+function buildWatchPayload(){
+    try{
+        if(!startDate || !dayCount) return "";
+        const cache = loadGeocodeCache();
+        const events = buildPlanningEventList()
+            .sort((a,b)=>a.start-b.start)
+            .slice(0,400)
+            .map(e=>{
+                const c = e.location ? cache[e.location] : null;
+                return {
+                    s: e.start.getTime(), e: e.end.getTime(), d: e.day || 0,
+                    n: e.name || e.title, t: e.type || "", a: e.location || "",
+                    la: c ? c.lat : null, lo: c ? c.lon : null
+                };
+            });
+        const dayTitles = {};
+        for(let i=1;i<=dayCount;i++){
+            if(planning[i] && planning[i].title) dayTitles[i] = planning[i].title;
+        }
+        return JSON.stringify({v:1, tripName: tripName || "", country: tripCountry || "", startDate, dayCount, dayTitles, events});
+    }catch(err){
+        console.error("Données pour la montre indisponibles :",err);
+        return "";
     }
 }
 

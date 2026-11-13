@@ -88,6 +88,9 @@ public class HomeWidgetPlugin extends Plugin {
 
         editor.apply();
 
+        // 2026-11-13 : tout le programme vers la montre (Galaxy Watch), voir WearSync.java
+        WearSync.push(context, call.getString("watchJson", ""), context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE));
+
         // Garde-fou (2026-11-08) : chaque widget est rafraîchi isolément.
         // Une exception non rattrapée ici (thread CapacitorPlugins) ferme
         // TOUTE l'appli — c'est exactement ce qui s'est produit après la
