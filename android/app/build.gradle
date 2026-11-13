@@ -7,8 +7,8 @@ android {
         applicationId "com.julien.planningvacances"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6
-        versionName "1.5"
+        versionCode 7
+        versionName "1.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // Galaxy S24 = arm64 seulement : pas de code natif x86 / armeabi-v7a (ML Kit pesait ~90 Mo pour rien)
         ndk { abiFilters 'arm64-v8a' }
