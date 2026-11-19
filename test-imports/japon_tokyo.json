@@ -1,0 +1,371 @@
+{
+  "version": 2,
+  "exportedAt": "2026-09-02T10:00:00.000Z",
+  "tripName": "Tokyo",
+  "tripCountry": "japan",
+  "dayCount": 7,
+  "startDate": "2026-11-10",
+  "baseCurrency": "EUR",
+  "targetCurrency": "JPY",
+  "tripTimezone": "",
+  "planning": {
+    "1": {
+      "title": "Arrivée",
+      "matin": [],
+      "midi": [
+        {
+          "id": "tokyo-hotel",
+          "name": "Hôtel Shinjuku Granbell",
+          "type": "Logement",
+          "address": "2-14-5 Kabukicho, Shinjuku, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "14:00",
+          "duration": "",
+          "note": "Check-in à partir de 14h, bagagerie disponible avant si besoin.",
+          "reservationLink": "https://www.granbellhotel.jp/shinjuku/"
+        }
+      ],
+      "apresMidi": [
+        {
+          "id": "tokyo-shibuya",
+          "name": "Shibuya Crossing",
+          "type": "Incontournable",
+          "address": "Shibuya, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 25,
+          "tags": ["à ne pas rater"],
+          "time": "17:00",
+          "duration": "1h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": [
+        {
+          "id": "tokyo-ramen1",
+          "name": "Ramen Ichiran Shinjuku",
+          "type": "Restaurant",
+          "address": "Shinjuku, Tokyo",
+          "price": 1200,
+          "priceCurrency": "JPY",
+          "travelTime": null,
+          "tags": [],
+          "time": "19:30",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "2": {
+      "title": "",
+      "matin": [
+        {
+          "id": "tokyo-sensoji",
+          "name": "Temple Senso-ji",
+          "type": "Visite",
+          "address": "2-3-1 Asakusa, Taito, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 40,
+          "tags": ["à ne pas rater"],
+          "time": "09:00",
+          "duration": "2h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [
+        {
+          "id": "tokyo-repas2",
+          "name": "Déjeuner à Asakusa",
+          "type": "Restaurant",
+          "address": "Asakusa, Tokyo",
+          "price": 2500,
+          "priceCurrency": "JPY",
+          "travelTime": null,
+          "tags": [],
+          "time": "12:30",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [
+        {
+          "id": "tokyo-skytree",
+          "name": "Tokyo Skytree",
+          "type": "Incontournable",
+          "address": "1-1-2 Oshiage, Sumida, Tokyo",
+          "price": 2100,
+          "priceCurrency": "JPY",
+          "travelTime": 15,
+          "tags": [],
+          "time": "15:30",
+          "duration": "1h30",
+          "note": "",
+          "reservationLink": "https://www.tokyo-skytree.jp"
+        }
+      ],
+      "soir": []
+    },
+    "3": {
+      "title": "",
+      "matin": [
+        {
+          "id": "tokyo-teamlab",
+          "name": "teamLab Planets",
+          "type": "Spectacle",
+          "address": "6-1-16 Toyosu, Koto, Tokyo",
+          "price": 3800,
+          "priceCurrency": "JPY",
+          "travelTime": 30,
+          "tags": ["réservé"],
+          "time": "10:00",
+          "duration": "2h",
+          "note": "Billet daté et horodaté, à imprimer ou présenter sur le téléphone.",
+          "reservationLink": "https://www.teamlab.art/e/planets/"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "tokyo-tsukiji",
+          "name": "Marché de Tsukiji",
+          "type": "Pépite locale",
+          "address": "Tsukiji, Chuo, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 20,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": [
+        {
+          "id": "tokyo-sushi",
+          "name": "Sushi Dai",
+          "type": "Restaurant",
+          "address": "Tsukiji, Chuo, Tokyo",
+          "price": 6000,
+          "priceCurrency": "JPY",
+          "travelTime": null,
+          "tags": ["à ne pas rater"],
+          "time": "19:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "4": {
+      "title": "",
+      "matin": [
+        {
+          "id": "tokyo-meiji",
+          "name": "Sanctuaire Meiji",
+          "type": "Visite",
+          "address": "1-1 Yoyogikamizonocho, Shibuya, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "09:00",
+          "duration": "1h30",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "tokyo-akihabara",
+          "name": "Akihabara",
+          "type": "Shopping",
+          "address": "Akihabara, Chiyoda, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 30,
+          "tags": [],
+          "time": "14:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "5": {
+      "title": "Excursion Hakone",
+      "matin": [
+        {
+          "id": "tokyo-hakone",
+          "name": "Excursion Hakone",
+          "type": "Randonnée",
+          "address": "Hakone, Kanagawa",
+          "price": 5500,
+          "priceCurrency": "JPY",
+          "travelTime": 90,
+          "tags": ["réservé"],
+          "time": "08:00",
+          "duration": "Journée",
+          "note": "Pass Hakone Free Pass acheté à la gare de Shinjuku.",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": [
+        {
+          "id": "tokyo-repas5",
+          "name": "Dîner de retour à Tokyo",
+          "type": "Restaurant",
+          "address": "Shinjuku, Tokyo",
+          "price": 40,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "20:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "6": {
+      "title": "",
+      "matin": [
+        {
+          "id": "tokyo-harajuku",
+          "name": "Harajuku & Takeshita Street",
+          "type": "Shopping",
+          "address": "Harajuku, Shibuya, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "10:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "tokyo-bar",
+          "name": "Golden Gai",
+          "type": "Bar",
+          "address": "Kabukicho, Shinjuku, Tokyo",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "7": {
+      "title": "Départ",
+      "matin": [
+        {
+          "id": "tokyo-souvenirs",
+          "name": "Derniers souvenirs",
+          "type": "Shopping",
+          "address": "Gare de Tokyo",
+          "price": 3000,
+          "priceCurrency": "JPY",
+          "travelTime": null,
+          "tags": [],
+          "time": "09:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": []
+    }
+  },
+  "checklist": [],
+  "checklistTemplates": [],
+  "tricountParticipants": [
+    {"id": "p-julien", "name": "Julien"},
+    {"id": "p-alice", "name": "Alice"},
+    {"id": "p-bob", "name": "Bob"}
+  ],
+  "tricountExpenses": [
+    {
+      "id": "exp-hotel",
+      "description": "Hôtel Shinjuku (7 nuits)",
+      "amount": 98000,
+      "currency": "JPY",
+      "paidBy": "p-julien",
+      "splitBetween": ["p-julien", "p-alice", "p-bob"],
+      "activityId": "tokyo-hotel",
+      "timestamp": 1794816000000
+    },
+    {
+      "id": "exp-ramen1",
+      "description": "Ramen Ichiran Shinjuku",
+      "amount": 3600,
+      "currency": "JPY",
+      "paidBy": "p-alice",
+      "splitBetween": ["p-julien", "p-alice", "p-bob"],
+      "activityId": "tokyo-ramen1",
+      "timestamp": 1794834600000
+    },
+    {
+      "id": "exp-jrpass",
+      "description": "Pass JR / transport",
+      "amount": 15000,
+      "currency": "JPY",
+      "paidBy": "p-bob",
+      "splitBetween": ["p-julien", "p-bob"],
+      "activityId": null,
+      "timestamp": 1794902400000
+    },
+    {
+      "id": "exp-sushi",
+      "description": "Sushi Dai",
+      "amount": 18000,
+      "currency": "JPY",
+      "paidBy": "p-julien",
+      "splitBetween": ["p-julien", "p-alice", "p-bob"],
+      "activityId": "tokyo-sushi",
+      "timestamp": 1795075200000
+    },
+    {
+      "id": "exp-hakone",
+      "description": "Excursion Hakone (billets)",
+      "amount": 16500,
+      "currency": "JPY",
+      "paidBy": "p-alice",
+      "splitBetween": ["p-julien", "p-alice", "p-bob"],
+      "activityId": "tokyo-hakone",
+      "timestamp": 1795248000000
+    },
+    {
+      "id": "exp-souvenirs",
+      "description": "Souvenirs partagés",
+      "amount": 45,
+      "currency": "EUR",
+      "paidBy": "p-bob",
+      "splitBetween": ["p-alice", "p-bob"],
+      "activityId": null,
+      "timestamp": 1795593600000
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "version": 2,
+  "exportedAt": "2026-09-02T10:00:00.000Z",
+  "tripName": "Paris",
+  "tripCountry": "france",
+  "dayCount": 5,
+  "startDate": "2026-10-05",
+  "baseCurrency": "EUR",
+  "targetCurrency": "",
+  "tripTimezone": "",
+  "planning": {
+    "1": {
+      "title": "",
+      "matin": [
+        {
+          "id": "paris-louvre",
+          "name": "Musée du Louvre",
+          "type": "Musée",
+          "address": "Rue de Rivoli, 75001 Paris",
+          "price": 17,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": ["à ne pas rater"],
+          "time": "09:30",
+          "duration": "3h",
+          "note": "Réserver un créneau en ligne à l'avance, file d'attente longue sinon.",
+          "reservationLink": "https://www.billetterie-louvre.fr"
+        }
+      ],
+      "midi": [
+        {
+          "id": "paris-comptoir",
+          "name": "Le Comptoir du Relais",
+          "type": "Restaurant",
+          "address": "9 Carrefour de l'Odéon, 75006 Paris",
+          "price": 35,
+          "priceCurrency": "EUR",
+          "travelTime": 15,
+          "tags": [],
+          "time": "12:30",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [],
+      "soir": [
+        {
+          "id": "paris-airbnb",
+          "name": "Appartement Le Marais",
+          "type": "Logement",
+          "address": "12 Rue des Rosiers, 75004 Paris",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "18:00",
+          "duration": "",
+          "note": "Code de la boîte à clés envoyé par l'hôte la veille.",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "2": {
+      "title": "",
+      "matin": [
+        {
+          "id": "paris-tour-eiffel",
+          "name": "Tour Eiffel",
+          "type": "Incontournable",
+          "address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris",
+          "price": 29,
+          "priceCurrency": "EUR",
+          "travelTime": 20,
+          "tags": [],
+          "time": "10:00",
+          "duration": "2h",
+          "note": "",
+          "reservationLink": "https://www.toureiffel.paris"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "paris-champs",
+          "name": "Balade Champs-Élysées",
+          "type": "Visite",
+          "address": "Avenue des Champs-Élysées, 75008 Paris",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "3": {
+      "title": "",
+      "matin": [
+        {
+          "id": "paris-orsay",
+          "name": "Musée d'Orsay",
+          "type": "Musée",
+          "address": "1 Rue de la Légion d'Honneur, 75007 Paris",
+          "price": 16,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "09:00",
+          "duration": "2h30",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": [
+        {
+          "id": "paris-bateau",
+          "name": "Croisière sur la Seine",
+          "type": "Spectacle",
+          "address": "Port de la Bourdonnais, 75007 Paris",
+          "price": 18,
+          "priceCurrency": "EUR",
+          "travelTime": 10,
+          "tags": ["à ne pas rater"],
+          "time": "20:30",
+          "duration": "1h",
+          "note": "Prévoir une veste, il fait frais sur l'eau le soir.",
+          "reservationLink": "https://www.bateauxparisiens.com"
+        }
+      ]
+    },
+    "4": {
+      "title": "",
+      "matin": [
+        {
+          "id": "paris-montmartre",
+          "name": "Montmartre & Sacré-Cœur",
+          "type": "Visite",
+          "address": "Parvis du Sacré-Cœur, 75018 Paris",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "10:00",
+          "duration": "3h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "paris-shopping",
+          "name": "Shopping rue de Rivoli",
+          "type": "Shopping",
+          "address": "",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "5": {
+      "title": "",
+      "matin": [],
+      "midi": [
+        {
+          "id": "paris-brunch",
+          "name": "Brunch avant le départ",
+          "type": "Restaurant",
+          "address": "5 Rue des Francs-Bourgeois, 75004 Paris",
+          "price": 22,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "11:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [],
+      "soir": []
+    }
+  },
+  "checklist": [],
+  "checklistTemplates": [],
+  "tricountParticipants": [],
+  "tricountExpenses": []
+}

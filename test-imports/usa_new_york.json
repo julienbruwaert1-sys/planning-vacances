@@ -1,0 +1,387 @@
+{
+  "version": 2,
+  "exportedAt": "2026-09-02T10:00:00.000Z",
+  "tripName": "New York",
+  "tripCountry": "usa",
+  "dayCount": 10,
+  "startDate": "2026-10-26",
+  "baseCurrency": "EUR",
+  "targetCurrency": "USD",
+  "tripTimezone": "",
+  "planning": {
+    "1": {
+      "title": "Arrivée",
+      "matin": [],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "ny-checkin",
+          "name": "Arrivée & installation hôtel",
+          "type": "Logement",
+          "address": "234 W 42nd St, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 45,
+          "tags": [],
+          "time": "15:00",
+          "duration": "",
+          "note": "Vol JFK, transfert en AirTrain puis métro (E) jusqu'à Times Square.",
+          "reservationLink": ""
+        }
+      ],
+      "soir": [
+        {
+          "id": "ny-timessquare",
+          "name": "Times Square de nuit",
+          "type": "Incontournable",
+          "address": "Times Square, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 5,
+          "tags": ["à ne pas rater"],
+          "time": "20:00",
+          "duration": "1h",
+          "note": "Juste à côté de l'hôtel, premier contact avec les néons.",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "2": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-liberty",
+          "name": "Statue de la Liberté & Ellis Island",
+          "type": "Incontournable",
+          "address": "Battery Park, New York",
+          "price": 24,
+          "priceCurrency": "USD",
+          "travelTime": 35,
+          "tags": ["réservé", "à ne pas rater"],
+          "time": "09:00",
+          "duration": "4h",
+          "note": "Ferry Statue Cruises depuis Battery Park, arriver 30 min avant pour la sécurité.",
+          "reservationLink": "https://www.statuecruises.com"
+        }
+      ],
+      "midi": [
+        {
+          "id": "ny-repas2",
+          "name": "Déjeuner à Battery Park",
+          "type": "Restaurant",
+          "address": "Battery Park, New York",
+          "price": 18,
+          "priceCurrency": "USD",
+          "travelTime": null,
+          "tags": [],
+          "time": "13:30",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [
+        {
+          "id": "ny-911",
+          "name": "Mémorial du 11 septembre",
+          "type": "Visite",
+          "address": "180 Greenwich St, New York",
+          "price": 29,
+          "priceCurrency": "USD",
+          "travelTime": 15,
+          "tags": [],
+          "time": "15:30",
+          "duration": "2h",
+          "note": "Musée émouvant, prévoir un temps calme après la visite.",
+          "reservationLink": "https://www.911memorial.org"
+        }
+      ],
+      "soir": []
+    },
+    "3": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-brooklynbridge",
+          "name": "Traversée du Brooklyn Bridge",
+          "type": "Randonnée",
+          "address": "Brooklyn Bridge, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 20,
+          "tags": [],
+          "time": "09:30",
+          "duration": "1h30",
+          "note": "À pied depuis Manhattan, vue sur la skyline depuis Brooklyn.",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [
+        {
+          "id": "ny-dumbo",
+          "name": "Déjeuner à DUMBO",
+          "type": "Restaurant",
+          "address": "DUMBO, Brooklyn",
+          "price": 22,
+          "priceCurrency": "USD",
+          "travelTime": null,
+          "tags": [],
+          "time": "12:30",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [],
+      "soir": [
+        {
+          "id": "ny-broadway",
+          "name": "Spectacle Broadway",
+          "type": "Spectacle",
+          "address": "Theater District, New York",
+          "price": 145,
+          "priceCurrency": "USD",
+          "travelTime": 40,
+          "tags": ["réservé", "à ne pas rater"],
+          "time": "19:30",
+          "duration": "2h30",
+          "note": "Billets pris à l'avance en ligne, retour de Brooklyn en métro (ligne A).",
+          "reservationLink": "https://www.broadway.com"
+        }
+      ]
+    },
+    "4": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-moma",
+          "name": "MoMA",
+          "type": "Musée",
+          "address": "11 W 53rd St, New York",
+          "price": 25,
+          "priceCurrency": "USD",
+          "travelTime": 25,
+          "tags": [],
+          "time": "10:00",
+          "duration": "2h30",
+          "note": "Entrée gratuite le vendredi soir si le voyage tombe dessus.",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "ny-centralpark",
+          "name": "Central Park",
+          "type": "Randonnée",
+          "address": "Central Park, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 15,
+          "tags": [],
+          "time": "14:00",
+          "duration": "3h",
+          "note": "Location de vélo possible à l'entrée sud.",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "5": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-empirestate",
+          "name": "Empire State Building",
+          "type": "Incontournable",
+          "address": "20 W 34th St, New York",
+          "price": 44,
+          "priceCurrency": "USD",
+          "travelTime": 20,
+          "tags": ["réservé"],
+          "time": "09:00",
+          "duration": "1h30",
+          "note": "Créneau réservé à l'avance pour éviter la queue du matin.",
+          "reservationLink": "https://www.esbnyc.com"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "ny-highline",
+          "name": "The High Line",
+          "type": "Randonnée",
+          "address": "The High Line, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 30,
+          "tags": [],
+          "time": "14:30",
+          "duration": "2h",
+          "note": "Ancienne voie ferrée aérienne transformée en promenade.",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "6": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-chinatown",
+          "name": "Chinatown & Little Italy",
+          "type": "Pépite locale",
+          "address": "Chinatown, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 25,
+          "tags": [],
+          "time": "10:00",
+          "duration": "2h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [
+        {
+          "id": "ny-dimsum",
+          "name": "Dim sum à Chinatown",
+          "type": "Restaurant",
+          "address": "Chinatown, New York",
+          "price": 20,
+          "priceCurrency": "USD",
+          "travelTime": null,
+          "tags": [],
+          "time": "12:30",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [],
+      "soir": []
+    },
+    "7": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-yankees",
+          "name": "Match des Yankees",
+          "type": "Spectacle",
+          "address": "1 E 161st St, The Bronx",
+          "price": 65,
+          "priceCurrency": "USD",
+          "travelTime": 50,
+          "tags": ["réservé"],
+          "time": "13:00",
+          "duration": "3h",
+          "note": "Metro-North ligne 4 depuis Manhattan, compter 50 min de trajet.",
+          "reservationLink": "https://www.mlb.com/yankees"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": []
+    },
+    "8": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-metmuseum",
+          "name": "The Metropolitan Museum of Art",
+          "type": "Musée",
+          "address": "1000 5th Ave, New York",
+          "price": 30,
+          "priceCurrency": "USD",
+          "travelTime": 15,
+          "tags": ["à ne pas rater"],
+          "time": "09:30",
+          "duration": "3h",
+          "note": "Immense musée, prévoir de ne pas tout voir en une visite.",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "ny-shopping5th",
+          "name": "Shopping 5th Avenue",
+          "type": "Shopping",
+          "address": "5th Avenue, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 10,
+          "tags": [],
+          "time": "14:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "9": {
+      "title": "",
+      "matin": [
+        {
+          "id": "ny-williamsburg",
+          "name": "Williamsburg, Brooklyn",
+          "type": "Pépite locale",
+          "address": "Williamsburg, Brooklyn",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": 35,
+          "tags": [],
+          "time": "10:30",
+          "duration": "3h",
+          "note": "Quartier branché, marché de brunch le week-end (Smorgasburg).",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": [
+        {
+          "id": "ny-rooftop",
+          "name": "Rooftop bar avec vue",
+          "type": "Bar",
+          "address": "Midtown, New York",
+          "price": 25,
+          "priceCurrency": "USD",
+          "travelTime": 20,
+          "tags": [],
+          "time": "19:00",
+          "duration": "",
+          "note": "Dernière soirée, vue sur la skyline illuminée.",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "10": {
+      "title": "Départ",
+      "matin": [
+        {
+          "id": "ny-lastshop",
+          "name": "Derniers achats & bagages",
+          "type": "Pratique",
+          "address": "Times Square, New York",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "10:00",
+          "duration": "",
+          "note": "Checkout hôtel à 11h, vol au départ de JFK à 18h.",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": []
+    }
+  },
+  "checklist": [],
+  "checklistTemplates": [],
+  "tricountParticipants": [],
+  "tricountExpenses": []
+}

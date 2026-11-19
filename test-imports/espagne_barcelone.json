@@ -1,0 +1,195 @@
+{
+  "version": 2,
+  "exportedAt": "2026-09-02T10:00:00.000Z",
+  "tripName": "Barcelone",
+  "tripCountry": "spain",
+  "dayCount": 4,
+  "startDate": "2026-10-08",
+  "baseCurrency": "GBP",
+  "targetCurrency": "EUR",
+  "tripTimezone": "",
+  "planning": {
+    "1": {
+      "title": "",
+      "matin": [
+        {
+          "id": "bcn-sagrada",
+          "name": "Sagrada Família",
+          "type": "Musée",
+          "address": "Carrer de Mallorca, 401, Barcelona",
+          "price": 26,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": ["à ne pas rater", "réservé"],
+          "time": "09:00",
+          "duration": "2h",
+          "note": "Créneau réservé 3 semaines à l'avance, complet sinon.",
+          "reservationLink": "https://sagradafamilia.org"
+        }
+      ],
+      "midi": [
+        {
+          "id": "bcn-tapas1",
+          "name": "Tapas à El Born",
+          "type": "Restaurant",
+          "address": "El Born, Barcelona",
+          "price": 22,
+          "priceCurrency": "GBP",
+          "travelTime": 20,
+          "tags": [],
+          "time": "13:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [
+        {
+          "id": "bcn-gothic",
+          "name": "Balade dans le Gothic Quarter",
+          "type": "Visite",
+          "address": "",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "2": {
+      "title": "",
+      "matin": [
+        {
+          "id": "bcn-parkguell",
+          "name": "Park Güell",
+          "type": "Incontournable",
+          "address": "08024 Barcelona",
+          "price": 18,
+          "priceCurrency": "EUR",
+          "travelTime": 30,
+          "tags": ["réservé"],
+          "time": "10:00",
+          "duration": "1h30",
+          "note": "",
+          "reservationLink": "https://parkguell.barcelona"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "bcn-casabatllo",
+          "name": "Casa Batlló",
+          "type": "Musée",
+          "address": "Passeig de Gràcia, 43, Barcelona",
+          "price": 29,
+          "priceCurrency": "GBP",
+          "travelTime": 15,
+          "tags": [],
+          "time": "15:00",
+          "duration": "1h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": [
+        {
+          "id": "bcn-bar1",
+          "name": "Bar de nuit",
+          "type": "Bar",
+          "address": "",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "3": {
+      "title": "",
+      "matin": [
+        {
+          "id": "bcn-boqueria",
+          "name": "Marché de la Boqueria",
+          "type": "Pépite locale",
+          "address": "La Rambla, 91, Barcelona",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "10:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "bcn-plage",
+          "name": "Plage de la Barceloneta",
+          "type": "Randonnée",
+          "address": "",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": [
+        {
+          "id": "bcn-repas3",
+          "name": "Restaurant vue sur mer",
+          "type": "Restaurant",
+          "address": "Passeig Marítim, Barcelona",
+          "price": 45,
+          "priceCurrency": "EUR",
+          "travelTime": 25,
+          "tags": ["à ne pas rater"],
+          "time": "20:30",
+          "duration": "",
+          "note": "Terrasse avec vue, réserver en fin d'après-midi si possible.",
+          "reservationLink": "https://example-restaurant-bcn.com"
+        }
+      ]
+    },
+    "4": {
+      "title": "",
+      "matin": [
+        {
+          "id": "bcn-picasso",
+          "name": "Museu Picasso",
+          "type": "Musée",
+          "address": "Carrer Montcada, 15-23, Barcelona",
+          "price": 16,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "09:30",
+          "duration": "1h30",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": []
+    }
+  },
+  "checklist": [],
+  "checklistTemplates": [],
+  "tricountParticipants": [],
+  "tricountExpenses": []
+}

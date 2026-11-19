@@ -1,0 +1,266 @@
+{
+  "version": 2,
+  "exportedAt": "2026-09-02T10:00:00.000Z",
+  "tripName": "Rome & Naples",
+  "tripCountry": "italy",
+  "dayCount": 6,
+  "startDate": "2026-10-15",
+  "baseCurrency": "EUR",
+  "targetCurrency": "",
+  "tripTimezone": "",
+  "planning": {
+    "1": {
+      "title": "Rome",
+      "matin": [
+        {
+          "id": "rome-colisee",
+          "name": "Colisée",
+          "type": "Musée",
+          "address": "Piazza del Colosseo, 1, Roma",
+          "price": 18,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": ["à ne pas rater"],
+          "time": "09:00",
+          "duration": "2h",
+          "note": "Billet couplé avec le Forum romain et le Palatin.",
+          "reservationLink": "https://www.coopculture.it"
+        }
+      ],
+      "midi": [
+        {
+          "id": "rome-repas1",
+          "name": "Trattoria da Enzo",
+          "type": "Restaurant",
+          "address": "Via dei Vascellari, 29, Roma",
+          "price": 28,
+          "priceCurrency": "EUR",
+          "travelTime": 15,
+          "tags": [],
+          "time": "13:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [
+        {
+          "id": "rome-forum",
+          "name": "Forum romain",
+          "type": "Musée",
+          "address": "Via della Salara Vecchia, Roma",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "15:00",
+          "duration": "2h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "2": {
+      "title": "Rome",
+      "matin": [
+        {
+          "id": "rome-vatican",
+          "name": "Musées du Vatican & Chapelle Sixtine",
+          "type": "Musée",
+          "address": "Viale Vaticano, Roma",
+          "price": 21,
+          "priceCurrency": "EUR",
+          "travelTime": 30,
+          "tags": ["réservé", "à ne pas rater"],
+          "time": "08:30",
+          "duration": "3h",
+          "note": "Arriver 15 min avant l'horaire réservé, contrôle de sécurité.",
+          "reservationLink": "https://www.museivaticani.va"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [
+        {
+          "id": "rome-pantheon",
+          "name": "Panthéon",
+          "type": "Incontournable",
+          "address": "Piazza della Rotonda, Roma",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "15:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": [
+        {
+          "id": "rome-repas2",
+          "name": "Pizzeria ai Marmi",
+          "type": "Restaurant",
+          "address": "Viale di Trastevere, 53, Roma",
+          "price": 20,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "20:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "3": {
+      "title": "Rome",
+      "matin": [
+        {
+          "id": "rome-villa-borghese",
+          "name": "Randonnée Villa Borghese",
+          "type": "Randonnée",
+          "address": "Piazzale Napoleone I, Roma",
+          "price": null,
+          "priceCurrency": null,
+          "travelTime": null,
+          "tags": [],
+          "time": "09:00",
+          "duration": "2h",
+          "note": "Parc, prévoir de bonnes chaussures.",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": []
+    },
+    "4": {
+      "title": "Naples",
+      "matin": [
+        {
+          "id": "naples-train",
+          "name": "Trajet Rome → Naples",
+          "type": "Pratique",
+          "address": "Roma Termini",
+          "price": 35,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "08:00",
+          "duration": "1h10",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "midi": [
+        {
+          "id": "naples-pizza1",
+          "name": "Pizzeria da Michele",
+          "type": "Restaurant",
+          "address": "Via Cesare Sersale, 1, Napoli",
+          "price": 8,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": ["à ne pas rater"],
+          "time": "12:30",
+          "duration": "",
+          "note": "Souvent la queue dehors, ça vaut le coup d'attendre.",
+          "reservationLink": ""
+        }
+      ],
+      "apresMidi": [
+        {
+          "id": "naples-musee-archeo",
+          "name": "Musée archéologique national",
+          "type": "Musée",
+          "address": "Piazza Museo, 19, Napoli",
+          "price": 22,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "15:00",
+          "duration": "2h",
+          "note": "",
+          "reservationLink": ""
+        }
+      ],
+      "soir": []
+    },
+    "5": {
+      "title": "Naples",
+      "matin": [
+        {
+          "id": "naples-vesuve",
+          "name": "Randonnée sur le Vésuve",
+          "type": "Randonnée",
+          "address": "Parco Nazionale del Vesuvio",
+          "price": 12,
+          "priceCurrency": "EUR",
+          "travelTime": 60,
+          "tags": ["réservé"],
+          "time": "08:00",
+          "duration": "3h",
+          "note": "Chaussures de randonnée obligatoires, vent au sommet.",
+          "reservationLink": "https://www.vesuvioinrete.it"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": [
+        {
+          "id": "naples-repas2",
+          "name": "Dîner front de mer",
+          "type": "Restaurant",
+          "address": "Via Partenope, Napoli",
+          "price": 32,
+          "priceCurrency": "EUR",
+          "travelTime": null,
+          "tags": [],
+          "time": "20:00",
+          "duration": "",
+          "note": "",
+          "reservationLink": ""
+        }
+      ]
+    },
+    "6": {
+      "title": "Naples",
+      "matin": [
+        {
+          "id": "naples-pompei",
+          "name": "Site archéologique de Pompéi",
+          "type": "Musée",
+          "address": "Via Villa dei Misteri, 2, Pompei",
+          "price": 19,
+          "priceCurrency": "EUR",
+          "travelTime": 40,
+          "tags": ["à ne pas rater"],
+          "time": "09:00",
+          "duration": "3h",
+          "note": "",
+          "reservationLink": "https://pompeiisites.org"
+        }
+      ],
+      "midi": [],
+      "apresMidi": [],
+      "soir": []
+    }
+  },
+  "checklist": [
+    {"label": "Passeport / carte d'identité", "checked": true, "category": "Documents"},
+    {"label": "Billets d'avion", "checked": true, "category": "Documents"},
+    {"label": "Assurance voyage", "checked": false, "category": "Documents"},
+    {"label": "Réservations hôtel imprimées", "checked": false, "category": "Documents"},
+    {"label": "Valise cabine", "checked": true, "category": "Bagages"},
+    {"label": "Adaptateur de prise", "checked": false, "category": "Bagages"},
+    {"label": "Trousse de toilette", "checked": false, "category": "Bagages"},
+    {"label": "Chaussures de randonnée", "checked": false, "category": "Bagages"},
+    {"label": "Médicaments habituels", "checked": true, "category": "Santé"},
+    {"label": "Carte européenne d'assurance maladie", "checked": false, "category": "Santé"},
+    {"label": "Crème solaire", "checked": false, "category": "Santé"}
+  ],
+  "checklistTemplates": [],
+  "tricountParticipants": [],
+  "tricountExpenses": []
+}
