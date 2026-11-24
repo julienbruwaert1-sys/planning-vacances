@@ -1,4 +1,4 @@
-const CACHE_NAME = "planning-v365";
+const CACHE_NAME = "planning-v366";
 
 /* Cache des tuiles de carte : nom fixe, jamais purgé par activate (contrairement
    à CACHE_NAME), pour que les zones déjà visitées restent dispo hors-ligne
@@ -10,6 +10,8 @@ const APP_SHELL = [
     "./Planning_v1.0.html",
     "./style.css",
     "./app.js",
+    "./carte-jour.js",
+    "./carte-jour.css",
     "./manifest.json",
     "./icons/icon-192-germany.png",
     "./icons/icon-512-germany.png",

@@ -8737,6 +8737,8 @@ function handleBackNavigation(){
     if(!photoLightbox.hidden){ closePhotoLightbox(); return true; }
     if(!attachmentsModal.hidden){ closeAttachmentsModal(); return true; }
     if(!poiDetailModal.hidden){ closePoiDetail(); return true; }
+    // Carte du jour (carte-jour.js) : fiche/sous-écran d'abord, la vue ensuite.
+    if(typeof window.dayMapHandleBack==="function" && window.dayMapHandleBack()) return true;
 
     if(
         isAnyFullscreenViewOpen() ||

@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="vendor/MarkerCluster.css">
 <link rel="stylesheet" href="vendor/MarkerCluster.Default.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="carte-jour.css">
 </head>
 <body>
 <!-- Anti-clignotement (2026-09-06) : app.js applique body.dark/body.theme-X
@@ -528,6 +529,7 @@
 <img id="destinationPhotoImg" alt="">
 <span id="destinationPhotoLabel" class="destination-photo-label"></span>
 <span id="destinationPhotoCredit" class="destination-photo-credit"></span>
+<span class="destination-photo-map-chip" aria-hidden="true">🗺️ Carte du jour</span>
 </div>
 
 <div class="app-title-row">
@@ -1089,6 +1091,32 @@ Masquer les éléments cochés
 </div>
 </div>
 
+<!-- Carte du jour (maquette C, 2026-11-24) : ouverte depuis la photo de destination, voir carte-jour.js -->
+<div id="dayMapView" class="fullscreen-view profile-sub-view dm-view" hidden>
+<div class="dm-main" id="dmMain">
+<div class="dm-header">
+<button type="button" class="dm-icon-btn" id="dmBackBtn" aria-label="Retour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+<div class="dm-head-text"><div class="dm-kicker" id="dmKicker"></div><h2 class="dm-title" id="dmTitle"></h2></div>
+</div>
+<div class="dm-seg" role="tablist" aria-label="Affichage">
+<button type="button" class="dm-seg-btn active" data-dm-mode="day" role="tab" aria-selected="true">Jour</button>
+<button type="button" class="dm-seg-btn" data-dm-mode="trip" role="tab" aria-selected="false">Tout le voyage</button>
+</div>
+<div class="dm-chips" id="dmDayChips"></div>
+<div class="dm-chips dm-filters" id="dmFilters" hidden></div>
+<div class="dm-map-wrap"><div id="dmMap" class="dm-map"></div><div class="dm-map-badge" id="dmMapBadge" hidden></div></div>
+<div class="dm-actions two dm-quick">
+<button type="button" class="dm-btn dm-btn-accent" id="dmEnRouteBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z"/></svg>En route</button>
+<button type="button" class="dm-btn" id="dmLodgingBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21H3zM9 21v-6h6v6"/></svg>Logement</button>
+</div>
+<div class="dm-list" id="dmList"></div>
+</div>
+<div class="dm-sheet-backdrop" id="dmSheetBackdrop" hidden></div>
+<section class="dm-sheet" id="dmSheet" aria-label="Détail du lieu" hidden></section>
+<section class="dm-sub" id="dmEnRoute" aria-label="En route" hidden></section>
+<section class="dm-sub" id="dmLodging" aria-label="Logement et transports" hidden></section>
+</div>
+
 <div id="emergencyView" class="fullscreen-view profile-sub-view" hidden>
 <div class="fullscreen-header">
 <button class="back-btn profile-back" type="button" aria-label="Retour">←</button>
@@ -1414,5 +1442,6 @@ Masquer les éléments cochés
      app.js, utilisé pour tripLockPinHash (le seul "secret" de l'appli). -->
 <script src="vendor/capacitor-secure-storage.js"></script>
 <script src="app.js"></script>
+<script src="carte-jour.js"></script>
 </body>
 </html>

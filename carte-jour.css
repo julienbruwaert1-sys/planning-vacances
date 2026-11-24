@@ -1,0 +1,333 @@
+/* --- Carte du jour (maquette C, 2026-11-24 — voir carte-jour.js) ---
+   Volontairement en noir mat + ambre quel que soit le thème (comme la
+   maquette validée) : tout est préfixé par #dayMapView pour battre les
+   règles de thème (body.dark/.theme-* .fullscreen-view) et les styles
+   d'éléments nus (h3 en particulier, voir css_bare_element_gotcha).
+   Chargé après style.css. */
+#dayMapView{
+    --dm-bg:#0E0E10;
+    --dm-surface:#17171A;
+    --dm-surface2:#1F1F24;
+    --dm-line:#26262B;
+    --dm-text:#F2F2F3;
+    --dm-muted:#A1A1AA;
+    --dm-faint:#8E8E96;
+    --dm-accent:#F5A524;
+    --dm-accent-soft:rgba(245,165,36,.14);
+    --dm-on-accent:#141005;
+    background:var(--dm-bg);
+    color:var(--dm-text);
+    overflow:hidden;
+    font-family:'Inter',Arial,sans-serif;
+}
+#dayMapView[hidden]{ display:none; }
+#dayMapView [hidden]{ display:none !important; }
+#dayMapView button{ font:inherit; color:inherit; cursor:pointer; }
+#dayMapView button:focus-visible{ outline:2px solid var(--dm-accent); outline-offset:2px; }
+
+#dayMapView .dm-main{
+    height:100%;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    padding:0 0 24px;
+}
+#dayMapView .dm-header,
+#dayMapView .dm-sub-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:16px 16px 10px;
+}
+#dayMapView .dm-head-text{ flex:1; min-width:0; }
+#dayMapView .dm-kicker{ font-size:13px; font-weight:600; color:var(--dm-accent); }
+#dayMapView .dm-title{
+    margin:2px 0 0;
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:23px;
+    font-weight:700;
+    line-height:1.15;
+    color:var(--dm-text);
+    background:none;
+    padding:0;
+    text-align:left;
+}
+#dayMapView .dm-title.big{ font-size:24px; margin:4px 0 2px; }
+#dayMapView .dm-clock{ font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
+#dayMapView .dm-icon-btn{
+    width:44px; height:44px; flex-shrink:0;
+    border-radius:12px;
+    background:var(--dm-surface);
+    border:1px solid var(--dm-line);
+    display:flex; align-items:center; justify-content:center;
+    padding:0;
+}
+#dayMapView .dm-icon-btn.sm{ width:36px; height:36px; border-radius:10px; background:var(--dm-surface2); }
+#dayMapView .dm-icon-btn:disabled{ opacity:.35; cursor:default; }
+
+#dayMapView .dm-seg{
+    display:flex;
+    margin:0 16px 10px;
+    padding:3px;
+    border-radius:12px;
+    background:var(--dm-surface);
+    border:1px solid var(--dm-line);
+}
+#dayMapView .dm-seg-btn{
+    flex:1; border:0; border-radius:9px; padding:9px;
+    background:transparent; color:var(--dm-muted); font-size:13.5px; font-weight:500;
+}
+#dayMapView .dm-seg-btn.active{ background:var(--dm-surface2); color:var(--dm-text); font-weight:700; }
+
+#dayMapView .dm-chips{
+    display:flex; gap:8px;
+    overflow-x:auto;
+    padding:2px 16px 10px;
+    scrollbar-width:none;
+}
+#dayMapView .dm-chips::-webkit-scrollbar{ display:none; }
+#dayMapView .dm-day-chip{
+    flex-shrink:0; width:50px; height:58px;
+    border-radius:14px;
+    background:var(--dm-surface); border:1px solid var(--dm-line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    padding:0;
+}
+#dayMapView .dm-day-chip small{ font-size:11px; color:var(--dm-muted); text-transform:uppercase; letter-spacing:.04em; }
+#dayMapView .dm-day-chip b{ font-size:19px; font-weight:700; }
+#dayMapView .dm-day-chip.active{ background:var(--dm-accent); border-color:var(--dm-accent); color:var(--dm-on-accent); }
+#dayMapView .dm-day-chip.active small{ color:#3A2A06; }
+#dayMapView .dm-filter{
+    flex-shrink:0; min-height:36px;
+    padding:7px 13px; border-radius:999px;
+    background:var(--dm-surface); border:1px solid var(--dm-line);
+    color:#D4D4D8; font-size:13px; white-space:nowrap;
+}
+#dayMapView .dm-filter.active{ background:var(--dm-text); color:var(--dm-bg); border-color:var(--dm-text); font-weight:700; }
+
+#dayMapView .dm-map-wrap{
+    position:relative;
+    margin:0 16px;
+    height:42vh; min-height:260px; max-height:420px;
+    border-radius:18px; overflow:hidden;
+    border:1px solid #222227;
+    background:#141417;
+}
+#dayMapView .dm-map{ position:absolute; inset:0; background:#141417; }
+#dayMapView .leaflet-container{ background:#141417; font-family:inherit; }
+/* Fond de carte assombri (inversion des tuiles OSM) pour coller au noir mat. */
+#dayMapView .leaflet-tile-pane{ filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.6); }
+#dayMapView .leaflet-control-attribution{ background:rgba(14,14,16,.75); color:var(--dm-faint); font-size:10px; }
+#dayMapView .leaflet-control-attribution a{ color:var(--dm-muted); }
+#dayMapView .dm-map-badge{
+    position:absolute; right:10px; bottom:26px; z-index:500;
+    font-size:12px; font-weight:600;
+    padding:7px 10px; border-radius:10px;
+    background:rgba(14,14,16,.9); border:1px solid #2A2A31; color:#D4D4D8;
+}
+
+#dayMapView .dm-pin-wrap{ background:none; border:0; }
+#dayMapView .dm-pin{
+    width:100%; height:100%; border-radius:50%;
+    background:var(--dm-accent); color:var(--dm-on-accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700;
+    box-shadow:0 0 0 3px #0E0E10;
+}
+#dayMapView .dm-pin.dim{ background:#3F3F46; color:var(--dm-text); font-size:11px; box-shadow:0 0 0 2px #141417; }
+#dayMapView .dm-pin.sel{ font-size:17px; box-shadow:0 0 0 4px #0E0E10,0 0 0 10px rgba(245,165,36,.3); }
+#dayMapView .dm-home{
+    width:100%; height:100%; border-radius:9px;
+    background:var(--dm-text); color:var(--dm-bg);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 3px #0E0E10;
+}
+#dayMapView .dm-me{
+    width:100%; height:100%; border-radius:50%;
+    background:#5B9BFF;
+    box-shadow:0 0 0 3px #0E0E10,0 0 0 9px rgba(91,155,255,.3);
+}
+#dayMapView .dm-tag{
+    display:inline-block; white-space:nowrap;
+    padding:4px 7px; border-radius:7px;
+    background:var(--dm-text); color:var(--dm-bg);
+    font-size:11px; font-weight:700;
+    box-shadow:0 0 0 2px #141417;
+}
+
+#dayMapView .dm-actions{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+#dayMapView .dm-actions.two{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+#dayMapView .dm-quick{ margin:12px 16px 4px; }
+#dayMapView .dm-btn{
+    min-height:48px; border-radius:12px;
+    background:var(--dm-surface); border:1px solid #2A2A31;
+    color:var(--dm-text); font-size:14px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    padding:0 10px; text-align:center;
+}
+#dayMapView .dm-btn-accent{ background:var(--dm-accent); border-color:var(--dm-accent); color:var(--dm-on-accent); font-weight:700; }
+#dayMapView .dm-btn-done{ background:var(--dm-accent-soft); border-color:rgba(245,165,36,.45); color:var(--dm-accent); }
+#dayMapView .dm-btn-big{ min-height:54px; font-size:15.5px; border-radius:14px; }
+
+#dayMapView .dm-list{ padding:10px 16px 0; }
+#dayMapView .dm-row,
+#dayMapView .dm-nextrow{
+    width:100%;
+    display:flex; align-items:center; gap:12px;
+    padding:9px 0;
+    background:none; border:0; text-align:left;
+}
+#dayMapView .dm-num{
+    width:28px; height:28px; flex-shrink:0; border-radius:50%;
+    background:var(--dm-accent); color:var(--dm-on-accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700;
+}
+#dayMapView .dm-num.dim{ background:#3F3F46; color:var(--dm-text); }
+#dayMapView .dm-num.done{ background:var(--dm-accent-soft); color:var(--dm-accent); }
+#dayMapView .dm-time{ width:44px; flex-shrink:0; font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+#dayMapView .dm-row-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
+#dayMapView .dm-row-name{ font-size:15px; font-weight:600; color:var(--dm-text); line-height:1.3; }
+#dayMapView .dm-row-meta{ font-size:12.5px; color:var(--dm-muted); margin-top:1px; }
+#dayMapView .dm-row.done .dm-row-name{ color:var(--dm-muted); text-decoration:line-through; text-decoration-color:#52525B; }
+#dayMapView .dm-leg{
+    display:flex; align-items:center; gap:8px;
+    height:20px; padding-left:13px;
+    font-size:12px; color:var(--dm-faint);
+}
+#dayMapView .dm-leg i{
+    display:block; width:2px; height:20px; margin-right:14px;
+    background:repeating-linear-gradient(#3F3F46 0 3px,transparent 3px 6px);
+}
+#dayMapView .dm-daycard{
+    width:100%; text-align:left;
+    display:grid; grid-template-columns:1fr auto; gap:2px 10px;
+    padding:12px 14px; margin-bottom:8px;
+    border-radius:14px; background:var(--dm-surface); border:1px solid #24242A;
+}
+#dayMapView .dm-daycard.active{ border-color:var(--dm-accent); background:var(--dm-accent-soft); }
+#dayMapView .dm-daycard-date{ font-size:12px; font-weight:600; color:var(--dm-faint); }
+#dayMapView .dm-daycard.active .dm-daycard-date{ color:var(--dm-accent); }
+#dayMapView .dm-daycard-title{ grid-column:1; font-size:15px; font-weight:600; }
+#dayMapView .dm-daycard-meta{ grid-column:2; grid-row:1 / span 2; align-self:center; font-size:12.5px; color:var(--dm-muted); }
+#dayMapView .dm-empty{ color:var(--dm-muted); font-size:14px; padding:12px 0; margin:0; }
+
+/* Fiche d'un lieu (panneau du bas) */
+#dayMapView .dm-sheet-backdrop{ position:absolute; inset:0; z-index:1000; background:rgba(0,0,0,.45); }
+#dayMapView .dm-sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:1001;
+    max-height:82%; overflow-y:auto;
+    background:#141417;
+    border-top:1px solid var(--dm-line);
+    border-radius:24px 24px 0 0;
+    padding:10px 18px 22px;
+}
+#dayMapView .dm-grabber{ width:40px; height:4px; border-radius:2px; background:#3F3F46; margin:0 auto 12px; }
+#dayMapView .dm-sheet-top{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+#dayMapView .dm-sheet-kicker{ font-size:13px; font-weight:700; color:var(--dm-accent); }
+#dayMapView .dm-sheet-range{ font-size:13px; color:var(--dm-muted); }
+#dayMapView .dm-sheet-nav{ margin-left:auto; display:flex; gap:6px; }
+#dayMapView .dm-sheet-title{
+    margin:10px 0 8px; padding:0; background:none; border-radius:0;
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:24px; font-weight:700; line-height:1.15; color:var(--dm-text);
+}
+#dayMapView .dm-chiprow{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+#dayMapView .dm-chip{ font-size:12px; padding:4px 10px; border-radius:999px; background:var(--dm-surface2); color:#D4D4D8; }
+#dayMapView .dm-sheet .dm-actions{ margin-bottom:12px; }
+#dayMapView .dm-info{
+    width:100%; display:flex; gap:12px; align-items:flex-start;
+    padding:11px 0; border:0; border-top:1px solid #222227;
+    background:none; text-align:left;
+}
+#dayMapView .dm-info > svg{ flex-shrink:0; margin-top:1px; color:var(--dm-muted); }
+#dayMapView .dm-info-text b{ display:block; font-size:11.5px; font-weight:600; color:var(--dm-faint); text-transform:uppercase; letter-spacing:.06em; }
+#dayMapView .dm-info-text span{ display:block; font-size:14.5px; color:var(--dm-text); margin-top:2px; line-height:1.4; }
+#dayMapView .dm-info-link .dm-info-text span{ text-decoration:underline; text-decoration-color:#52525B; text-underline-offset:3px; }
+#dayMapView .dm-nextrow{
+    margin-top:10px; padding:12px 14px;
+    border-radius:14px; background:var(--dm-bg); border:1px solid #222227;
+}
+#dayMapView .dm-nextrow > svg{ color:var(--dm-muted); flex-shrink:0; }
+
+/* Sous-écrans En route / Logement */
+#dayMapView .dm-sub{
+    position:absolute; inset:0; z-index:1100;
+    background:var(--dm-bg);
+    overflow-y:auto; overscroll-behavior-y:contain;
+    padding-bottom:24px;
+}
+#dayMapView #dmEnRoute{ padding:0 16px 24px; }
+#dayMapView #dmEnRoute .dm-sub-head{ padding:16px 0 10px; }
+#dayMapView .dm-notice{
+    margin:0 0 12px; padding:10px 12px; border-radius:12px;
+    background:var(--dm-surface); border:1px dashed #3F3F46;
+    font-size:13px; color:var(--dm-muted);
+}
+#dayMapView .dm-progress{ position:relative; display:flex; align-items:flex-start; padding:4px 0 14px; }
+#dayMapView .dm-progress-line,
+#dayMapView .dm-progress-fill{ position:absolute; top:18px; height:2px; }
+#dayMapView .dm-progress-line{ left:6%; right:6%; background:var(--dm-line); }
+#dayMapView .dm-progress-fill{ left:6%; max-width:88%; background:var(--dm-accent); }
+#dayMapView .dm-step{ position:relative; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; }
+#dayMapView .dm-step small{ font-size:11px; color:var(--dm-faint); font-variant-numeric:tabular-nums; }
+#dayMapView .dm-step-dot{
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700;
+    background:var(--dm-surface2); color:var(--dm-muted);
+}
+#dayMapView .dm-step-dot.done{ background:var(--dm-accent); color:var(--dm-on-accent); }
+#dayMapView .dm-step-dot.next{ background:var(--dm-bg); border:2px solid var(--dm-accent); color:var(--dm-accent); }
+#dayMapView .dm-card{ border-radius:20px; background:var(--dm-surface); border:1px solid var(--dm-line); overflow:hidden; margin-bottom:12px; }
+#dayMapView .dm-card-pad{ padding:14px 16px 16px; }
+#dayMapView .dm-card-kicker{ font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dm-accent); }
+#dayMapView .dm-card-title{ font-family:'Playfair Display',Georgia,serif; font-size:23px; font-weight:700; margin-top:4px; line-height:1.15; }
+#dayMapView .dm-mini-map{ height:220px; background:#141417; }
+#dayMapView .dm-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:14px 0 8px; }
+#dayMapView .dm-stats.two{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+#dayMapView .dm-stat{ background:var(--dm-bg); border:1px solid #222227; border-radius:12px; padding:10px; }
+#dayMapView .dm-sub-body .dm-stat{ background:var(--dm-surface); }
+#dayMapView .dm-stat small{ display:block; font-size:11.5px; color:var(--dm-faint); }
+#dayMapView .dm-stat b{ display:block; font-size:17px; font-weight:700; margin-top:2px; }
+#dayMapView .dm-stat.accent{ background:var(--dm-accent-soft); border-color:transparent; }
+#dayMapView .dm-stat.accent small,
+#dayMapView .dm-stat.accent b{ color:var(--dm-accent); }
+#dayMapView .dm-faint{ font-size:12px; color:var(--dm-faint); margin:0; }
+#dayMapView .dm-muted{ font-size:14px; color:var(--dm-muted); }
+#dayMapView .dm-stack{ display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+
+#dayMapView .dm-lodging-top{ position:relative; }
+#dayMapView .dm-lodging-map{ height:280px; background:#141417; }
+#dayMapView .dm-float{ position:absolute; left:14px; top:14px; z-index:500; background:rgba(14,14,16,.9); }
+#dayMapView .dm-sub-body{ padding:16px 16px 0; }
+#dayMapView .dm-sub-body .dm-actions{ margin:4px 0 6px; }
+#dayMapView .dm-section{
+    margin:18px 0 4px;
+    font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dm-faint);
+}
+#dayMapView .dm-transit-row{ display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid #222227; }
+#dayMapView .dm-transit-row em{ font-style:normal; font-size:13px; font-weight:600; color:#D4D4D8; white-space:nowrap; }
+#dayMapView .dm-badge{
+    min-width:54px; height:30px; padding:0 6px; flex-shrink:0;
+    border-radius:8px; background:var(--dm-surface2); color:var(--dm-text);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700;
+}
+#dayMapView .dm-badge.kind-metro{ background:var(--dm-accent-soft); color:var(--dm-accent); }
+
+/* Accès depuis la photo de destination */
+.destination-photo-banner{ cursor:pointer; }
+.destination-photo-banner:focus-visible{ outline:2px solid #D2503B; outline-offset:2px; }
+.destination-photo-map-chip{
+    position:absolute;
+    right:10px;
+    top:10px;
+    z-index:2;
+    font-size:12px;
+    font-weight:600;
+    color:#FFFFFF;
+    background:rgba(0,0,0,.45);
+    padding:5px 10px;
+    border-radius:999px;
+    pointer-events:none;
+}
